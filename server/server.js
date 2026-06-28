@@ -24,6 +24,7 @@ const roleRoutes = require('./routes/roleRoutes');
 const reportRoutes = require('./routes/reportRoutes');
 const chatRoutes = require('./routes/chatRoutes');
 const callRoutes = require('./routes/callRoutes');
+const setupRoutes = require('./routes/setupRoutes');
 
 const app = express();
 const server = http.createServer(app);
@@ -135,6 +136,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/roles', roleRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/setup', setupRoutes);
 app.use('/api/calls', callRoutes);
 
 app.get('/api/health', (req, res) => res.json({
