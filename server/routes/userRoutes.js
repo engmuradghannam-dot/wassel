@@ -1,29 +1,29 @@
 const express = require('express');
-const router  = express.Router();
+const router = express.Router();
 const { protect, authorize } = require('../middleware/auth');
-const { tenantGuard, checkPlanLimit } = require('../middleware/tenant');
 const {
-  register, login, getMe,
-  getUsers, getUser, createUser, updateUser, deleteUser,
+  getUsers,
+  getUser,
+  createUser,
+  updateUser,
+  deleteUser,
+  login,
+  register,
   updateOnlineStatus
 } = require('../controllers/userController');
 
-// Public
+// Public routes
 router.post('/register', register);
-router.post('/login',    login);
+router.post('/login', login);
 
-// Private — current user
-router.get('/me',      protect, getMe);
-router.put('/status',  protect, updateOnlineStatus);
+// Protected routes
+router.use(protect);
 
-// Private — user management (scoped to company)
-router.route('/')
-  .get( protect, tenantGuard, getUsers)
-  .post(protect, tenantGuard, authorize('admin'), checkPlanLimit('users'), createUser);
-
-router.route('/:id')
-  .get(   protect, tenantGuard, getUser)
-  .put(   protect, tenantGuard, authorize('admin'), updateUser)
-  .delete(protect, tenantGuard, authorize('admin'), deleteUser);
+router.get('/', authorize('admin'), getUsers);
+router.post('/', authorize('admin'), createUser);
+router.get('/:id', getUser);
+router.put('/:id', authorize('admin'), updateUser);
+router.delete('/:id', authorize('admin'), deleteUser);
+router.put('/status/online', updateOnlineStatus);
 
 module.exports = router;
