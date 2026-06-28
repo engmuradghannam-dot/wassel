@@ -8,6 +8,26 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: cd server && npm install
+
       - name: Trigger Render Deploy
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
         run: |
-          curl -X POST "https://api.render.com/v1/services/srv-d8u2t9beo5us73c1m8g0/deploys"             -H "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}"             -H "Content-Type: application/json"
+          curl -X POST "https://api.render.com/v1/services/srv-d8u2t9beo5us73c1m8g0/deploys"             -H "Authorization: Bearer $RENDER_API_KEY"             -H "Content-Type: application/json"             -d '{"clearCache": true}'
+
+      - name: Wait for deployment
+        run: sleep 30
+
+      - name: Check health
+        run: |
+          curl -s https://wassel-cyj5.onrender.com/api/health || echo "Health check failed"
