@@ -3,36 +3,60 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { Box, CircularProgress } from '@mui/material';
+import { arSD } from '@mui/material/locale';
 import './i18n';
 
-// Lazy load pages for better performance
-const ChatPage = React.lazy(() => import('./pages/Chat/ChatPage'));
-const CompanySettings = React.lazy(() => import('./pages/CompanySettings/CompanySettings'));
+// ─── Auth Guard ───────────────────────────────────────────────────────────
+const PrivateRoute = ({ children }) => {
+  const token = localStorage.getItem('token');
+  return token ? children : <Navigate to="/login" replace />;
+};
 
-// Loading component
+// ─── Lazy Pages ───────────────────────────────────────────────────────────
+const LoginPage         = React.lazy(() => import('./pages/Login/LoginPage'));
+const Dashboard         = React.lazy(() => import('./pages/Dashboard/Dashboard'));
+const ChatPage          = React.lazy(() => import('./pages/Chat/ChatPage'));
+const CompanySettings   = React.lazy(() => import('./pages/CompanySettings/CompanySettings'));
+const InventoryPage     = React.lazy(() => import('./pages/Inventory/InventoryPage'));
+const SuppliersPage     = React.lazy(() => import('./pages/Suppliers/SuppliersPage'));
+const EmployeesPage     = React.lazy(() => import('./pages/Employees/EmployeesPage'));
+const PurchaseOrdersPage = React.lazy(() => import('./pages/PurchaseOrders/PurchaseOrdersPage'));
+
+// ─── Loading ──────────────────────────────────────────────────────────────
 const PageLoader = () => (
-  <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-    <CircularProgress size={60} />
+  <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', bgcolor: '#f8f9fa' }}>
+    <Box sx={{ textAlign: 'center' }}>
+      <Box sx={{ width: 48, height: 48, borderRadius: 1.5, bgcolor: '#1a73e8', display: 'flex', alignItems: 'center', justifyContent: 'center', mx: 'auto', mb: 2 }}>
+        <span style={{ color: 'white', fontSize: 24, fontWeight: 700 }}>و</span>
+      </Box>
+      <CircularProgress size={28} sx={{ color: '#1a73e8' }} />
+    </Box>
   </Box>
 );
 
-// Create theme
+// ─── Theme ────────────────────────────────────────────────────────────────
 const theme = createTheme({
   direction: 'rtl',
   palette: {
     mode: 'light',
-    primary: {
-      main: '#1976d2',
-    },
-    secondary: {
-      main: '#dc004e',
-    },
+    primary: { main: '#1a73e8' },
+    secondary: { main: '#34a853' },
+    background: { default: '#f8f9fa', paper: '#ffffff' }
   },
   typography: {
-    fontFamily: '"Roboto", "Arial", sans-serif',
+    fontFamily: '"Segoe UI", "Arial", sans-serif',
+    h5: { fontWeight: 700 },
+    h6: { fontWeight: 600 }
   },
-});
+  shape: { borderRadius: 8 },
+  components: {
+    MuiButton: { styleOverrides: { root: { textTransform: 'none', borderRadius: 8 } } },
+    MuiPaper: { styleOverrides: { root: { boxShadow: '0 1px 3px rgba(0,0,0,0.08)' } } },
+    MuiTableCell: { styleOverrides: { head: { fontWeight: 600 } } }
+  }
+}, arSD);
 
+// ─── App ──────────────────────────────────────────────────────────────────
 function App() {
   return (
     <ThemeProvider theme={theme}>
@@ -40,14 +64,53 @@ function App() {
       <Router>
         <Suspense fallback={<PageLoader />}>
           <Routes>
-            <Route path="/chat" element={<ChatPage />} />
-            <Route path="/company-settings" element={<CompanySettings />} />
-            <Route path="/" element={<Navigate to="/chat" replace />} />
+            {/* Public */}
+            <Route path="/login" element={<LoginPage />} />
+
+            {/* Auth callback */}
+            <Route path="/auth/callback" element={<AuthCallback />} />
+
+            {/* Private */}
+            <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+            <Route path="/chat" element={<PrivateRoute><ChatPage /></PrivateRoute>} />
+            <Route path="/inventory" element={<PrivateRoute><InventoryPage /></PrivateRoute>} />
+            <Route path="/suppliers" element={<PrivateRoute><SuppliersPage /></PrivateRoute>} />
+            <Route path="/employees" element={<PrivateRoute><EmployeesPage /></PrivateRoute>} />
+            <Route path="/purchase-orders" element={<PrivateRoute><PurchaseOrdersPage /></PrivateRoute>} />
+            <Route path="/company-settings" element={<PrivateRoute><CompanySettings /></PrivateRoute>} />
+
+            {/* Default */}
+            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
         </Suspense>
       </Router>
     </ThemeProvider>
   );
 }
+
+// ─── Auth Callback (Google OAuth) ─────────────────────────────────────────
+const AuthCallback = () => {
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get('token');
+  if (token) {
+    localStorage.setItem('token', token);
+    // Fetch user info
+    fetch('/api/auth/me', { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json())
+      .then(d => {
+        if (d.success) {
+          localStorage.setItem('userId', d.data._id);
+          localStorage.setItem('userName', d.data.name);
+          localStorage.setItem('userRole', d.data.role);
+        }
+      })
+      .catch(() => {})
+      .finally(() => { window.location.href = '/dashboard'; });
+  } else {
+    window.location.href = '/login?error=auth_failed';
+  }
+  return <PageLoader />;
+};
 
 export default App;
