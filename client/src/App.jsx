@@ -2,7 +2,7 @@ import React, { Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
-import { Box, CircularProgress } from '@mui/material';
+import { Box, CircularProgress, Typography } from '@mui/material';
 import { arSD } from '@mui/material/locale';
 import './i18n';
 
@@ -13,26 +13,22 @@ const PrivateRoute = ({ children }) => {
 };
 
 // ─── Lazy Pages ───────────────────────────────────────────────────────────
-const LoginPage           = React.lazy(() => import('./pages/Login/LoginPage'));
-const RegisterPage        = React.lazy(() => import('./pages/Register/RegisterPage')); // FIX: was missing
-const Dashboard           = React.lazy(() => import('./pages/Dashboard/Dashboard'));
-const ChatPage            = React.lazy(() => import('./pages/Chat/ChatPage'));
-const CompanySettings     = React.lazy(() => import('./pages/CompanySettings/CompanySettings'));
-const InventoryPage       = React.lazy(() => import('./pages/Inventory/InventoryPage'));
-const SuppliersPage       = React.lazy(() => import('./pages/Suppliers/SuppliersPage'));
-const EmployeesPage       = React.lazy(() => import('./pages/Employees/EmployeesPage'));
-const PurchaseOrdersPage  = React.lazy(() => import('./pages/PurchaseOrders/PurchaseOrdersPage'));
-const AccountingPage      = React.lazy(() => import('./pages/Accounting/AccountingPage')); // NEW
+const LoginPage = React.lazy(() => import('./pages/Login/LoginPage'));
+const RegisterPage = React.lazy(() => import('./pages/Register/RegisterPage'));
+const Dashboard = React.lazy(() => import('./pages/Dashboard/Dashboard'));
+const ChatPage = React.lazy(() => import('./pages/Chat/ChatPage'));
+const CompanySettings = React.lazy(() => import('./pages/CompanySettings/CompanySettings'));
+const InventoryPage = React.lazy(() => import('./pages/Inventory/InventoryPage'));
+const SuppliersPage = React.lazy(() => import('./pages/Suppliers/SuppliersPage'));
+const EmployeesPage = React.lazy(() => import('./pages/Employees/EmployeesPage'));
+const PurchaseOrdersPage = React.lazy(() => import('./pages/PurchaseOrders/PurchaseOrdersPage'));
+const AccountingPage = React.lazy(() => import('./pages/Accounting/AccountingPage'));
 
 // ─── Loading ──────────────────────────────────────────────────────────────
 const PageLoader = () => (
-  <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', bgcolor: '#f8f9fa' }}>
-    <Box sx={{ textAlign: 'center' }}>
-      <Box sx={{ width: 48, height: 48, borderRadius: 1.5, bgcolor: '#1a73e8', display: 'flex', alignItems: 'center', justifyContent: 'center', mx: 'auto', mb: 2 }}>
-        <span style={{ color: 'white', fontSize: 24, fontWeight: 700 }}>و</span>
-      </Box>
-      <CircularProgress size={28} sx={{ color: '#1a73e8' }} />
-    </Box>
+  <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+    <CircularProgress />
+    <Typography sx={{ ml: 2 }}>جارٍ التحميل...</Typography>
   </Box>
 );
 
@@ -59,7 +55,6 @@ const theme = createTheme({
 }, arSD);
 
 // ─── Auth Callback (Google OAuth) ─────────────────────────────────────────
-// FIX: was defined in App but not imported → caused ReferenceError
 const AuthCallback = () => {
   const params = new URLSearchParams(window.location.search);
   const token = params.get('token');
@@ -98,24 +93,24 @@ function App() {
           <Routes>
             {/* Public */}
             <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} /> {/* FIX: RegisterPage now imported */}
+            <Route path="/register" element={<RegisterPage />} />
 
             {/* Auth callback (Google OAuth) */}
-            <Route path="/auth/callback" element={<AuthCallback />} /> {/* FIX: AuthCallback now defined above */}
+            <Route path="/auth/callback" element={<AuthCallback />} />
 
             {/* Private */}
-            <Route path="/dashboard"        element={<PrivateRoute><Dashboard /></PrivateRoute>} />
-            <Route path="/chat"             element={<PrivateRoute><ChatPage /></PrivateRoute>} />
-            <Route path="/inventory"        element={<PrivateRoute><InventoryPage /></PrivateRoute>} />
-            <Route path="/suppliers"        element={<PrivateRoute><SuppliersPage /></PrivateRoute>} />
-            <Route path="/employees"        element={<PrivateRoute><EmployeesPage /></PrivateRoute>} />
-            <Route path="/purchase-orders"  element={<PrivateRoute><PurchaseOrdersPage /></PrivateRoute>} />
+            <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+            <Route path="/chat" element={<PrivateRoute><ChatPage /></PrivateRoute>} />
             <Route path="/company-settings" element={<PrivateRoute><CompanySettings /></PrivateRoute>} />
-            <Route path="/accounting"       element={<PrivateRoute><AccountingPage /></PrivateRoute>} /> {/* NEW */}
+            <Route path="/inventory" element={<PrivateRoute><InventoryPage /></PrivateRoute>} />
+            <Route path="/suppliers" element={<PrivateRoute><SuppliersPage /></PrivateRoute>} />
+            <Route path="/employees" element={<PrivateRoute><EmployeesPage /></PrivateRoute>} />
+            <Route path="/purchase-orders" element={<PrivateRoute><PurchaseOrdersPage /></PrivateRoute>} />
+            <Route path="/accounting" element={<PrivateRoute><AccountingPage /></PrivateRoute>} />
 
             {/* Default */}
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/" element={<Navigate to="/login" replace />} />
+            <Route path="*" element={<Navigate to="/login" replace />} />
           </Routes>
         </Suspense>
       </Router>
