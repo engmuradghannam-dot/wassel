@@ -1,13 +1,12 @@
 import React, { useState } from 'react';
 import {
-  Box, Drawer, List, ListItemButton, ListItemIcon, ListItemText,
-  Typography, Avatar, Divider, IconButton, Tooltip, Badge, Chip
+  Box, List, ListItemButton, ListItemIcon, ListItemText,
+  Typography, Avatar, Divider, IconButton, Tooltip, Chip
 } from '@mui/material';
 import {
   Dashboard, Inventory2, People, LocalShipping, ShoppingCart,
-  Chat, Videocam, Business, Assessment, Settings, Logout,
-  Menu as MenuIcon, Close, AccountTree, Warehouse,
-  ChevronLeft, ChevronRight
+  Chat, Business, Assessment, Logout, AccountBalance,
+  AccountTree, Warehouse, ChevronLeft, ChevronRight
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 
@@ -15,18 +14,19 @@ const DRAWER_WIDTH = 240;
 const DRAWER_MINI = 64;
 
 const navItems = [
-  { path: '/dashboard', icon: <Dashboard />, label: 'الرئيسية' },
-  { path: '/inventory', icon: <Inventory2 />, label: 'المخزون' },
-  { path: '/suppliers', icon: <LocalShipping />, label: 'الموردون' },
-  { path: '/purchase-orders', icon: <ShoppingCart />, label: 'أوامر الشراء' },
-  { path: '/employees', icon: <People />, label: 'الموظفون' },
-  { path: '/branches', icon: <AccountTree />, label: 'الفروع' },
-  { path: '/warehouses', icon: <Warehouse />, label: 'المستودعات' },
+  { path: '/dashboard',       icon: <Dashboard />,       label: 'الرئيسية' },
+  { path: '/inventory',       icon: <Inventory2 />,      label: 'المخزون' },
+  { path: '/suppliers',       icon: <LocalShipping />,   label: 'الموردون' },
+  { path: '/purchase-orders', icon: <ShoppingCart />,    label: 'أوامر الشراء' },
+  { path: '/employees',       icon: <People />,          label: 'الموظفون' },
+  { path: '/branches',        icon: <AccountTree />,     label: 'الفروع' },
+  { path: '/warehouses',      icon: <Warehouse />,       label: 'المستودعات' },
   { divider: true },
-  { path: '/chat', icon: <Chat />, label: 'المحادثات' },
+  { path: '/accounting',      icon: <AccountBalance />,  label: 'المحاسبة' }, // NEW
+  { path: '/chat',            icon: <Chat />,            label: 'المحادثات' },
   { divider: true },
-  { path: '/reports', icon: <Assessment />, label: 'التقارير' },
-  { path: '/company-settings', icon: <Business />, label: 'الشركة' },
+  { path: '/reports',         icon: <Assessment />,      label: 'التقارير' },
+  { path: '/company-settings',icon: <Business />,        label: 'الشركة' },
 ];
 
 const Layout = ({ children }) => {
