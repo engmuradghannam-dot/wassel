@@ -13,16 +13,17 @@ const PrivateRoute = ({ children }) => {
 };
 
 // ─── Lazy Pages ───────────────────────────────────────────────────────────
-const LoginPage = React.lazy(() => import('./pages/Login/LoginPage'));
-const RegisterPage = React.lazy(() => import('./pages/Register/RegisterPage'));
-const Dashboard = React.lazy(() => import('./pages/Dashboard/Dashboard'));
-const ChatPage = React.lazy(() => import('./pages/Chat/ChatPage'));
-const CompanySettings = React.lazy(() => import('./pages/CompanySettings/CompanySettings'));
-const InventoryPage = React.lazy(() => import('./pages/Inventory/InventoryPage'));
-const SuppliersPage = React.lazy(() => import('./pages/Suppliers/SuppliersPage'));
-const EmployeesPage = React.lazy(() => import('./pages/Employees/EmployeesPage'));
+const LoginPage          = React.lazy(() => import('./pages/Login/LoginPage'));
+const RegisterPage       = React.lazy(() => import('./pages/Register/RegisterPage'));
+const AuthCallback       = React.lazy(() => import('./pages/AuthCallback/AuthCallback'));
+const Dashboard          = React.lazy(() => import('./pages/Dashboard/Dashboard'));
+const ChatPage           = React.lazy(() => import('./pages/Chat/ChatPage'));
+const CompanySettings    = React.lazy(() => import('./pages/CompanySettings/CompanySettings'));
+const InventoryPage      = React.lazy(() => import('./pages/Inventory/InventoryPage'));
+const SuppliersPage      = React.lazy(() => import('./pages/Suppliers/SuppliersPage'));
+const EmployeesPage      = React.lazy(() => import('./pages/Employees/EmployeesPage'));
 const PurchaseOrdersPage = React.lazy(() => import('./pages/PurchaseOrders/PurchaseOrdersPage'));
-const AccountingPage = React.lazy(() => import('./pages/Accounting/AccountingPage'));
+const AccountingPage     = React.lazy(() => import('./pages/Accounting/AccountingPage'));
 
 // ─── Loading ──────────────────────────────────────────────────────────────
 const PageLoader = () => (
@@ -37,8 +38,8 @@ const theme = createTheme({
   direction: 'rtl',
   palette: {
     mode: 'light',
-    primary: { main: '#1a73e8' },
-    secondary: { main: '#34a853' },
+    primary:    { main: '#1a73e8' },
+    secondary:  { main: '#34a853' },
     background: { default: '#f8f9fa', paper: '#ffffff' }
   },
   typography: {
@@ -48,40 +49,11 @@ const theme = createTheme({
   },
   shape: { borderRadius: 8 },
   components: {
-    MuiButton: { styleOverrides: { root: { textTransform: 'none', borderRadius: 8 } } },
-    MuiPaper: { styleOverrides: { root: { boxShadow: '0 1px 3px rgba(0,0,0,0.08)' } } },
+    MuiButton:    { styleOverrides: { root: { textTransform: 'none', borderRadius: 8 } } },
+    MuiPaper:     { styleOverrides: { root: { boxShadow: '0 1px 3px rgba(0,0,0,0.08)' } } },
     MuiTableCell: { styleOverrides: { head: { fontWeight: 600 } } }
   }
 }, arSD);
-
-// ─── Auth Callback (Google OAuth) ─────────────────────────────────────────
-const AuthCallback = () => {
-  const params = new URLSearchParams(window.location.search);
-  const token = params.get('token');
-  const error = params.get('error');
-
-  React.useEffect(() => {
-    if (error || !token) {
-      window.location.href = '/login?error=auth_failed';
-      return;
-    }
-    localStorage.setItem('token', token);
-    const API_URL = process.env.REACT_APP_API_URL || 'https://wassel-cyj5.onrender.com';
-    fetch(`${API_URL}/api/auth/me`, { headers: { Authorization: `Bearer ${token}` } })
-      .then(r => r.json())
-      .then(d => {
-        if (d.success) {
-          localStorage.setItem('userId', d.data._id);
-          localStorage.setItem('userName', d.data.name);
-          localStorage.setItem('userRole', d.data.role);
-        }
-      })
-      .catch(() => {})
-      .finally(() => { window.location.href = '/dashboard'; });
-  }, [token, error]);
-
-  return <PageLoader />;
-};
 
 // ─── App ──────────────────────────────────────────────────────────────────
 function App() {
@@ -92,25 +64,25 @@ function App() {
         <Suspense fallback={<PageLoader />}>
           <Routes>
             {/* Public */}
-            <Route path="/login" element={<LoginPage />} />
+            <Route path="/login"    element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
 
-            {/* Auth callback (Google OAuth) */}
+            {/* Google OAuth callback */}
             <Route path="/auth/callback" element={<AuthCallback />} />
 
             {/* Private */}
-            <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
-            <Route path="/chat" element={<PrivateRoute><ChatPage /></PrivateRoute>} />
+            <Route path="/dashboard"       element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+            <Route path="/chat"            element={<PrivateRoute><ChatPage /></PrivateRoute>} />
             <Route path="/company-settings" element={<PrivateRoute><CompanySettings /></PrivateRoute>} />
-            <Route path="/inventory" element={<PrivateRoute><InventoryPage /></PrivateRoute>} />
-            <Route path="/suppliers" element={<PrivateRoute><SuppliersPage /></PrivateRoute>} />
-            <Route path="/employees" element={<PrivateRoute><EmployeesPage /></PrivateRoute>} />
+            <Route path="/inventory"       element={<PrivateRoute><InventoryPage /></PrivateRoute>} />
+            <Route path="/suppliers"       element={<PrivateRoute><SuppliersPage /></PrivateRoute>} />
+            <Route path="/employees"       element={<PrivateRoute><EmployeesPage /></PrivateRoute>} />
             <Route path="/purchase-orders" element={<PrivateRoute><PurchaseOrdersPage /></PrivateRoute>} />
-            <Route path="/accounting" element={<PrivateRoute><AccountingPage /></PrivateRoute>} />
+            <Route path="/accounting"      element={<PrivateRoute><AccountingPage /></PrivateRoute>} />
 
             {/* Default */}
-            <Route path="/" element={<Navigate to="/login" replace />} />
-            <Route path="*" element={<Navigate to="/login" replace />} />
+            <Route path="/"  element={<Navigate to="/login" replace />} />
+            <Route path="*"  element={<Navigate to="/login" replace />} />
           </Routes>
         </Suspense>
       </Router>

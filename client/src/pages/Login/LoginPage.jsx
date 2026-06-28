@@ -12,16 +12,21 @@ import api from '../../services/api';
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const [email, setEmail]       = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [showPw, setShowPw]     = useState(false);
-  const [loading, setLoading]   = useState(false);
-  const [error, setError]       = useState('');
+  const [showPw, setShowPw] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
+    if (!email.trim() || !password) {
+      setError('يرجى إدخال البريد الإلكتروني وكلمة المرور');
+      setLoading(false);
+      return;
+    }
     try {
       const res = await api.post('/api/users/login', { email, password });
       if (res.data.success) {
@@ -44,38 +49,25 @@ export default function LoginPage() {
   };
 
   return (
-    <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: '#1a73e8' }}>
-      <Paper elevation={6} sx={{ p: 4, width: 420, borderRadius: 3, textAlign: 'center' }}>
-
-        {/* Logo */}
-        <Box sx={{ mb: 3 }}>
-          <Box sx={{
-            width: 80, height: 80, bgcolor: '#1a73e8', borderRadius: 2,
-            mx: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: 'white', fontSize: 40, fontWeight: 'bold'
-          }}>و</Box>
-          <Typography variant="h4" sx={{ mt: 2, fontWeight: 700 }}>وصّل ERP</Typography>
+    <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: '#f0f2f5', p: 2 }}>
+      <Paper elevation={3} sx={{ p: 4, width: '100%', maxWidth: 400, borderRadius: 3 }}>
+        <Box sx={{ textAlign: 'center', mb: 3 }}>
+          <Box sx={{ width: 70, height: 70, bgcolor: '#1a73e8', borderRadius: 2, mx: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: 36, fontWeight: 'bold', mb: 1 }}>و</Box>
+          <Typography variant="h4" sx={{ fontWeight: 700, color: '#1a73e8', mb: 0.5 }}>وصّل ERP</Typography>
           <Typography variant="body2" color="text.secondary">نظام إدارة الأعمال المتكامل</Typography>
         </Box>
 
-        {error && <Alert severity="error" sx={{ mb: 2, textAlign: 'right' }}>{error}</Alert>}
+        {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
-        {/* Form */}
         <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           <TextField
-            label="البريد الإلكتروني *"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required fullWidth
+            label="البريد الإلكتروني" type="email" value={email}
+            onChange={e => setEmail(e.target.value)} required fullWidth
             InputProps={{ startAdornment: <InputAdornment position="start">📧</InputAdornment> }}
           />
           <TextField
-            label="كلمة المرور *"
-            type={showPw ? 'text' : 'password'}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required fullWidth
+            label="كلمة المرور" type={showPw ? 'text' : 'password'} value={password}
+            onChange={e => setPassword(e.target.value)} required fullWidth
             InputProps={{
               startAdornment: <InputAdornment position="start">🔒</InputAdornment>,
               endAdornment: (
@@ -87,53 +79,28 @@ export default function LoginPage() {
               )
             }}
           />
-          <Button
-            type="submit" variant="contained" size="large"
-            disabled={loading}
+          <Button type="submit" variant="contained" size="large" disabled={loading}
             startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <LoginIcon />}
-            sx={{ bgcolor: '#1a73e8', '&:hover': { bgcolor: '#1557b0' }, borderRadius: 2, py: 1.5 }}
-          >
-            {loading ? 'جارٍ الدخول...' : 'دخول'}
+            sx={{ mt: 1, py: 1.2, fontWeight: 600 }}>
+            {loading ? 'جاري تسجيل الدخول...' : 'تسجيل الدخول'}
           </Button>
         </Box>
 
         <Divider sx={{ my: 2 }}>أو</Divider>
 
-        {/* Google Login */}
-        <Button
-          variant="outlined" fullWidth size="large"
-          onClick={handleGoogle}
-          startIcon={<GoogleIcon />}
-          sx={{ borderRadius: 2, py: 1.5, color: '#1a73e8', borderColor: '#1a73e8', mb: 2 }}
-        >
-          الدخول عبر Google
+        <Button variant="outlined" fullWidth onClick={handleGoogle}
+          startIcon={<GoogleIcon />} sx={{ py: 1, fontWeight: 600, mb: 2 }}>
+          تسجيل الدخول عبر Google
         </Button>
 
-        {/* Register Link */}
-        <Box sx={{
-          mt: 1, p: 2, bgcolor: '#f8f9fa', borderRadius: 2,
-          border: '1px solid #e0e0e0'
-        }}>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-            ليس لديك حساب؟
+        <Box sx={{ textAlign: 'center' }}>
+          <Typography variant="body2">
+            ليس لديك حساب؟{' '}
+            <Link to="/register" style={{ color: '#1a73e8', fontWeight: 600, textDecoration: 'none' }}>
+              سجّل الآن
+            </Link>
           </Typography>
-          <Button
-            component={Link}
-            to="/register"
-            variant="contained"
-            fullWidth
-            sx={{
-              bgcolor: '#34a853', '&:hover': { bgcolor: '#2d9248' },
-              borderRadius: 2, py: 1
-            }}
-          >
-            إنشاء حساب جديد
-          </Button>
         </Box>
-
-        <Typography variant="caption" sx={{ mt: 2, display: 'block', color: 'text.secondary' }}>
-          WasselERP v2.0
-        </Typography>
       </Paper>
     </Box>
   );

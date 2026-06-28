@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import {
   Box, Paper, Typography, TextField, Button, Divider,
-  IconButton, Alert, CircularProgress, Link
+  IconButton, Alert, CircularProgress
 } from '@mui/material';
 import {
   Email, Lock, Person, Business, Visibility, VisibilityOff
 } from '@mui/icons-material';
-import axios from 'axios';
-import { useNavigate, Link as RouterLink } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
+import api from '../../services/api';
 
 const RegisterPage = () => {
   const navigate = useNavigate();
@@ -23,6 +23,7 @@ const RegisterPage = () => {
     if (!form.name.trim()) return 'الاسم مطلوب';
     if (!form.email.trim()) return 'البريد الإلكتروني مطلوب';
     if (!/\S+@\S+\.\S+/.test(form.email)) return 'البريد الإلكتروني غير صالح';
+    if (!form.companyName.trim()) return 'اسم الشركة مطلوب';
     if (!form.password) return 'كلمة المرور مطلوبة';
     if (form.password.length < 6) return 'كلمة المرور يجب أن تكون 6 أحرف على الأقل';
     if (form.password !== form.confirmPassword) return 'كلمتا المرور غير متطابقتين';
@@ -33,22 +34,20 @@ const RegisterPage = () => {
     e.preventDefault();
     const err = validate();
     if (err) { setError(err); return; }
-
     setLoading(true);
     setError('');
     try {
-      const res = await axios.post('/api/users/register', {
+      const res = await api.post('/api/users/register', {
         name: form.name,
         email: form.email,
         password: form.password,
         companyName: form.companyName
       });
-
       if (res.data.success) {
-        localStorage.setItem('token', res.data.token);
-        localStorage.setItem('userId', res.data.data._id);
-        localStorage.setItem('userName', res.data.data.name);
-        localStorage.setItem('userRole', res.data.data.role);
+        localStorage.setItem('token',    res.data.token);
+        localStorage.setItem('userId',   res.data.data.user._id);
+        localStorage.setItem('userName', res.data.data.user.name);
+        localStorage.setItem('userRole', res.data.data.user.role);
         setSuccess('تم إنشاء الحساب بنجاح! جاري التحويل...');
         setTimeout(() => navigate('/dashboard'), 1500);
       }
@@ -60,85 +59,55 @@ const RegisterPage = () => {
   };
 
   return (
-    <Box sx={{
-      minHeight: '100vh',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      background: 'linear-gradient(135deg, #1a73e8 0%, #0d47a1 100%)',
-      py: 4
-    }}>
-      <Paper elevation={8} sx={{ width: '100%', maxWidth: 460, p: 4, borderRadius: 3 }}>
-        {/* Logo */}
+    <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: '#f0f2f5', p: 2 }}>
+      <Paper elevation={3} sx={{ p: 4, width: '100%', maxWidth: 460, borderRadius: 3 }}>
         <Box sx={{ textAlign: 'center', mb: 3 }}>
-          <Box sx={{
-            width: 64, height: 64, borderRadius: 2, bgcolor: '#1a73e8',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            mx: 'auto', mb: 1.5
-          }}>
-            <Typography variant="h4" sx={{ color: 'white', fontWeight: 700 }}>و</Typography>
-          </Box>
-          <Typography variant="h5" fontWeight={700} color="text.primary">إنشاء حساب جديد</Typography>
-          <Typography variant="body2" color="text.secondary">نظام وصّل ERP — ابدأ رحلتك الآن</Typography>
+          <Box sx={{ width: 70, height: 70, bgcolor: '#1a73e8', borderRadius: 2, mx: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: 36, fontWeight: 'bold', mb: 1 }}>و</Box>
+          <Typography variant="h4" sx={{ fontWeight: 700, color: '#1a73e8', mb: 0.5 }}>وصّل ERP</Typography>
+          <Typography variant="body2" color="text.secondary">إنشاء حساب جديد</Typography>
         </Box>
 
-        {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+        {error   && <Alert severity="error"   sx={{ mb: 2 }}>{error}</Alert>}
         {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
 
-        <Box component="form" onSubmit={handleSubmit}>
-          <TextField
-            fullWidth label="الاسم الكامل" margin="normal" required
-            value={form.name} onChange={handleChange('name')}
-            InputProps={{ startAdornment: <Person sx={{ mr: 1, color: 'text.secondary' }} /> }}
-          />
-          <TextField
-            fullWidth label="اسم الشركة" margin="normal"
-            value={form.companyName} onChange={handleChange('companyName')}
-            InputProps={{ startAdornment: <Business sx={{ mr: 1, color: 'text.secondary' }} /> }}
-            helperText="اختياري — يمكنك تعديله لاحقاً"
-          />
-          <TextField
-            fullWidth label="البريد الإلكتروني" type="email" margin="normal" required
-            value={form.email} onChange={handleChange('email')}
-            InputProps={{ startAdornment: <Email sx={{ mr: 1, color: 'text.secondary' }} /> }}
-          />
-          <TextField
-            fullWidth label="كلمة المرور" margin="normal" required
-            type={showPass ? 'text' : 'password'}
-            value={form.password} onChange={handleChange('password')}
+        <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <TextField label="الاسم الكامل" value={form.name} onChange={handleChange('name')}
+            required fullWidth InputProps={{ startAdornment: <Person sx={{ mr: 1, color: 'action.active' }} /> }} />
+
+          <TextField label="اسم الشركة" value={form.companyName} onChange={handleChange('companyName')}
+            required fullWidth helperText="سيتم إنشاء شركة جديدة لك"
+            InputProps={{ startAdornment: <Business sx={{ mr: 1, color: 'action.active' }} /> }} />
+
+          <TextField label="البريد الإلكتروني" type="email" value={form.email} onChange={handleChange('email')}
+            required fullWidth InputProps={{ startAdornment: <Email sx={{ mr: 1, color: 'action.active' }} /> }} />
+
+          <TextField label="كلمة المرور" type={showPass ? 'text' : 'password'} value={form.password}
+            onChange={handleChange('password')} required fullWidth helperText="6 أحرف على الأقل"
             InputProps={{
-              startAdornment: <Lock sx={{ mr: 1, color: 'text.secondary' }} />,
+              startAdornment: <Lock sx={{ mr: 1, color: 'action.active' }} />,
               endAdornment: (
                 <IconButton onClick={() => setShowPass(v => !v)} edge="end">
                   {showPass ? <VisibilityOff /> : <Visibility />}
                 </IconButton>
               )
-            }}
-            helperText="6 أحرف على الأقل"
-          />
-          <TextField
-            fullWidth label="تأكيد كلمة المرور" margin="normal" required
-            type={showPass ? 'text' : 'password'}
-            value={form.confirmPassword} onChange={handleChange('confirmPassword')}
-            InputProps={{ startAdornment: <Lock sx={{ mr: 1, color: 'text.secondary' }} /> }}
-          />
+            }} />
 
-          <Button
-            fullWidth type="submit" variant="contained" size="large"
-            disabled={loading}
-            sx={{ mt: 2.5, py: 1.5, borderRadius: 2, fontWeight: 600, fontSize: 16, bgcolor: '#1a73e8', '&:hover': { bgcolor: '#1557b0' } }}
-            startIcon={loading ? <CircularProgress size={20} color="inherit" /> : null}
-          >
-            {loading ? 'جاري إنشاء الحساب...' : 'إنشاء حساب'}
+          <TextField label="تأكيد كلمة المرور" type={showPass ? 'text' : 'password'} value={form.confirmPassword}
+            onChange={handleChange('confirmPassword')} required fullWidth
+            InputProps={{ startAdornment: <Lock sx={{ mr: 1, color: 'action.active' }} /> }} />
+
+          <Button type="submit" variant="contained" size="large" disabled={loading}
+            sx={{ mt: 1, py: 1.2, fontWeight: 600, fontSize: '1rem' }}>
+            {loading ? <CircularProgress size={24} color="inherit" /> : 'إنشاء الحساب'}
           </Button>
         </Box>
 
-        <Divider sx={{ my: 2 }} />
+        <Divider sx={{ my: 2 }}>أو</Divider>
 
         <Box sx={{ textAlign: 'center' }}>
-          <Typography variant="body2" color="text.secondary">
+          <Typography variant="body2">
             لديك حساب بالفعل؟{' '}
-            <Link component={RouterLink} to="/login" underline="hover" color="primary" fontWeight={600}>
+            <Link to="/login" style={{ color: '#1a73e8', fontWeight: 600, textDecoration: 'none' }}>
               سجّل دخولك
             </Link>
           </Typography>
