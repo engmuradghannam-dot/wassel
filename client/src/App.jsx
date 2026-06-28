@@ -71,7 +71,8 @@ const AuthCallback = () => {
       return;
     }
     localStorage.setItem('token', token);
-    fetch('/api/auth/me', { headers: { Authorization: `Bearer ${token}` } })
+    const API_URL = process.env.REACT_APP_API_URL || 'https://wassel-cyj5.onrender.com';
+    fetch(`${API_URL}/api/auth/me`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json())
       .then(d => {
         if (d.success) {
