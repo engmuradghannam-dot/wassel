@@ -6,7 +6,6 @@ on:
     branches: [main, master]
     paths:
       - 'client/**'
-      - '.github/workflows/vercel-api-deploy.yml'
 
 jobs:
   deploy:
@@ -15,60 +14,63 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Get Vercel project info & trigger deploy
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Get Vercel project info
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
-          echo "=== Vercel User ==="
-          USER=$(curl -sf "https://api.vercel.com/v2/user" \
+          USER_RESP=$(curl -s "https://api.vercel.com/v2/user" \
             -H "Authorization: Bearer $VERCEL_TOKEN")
-          echo "$USER" | python3 -c "import sys,json; u=json.load(sys.stdin).get('user',{}); print('ID:', u.get('id')); print('Username:', u.get('username'))"
-          ORG_ID=$(echo "$USER" | python3 -c "import sys,json; print(json.load(sys.stdin).get('user',{}).get('id',''))")
+          echo "User response: $USER_RESP"
+          
+          ORG_ID=$(echo "$USER_RESP" | python3 -c "
+          import sys,json
+          try:
+              d=json.load(sys.stdin)
+              print(d.get('user',d).get('id',''))
+          except: print('')
+          ")
+          echo "ORG_ID: $ORG_ID"
+          echo "VERCEL_ORG_ID=$ORG_ID" >> $GITHUB_ENV
 
-          echo "=== Vercel Projects ==="
-          PROJECTS=$(curl -sf "https://api.vercel.com/v9/projects" \
+          PROJ_RESP=$(curl -s "https://api.vercel.com/v9/projects" \
             -H "Authorization: Bearer $VERCEL_TOKEN")
-          echo "$PROJECTS" | python3 -c "
+          echo "Projects: $PROJ_RESP"
+          
+          PROJECT_ID=$(echo "$PROJ_RESP" | python3 -c "
           import sys,json
-          d=json.load(sys.stdin)
-          for p in d.get('projects',[]):
-              print(f\"  {p['name']} -> {p['id']}\")
-          "
-          PROJECT_ID=$(echo "$PROJECTS" | python3 -c "
-          import sys,json
-          d=json.load(sys.stdin)
-          for p in d.get('projects',[]):
-              if 'wassel' in p['name'].lower():
+          try:
+              d=json.load(sys.stdin)
+              for p in d.get('projects',[]):
                   print(p['id'])
                   break
+          except: print('')
           ")
-          echo "ORG_ID=$ORG_ID PROJECT_ID=$PROJECT_ID"
+          echo "PROJECT_ID: $PROJECT_ID"
+          echo "VERCEL_PROJECT_ID=$PROJECT_ID" >> $GITHUB_ENV
 
-          echo "=== Triggering Deploy ==="
-          if [ -n "$PROJECT_ID" ]; then
-            curl -s -X POST "https://api.vercel.com/v13/deployments" \
-              -H "Authorization: Bearer $VERCEL_TOKEN" \
-              -H "Content-Type: application/json" \
-              -d "{
-                \"name\": \"wassel\",
-                \"project\": \"$PROJECT_ID\",
-                \"target\": \"production\",
-                \"gitSource\": {
-                  \"type\": \"github\",
-                  \"repoId\": \"1279527364\",
-                  \"ref\": \"main\"
-                }
-              }" | python3 -c "
-          import sys,json
-          d=json.load(sys.stdin)
-          print('Deploy ID:', d.get('id','?'))
-          print('Status:', d.get('status','?'))
-          print('URL:', d.get('url','?'))
-          if 'error' in d:
-              print('ERROR:', d['error'])
-          "
+      - name: Install Vercel CLI
+        run: npm install -g vercel@latest
+
+      - name: Deploy to Vercel
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ env.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ env.VERCEL_PROJECT_ID }}
+        run: |
+          cd client
+          npm install --legacy-peer-deps
+          CI=false npm run build
+          
+          if [ -n "$VERCEL_ORG_ID" ] && [ -n "$VERCEL_PROJECT_ID" ]; then
+            echo "Deploying with project IDs..."
+            vercel --token "$VERCEL_TOKEN" --prod --yes
           else
-            echo "No wassel project found on Vercel account"
-            echo "Projects found:"
-            echo "$PROJECTS" | python3 -c "import sys,json; [print(p['name']) for p in json.load(sys.stdin).get('projects',[])]"
+            echo "Deploying without project IDs..."
+            vercel --token "$VERCEL_TOKEN" --prod --yes \
+              --name wassel
           fi
