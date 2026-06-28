@@ -11,39 +11,44 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Get Vercel info and save to file
+      - name: Install Vercel CLI and get project info
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
-          USER=$(curl -s "https://api.vercel.com/v2/user" -H "Authorization: Bearer $VERCEL_TOKEN")
-          PROJECTS=$(curl -s "https://api.vercel.com/v9/projects" -H "Authorization: Bearer $VERCEL_TOKEN")
-          DEPS=$(curl -s "https://api.vercel.com/v6/deployments?limit=3" -H "Authorization: Bearer $VERCEL_TOKEN")
-
-          python3 << PYEOF
-          import json
-
-          user = json.loads('''$USER''')
-          projects = json.loads('''$PROJECTS''')
-          deps = json.loads('''$DEPS''')
-
-          u = user.get('user', user)
-          result = {
-            "orgId": u.get('id'),
-            "username": u.get('username'),
-            "projects": [{"name": p['name'], "id": p['id'], "accountId": p.get('accountId')} for p in projects.get('projects', [])],
-            "deployments": [{"url": d.get('url'), "state": d.get('state'), "name": d.get('name')} for d in deps.get('deployments', [])]
-          }
-
-          with open('.vercel-info.json', 'w') as f:
-              json.dump(result, f, indent=2)
-
-          print(json.dumps(result, indent=2, ensure_ascii=False))
-          PYEOF
-
-      - name: Commit info file
+          npm install -g vercel@latest
+          
+          # List projects via CLI
+          echo "=== Vercel CLI whoami ==="
+          vercel whoami --token "$VERCEL_TOKEN" || true
+          
+          echo "=== Vercel projects list ==="
+          vercel project ls --token "$VERCEL_TOKEN" 2>&1 || true
+          
+          # Get via API and save simply
+          ORG_ID=$(curl -s "https://api.vercel.com/v2/user" \
+            -H "Authorization: Bearer $VERCEL_TOKEN" | \
+            python3 -c "import sys,json; print(json.load(sys.stdin).get('user',{}).get('id','NOT_FOUND'))")
+          
+          PROJECT_ID=$(curl -s "https://api.vercel.com/v9/projects" \
+            -H "Authorization: Bearer $VERCEL_TOKEN" | \
+            python3 -c "
+          import sys,json
+          d=json.load(sys.stdin)
+          projects=d.get('projects',[])
+          print('TOTAL:', len(projects))
+          for p in projects:
+              print('NAME:', p['name'], 'ID:', p['id'])
+          ")
+          
+          echo "ORG_ID: $ORG_ID"
+          echo "$PROJECT_ID"
+          
+          # Save to file
+          echo "{\"orgId\":\"$ORG_ID\"}" > .vercel-info.json
+          
+      - name: Push info
         run: |
           git config user.email "ci@wassel.app"
-          git config user.name "Wassel CI"
+          git config user.name "CI"
           git add .vercel-info.json
-          git diff --staged --quiet || git commit -m "ci: save vercel project info"
-          git push
+          git diff --staged --quiet || (git commit -m "ci: vercel info" && git push)
