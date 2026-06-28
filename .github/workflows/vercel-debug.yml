@@ -11,17 +11,35 @@ jobs:
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
-          echo "## Vercel User Info" >> $GITHUB_STEP_SUMMARY
-          USER=$(curl -s "https://api.vercel.com/v2/user" -H "Authorization: Bearer $VERCEL_TOKEN")
-          echo "User raw: $USER"
-          echo "$USER" >> $GITHUB_STEP_SUMMARY
+          mkdir -p /tmp/vercel-info
           
-          echo "## Projects" >> $GITHUB_STEP_SUMMARY
-          PROJECTS=$(curl -s "https://api.vercel.com/v9/projects" -H "Authorization: Bearer $VERCEL_TOKEN")
-          echo "Projects raw: $PROJECTS"
-          echo "$PROJECTS" >> $GITHUB_STEP_SUMMARY
+          curl -s "https://api.vercel.com/v2/user" \
+            -H "Authorization: Bearer $VERCEL_TOKEN" \
+            > /tmp/vercel-info/user.json
           
-          echo "## Teams" >> $GITHUB_STEP_SUMMARY
-          TEAMS=$(curl -s "https://api.vercel.com/v2/teams" -H "Authorization: Bearer $VERCEL_TOKEN")
-          echo "Teams raw: $TEAMS"
-          echo "$TEAMS" >> $GITHUB_STEP_SUMMARY
+          curl -s "https://api.vercel.com/v9/projects" \
+            -H "Authorization: Bearer $VERCEL_TOKEN" \
+            > /tmp/vercel-info/projects.json
+            
+          cat /tmp/vercel-info/user.json
+          cat /tmp/vercel-info/projects.json
+          
+          python3 - << 'PYEOF'
+          import json
+          
+          with open('/tmp/vercel-info/user.json') as f:
+              u = json.load(f).get('user', {})
+              print(f"ORG_ID={u.get('id','NOT_FOUND')}")
+              print(f"USERNAME={u.get('username','NOT_FOUND')}")
+          
+          with open('/tmp/vercel-info/projects.json') as f:
+              d = json.load(f)
+              for p in d.get('projects', []):
+                  print(f"PROJECT: {p['name']} -> ID={p['id']} accountId={p.get('accountId','?')}")
+          PYEOF
+
+      - name: Upload info
+        uses: actions/upload-artifact@v4
+        with:
+          name: vercel-info
+          path: /tmp/vercel-info/
