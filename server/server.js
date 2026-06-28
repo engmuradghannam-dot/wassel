@@ -1,13 +1,16 @@
-const express   = require('express');
-const mongoose  = require('mongoose');
-const cors      = require('cors');
-const dotenv    = require('dotenv');
-const path      = require('path');
-const passport  = require('passport');
-const session   = require('express-session');
-const http      = require('http');
-const { Server }= require('socket.io');
-const MongoStore= require('connect-mongo');
+const express = require('express');
+const mongoose = require('mongoose');
+const cors = require('cors');
+const dotenv = require('dotenv');
+const path = require('path');
+const passport = require('passport');
+const session = require('express-session');
+const http = require('http');
+const { Server } = require('socket.io');
+const MongoStore = require('connect-mongo');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+const mongoSanitize = require('express-mongo-sanitize');
 
 dotenv.config();
 
@@ -18,30 +21,54 @@ if (missing.length && process.env.NODE_ENV === 'production') {
   console.error(`❌ Missing required env vars: ${missing.join(', ')}`);
   process.exit(1);
 } else if (missing.length) {
-  console.warn(`⚠️  Missing env vars (ok in dev): ${missing.join(', ')}`);
+  console.warn(`⚠️ Missing env vars (ok in dev): ${missing.join(', ')}`);
 }
 
 // ─── Routes ────────────────────────────────────────────────────────────────
-const authRoutes          = require('./routes/authRoutes');
-const userRoutes          = require('./routes/userRoutes');
-const superAdminRoutes    = require('./routes/superAdminRoutes');
-const companyRoutes       = require('./routes/companyRoutes');
-const branchRoutes        = require('./routes/branchRoutes');
-const warehouseRoutes     = require('./routes/warehouseRoutes');
-const inventoryRoutes     = require('./routes/inventoryRoutes');
-const supplierRoutes      = require('./routes/supplierRoutes');
+const authRoutes = require('./routes/authRoutes');
+const userRoutes = require('./routes/userRoutes');
+const superAdminRoutes = require('./routes/superAdminRoutes');
+const companyRoutes = require('./routes/companyRoutes');
+const branchRoutes = require('./routes/branchRoutes');
+const warehouseRoutes = require('./routes/warehouseRoutes');
+const inventoryRoutes = require('./routes/inventoryRoutes');
+const supplierRoutes = require('./routes/supplierRoutes');
 const purchaseOrderRoutes = require('./routes/purchaseOrderRoutes');
-const employeeRoutes      = require('./routes/employeeRoutes');
-const roleRoutes          = require('./routes/roleRoutes');
-const reportRoutes        = require('./routes/reportRoutes');
-const chatRoutes          = require('./routes/chatRoutes');
-const callRoutes          = require('./routes/callRoutes');
-const setupRoutes         = require('./routes/setupRoutes');
-const accountingRoutes    = require('./routes/accountingRoutes');
-const paymentRoutes       = require('./routes/paymentRoutes');
+const employeeRoutes = require('./routes/employeeRoutes');
+const roleRoutes = require('./routes/roleRoutes');
+const reportRoutes = require('./routes/reportRoutes');
+const chatRoutes = require('./routes/chatRoutes');
+const callRoutes = require('./routes/callRoutes');
+const accountingRoutes = require('./routes/accountingRoutes');
+const paymentRoutes = require('./routes/paymentRoutes');
 
-const app    = express();
+const app = express();
 const server = http.createServer(app);
+
+// ─── Security Middleware ──────────────────────────────────────────────────
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginEmbedderPolicy: false
+}));
+
+// Rate limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100,
+  message: 'Too many requests from this IP, please try again later.'
+});
+app.use('/api/', limiter);
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: 'Too many auth attempts, please try again later.'
+});
+app.use('/api/users/login', authLimiter);
+app.use('/api/users/register', authLimiter);
+
+// MongoDB sanitization
+app.use(mongoSanitize());
 
 // ─── CORS ──────────────────────────────────────────────────────────────────
 const allowedOrigins = [
@@ -76,13 +103,13 @@ io.on('connection', (socket) => {
     io.emit('user_status', { userId, isOnline: true });
     try { await require('./models/User').findByIdAndUpdate(userId, { isOnline: true, lastSeen: new Date() }); } catch {}
   });
-  socket.on('join_room',    (roomId) => socket.join(roomId));
-  socket.on('leave_room',   (roomId) => socket.leave(roomId));
+  socket.on('join_room', (roomId) => socket.join(roomId));
+  socket.on('leave_room', (roomId) => socket.leave(roomId));
   socket.on('typing_start', ({ roomId, userId, userName }) =>
     socket.to(roomId).emit('user_typing', { userId, userName, isTyping: true }));
-  socket.on('typing_stop',  ({ roomId, userId }) =>
+  socket.on('typing_stop', ({ roomId, userId }) =>
     socket.to(roomId).emit('user_typing', { userId, isTyping: false }));
-  socket.on('mark_read',    ({ roomId, userId }) =>
+  socket.on('mark_read', ({ roomId, userId }) =>
     socket.to(roomId).emit('messages_read', { roomId, userId }));
   socket.on('disconnect', async () => {
     if (socket.userId) {
@@ -112,30 +139,29 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // ─── Routes ────────────────────────────────────────────────────────────────
-app.use('/api/auth',           authRoutes);
-app.use('/api/users',          userRoutes);
-app.use('/api/superadmin',     superAdminRoutes);    // NEW — platform management
-app.use('/api/company',        companyRoutes);
-app.use('/api/branches',       branchRoutes);
-app.use('/api/warehouses',     warehouseRoutes);
-app.use('/api/inventory',      inventoryRoutes);
-app.use('/api/suppliers',      supplierRoutes);
-app.use('/api/purchase-orders',purchaseOrderRoutes);
-app.use('/api/employees',      employeeRoutes);
-app.use('/api/roles',          roleRoutes);
-app.use('/api/reports',        reportRoutes);
-app.use('/api/chat',           chatRoutes);
-app.use('/api/setup',          setupRoutes);
-app.use('/api/calls',          callRoutes);
-app.use('/api/accounting',     accountingRoutes);
-app.use('/api/payments',       paymentRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/superadmin', superAdminRoutes);
+app.use('/api/company', companyRoutes);
+app.use('/api/branches', branchRoutes);
+app.use('/api/warehouses', warehouseRoutes);
+app.use('/api/inventory', inventoryRoutes);
+app.use('/api/suppliers', supplierRoutes);
+app.use('/api/purchase-orders', purchaseOrderRoutes);
+app.use('/api/employees', employeeRoutes);
+app.use('/api/roles', roleRoutes);
+app.use('/api/reports', reportRoutes);
+app.use('/api/chat', chatRoutes);
+app.use('/api/calls', callRoutes);
+app.use('/api/accounting', accountingRoutes);
+app.use('/api/payments', paymentRoutes);
 
 app.get('/api/health', (req, res) => res.json({
   status: 'ok', timestamp: new Date(),
   env: process.env.NODE_ENV,
   architecture: 'multi-tenant',
   modules: ['auth','users','superadmin','company','inventory','suppliers',
-            'employees','purchase-orders','chat','accounting','reports']
+    'employees','purchase-orders','chat','accounting','reports']
 }));
 
 // ─── Error Handler ──────────────────────────────────────────────────────────
