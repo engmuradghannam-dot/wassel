@@ -37,7 +37,8 @@ const PurchaseOrdersPage = () => {
     } catch { } finally { setLoading(false); }
   };
 
-  useEffect(() => { // eslint-disable-next-line react-hooks/exhaustive-deps fetch(); }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { fetch(); }, []);
 
   const addItem = () => setForm(p => ({ ...p, items: [...p.items, { name: '', quantity: 1, unitPrice: 0, taxRate: 15 }] }));
   const updateItem = (idx, field, val) => setForm(p => ({ ...p, items: p.items.map((it, i) => i === idx ? { ...it, [field]: val } : it) }));

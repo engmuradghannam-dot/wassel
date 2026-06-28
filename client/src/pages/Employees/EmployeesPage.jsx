@@ -30,7 +30,8 @@ const EmployeesPage = () => {
     catch { } finally { setLoading(false); }
   };
 
-  useEffect(() => { // eslint-disable-next-line react-hooks/exhaustive-deps fetch(); }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { fetch(); }, []);
 
   const openAdd = () => { setForm(empty); setEditId(null); setDialog(true); };
   const openEdit = (item) => { setForm({ ...item, hireDate: item.hireDate?.split('T')[0] || '', iqamaExpiry: item.iqamaExpiry?.split('T')[0] || '' }); setEditId(item._id); setDialog(true); };
