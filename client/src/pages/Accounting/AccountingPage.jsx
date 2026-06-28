@@ -6,7 +6,7 @@ import {
   MenuItem, Grid, Alert, CircularProgress, Divider, Tooltip
 } from '@mui/material';
 import {
-  Add, AccountBalance, Receipt, Assessment, TrendingUp,
+  Add, AccountBalance, Receipt, Assessment,
   CheckCircle, Cancel, Delete, Visibility, Refresh
 } from '@mui/icons-material';
 import axios from 'axios';
@@ -334,7 +334,7 @@ const ReportsTab = () => {
     api(`/reports/${type}`).then(r => setReport(r.data.data)).catch(console.error).finally(() => setLoading(false));
   };
 
-  useEffect(() => { load(); }, [type]);
+  useEffect(() => { load(); }, [type]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <Box>

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   Box, Paper, Typography, TextField, Button, Divider,
-  InputAdornment, IconButton, Alert, CircularProgress, Link
+  IconButton, Alert, CircularProgress, Link
 } from '@mui/material';
 import {
   Email, Lock, Person, Business, Visibility, VisibilityOff

@@ -5,7 +5,7 @@ import {
   Dialog, DialogTitle, DialogContent, DialogActions, Grid,
   Chip, CircularProgress, Snackbar, Alert, TextField, MenuItem, Select, FormControl, InputLabel
 } from '@mui/material';
-import { Add, Visibility, Delete, Search, Refresh, CheckCircle } from '@mui/icons-material';
+import { Add, Visibility, Search, Refresh } from '@mui/icons-material';
 import axios from 'axios';
 import Layout from '../../components/Layout';
 
@@ -42,6 +42,7 @@ const PurchaseOrdersPage = () => {
 
   const addItem = () => setForm(p => ({ ...p, items: [...p.items, { name: '', quantity: 1, unitPrice: 0, taxRate: 15 }] }));
   const updateItem = (idx, field, val) => setForm(p => ({ ...p, items: p.items.map((it, i) => i === idx ? { ...it, [field]: val } : it) }));
+  // eslint-disable-next-line no-unused-vars
   const removeItem = (idx) => setForm(p => ({ ...p, items: p.items.filter((_, i) => i !== idx) }));
 
   const calcTotal = (items) => {

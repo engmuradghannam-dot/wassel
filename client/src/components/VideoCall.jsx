@@ -37,14 +37,14 @@ const VideoCall = ({ open, onClose, roomName, participantName, callType = 'video
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  useEffect(() => { // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
     if (open && roomName && participantName) {
       fetchToken();
     } else {
       setToken(null);
       setError(null);
     }
-  }, [open, roomName, participantName]);
+  }, [open, roomName, participantName]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchToken = async () => {
     try {

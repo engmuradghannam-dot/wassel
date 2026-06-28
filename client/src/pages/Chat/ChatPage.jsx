@@ -1,19 +1,18 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
-  Box, Grid, Typography, TextField, IconButton, Avatar, Badge,
-  List, ListItem, ListItemAvatar, ListItemText, ListItemButton,
-  AppBar, Toolbar, InputAdornment, Divider, Paper, Chip, Tooltip,
-  Fade, Menu, MenuItem, ListItemIcon, CircularProgress, Alert,
+  Box, Typography, TextField, IconButton, Avatar, Badge,
+  List, ListItemAvatar, ListItemText, ListItemButton,
+  AppBar, Toolbar, InputAdornment, Divider, Paper, Tooltip,
+  Fade, Menu, MenuItem, ListItemIcon, CircularProgress,
   Dialog, DialogTitle, DialogContent, DialogActions, Button,
   Snackbar
 } from '@mui/material';
 import {
   Send, AttachFile, Search, Videocam, Phone, MoreVert,
-  ArrowBack, Add, Delete, Close, DoneAll, AccessTime,
-  Reply, Forward, ContentCopy, People, PersonAdd, GroupAdd,
-  PushPin, NotificationsOff, Block, Info, KeyboardVoice,
-  EmojiEmotions, InsertDriveFile, Chat as ChatIcon, Mic,
-  CheckCircle, RadioButtonUnchecked
+  ArrowBack, Add, Delete, Close, DoneAll,
+  Reply, ContentCopy, PersonAdd,
+  PushPin, NotificationsOff,
+  EmojiEmotions, Chat as ChatIcon
 } from '@mui/icons-material';
 import axios from 'axios';
 import { io } from 'socket.io-client';

@@ -1,16 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import {
   Box, Container, Typography, Paper, Grid, TextField, Button,
-  Divider, Avatar, Switch, FormControlLabel, Tabs, Tab, Alert,
-  Snackbar, IconButton, Chip, Card, CardContent, InputAdornment,
-  Stepper, Step, StepLabel, StepContent, Fade, Zoom, Badge, Tooltip,
-  Dialog, DialogTitle, DialogContent, DialogActions, List, ListItem,
-  ListItemIcon, ListItemText, ListItemButton, MobileStepper
+  Divider, Avatar, Switch, FormControlLabel, Alert,
+  Snackbar, IconButton, Chip, Card, CardContent,
+  Stepper, Step, StepLabel, Fade, Badge, Tooltip,
+  Dialog, DialogTitle, DialogContent, DialogActions
 } from '@mui/material';
 import {
   Business, LocationOn, Phone, Email, Language, Receipt,
   Save, Map, PhotoCamera, Numbers, CheckCircle,
-  Delete, Add, LocationCity, GpsFixed, MyLocation,
+  Delete, LocationCity, GpsFixed, MyLocation,
   Assignment, Verified,
   Warning, Info, NavigateNext, NavigateBefore,
   Person, Groups, CorporateFare
@@ -21,7 +20,6 @@ import axios from 'axios';
 
 const CompanySettings = () => {
   const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState(0);
   const [activeStep, setActiveStep] = useState(0);
   const [company, setCompany] = useState({
     name: '',
@@ -441,7 +439,7 @@ const CompanySettings = () => {
                       onChange={(e) => handleChange('commercialRegistration', e.target.value)}
                       onBlur={() => handleBlur('commercialRegistration')}
                       error={!!fieldErrors.commercialRegistration && touched.commercialRegistration}
-                      helperText={touched.commercialRegistration && fieldErrors.commercialRegistration || t('company.crFormat')}
+                      helperText={(touched.commercialRegistration && fieldErrors.commercialRegistration) || t('company.crFormat')}
                       placeholder="1010123456"
                       InputProps={{ 
                         startAdornment: <Numbers sx={{ mr: 1, color: 'primary.main' }} /> 
@@ -497,7 +495,7 @@ const CompanySettings = () => {
                       onChange={(e) => handleChange('taxNumber', e.target.value)}
                       onBlur={() => handleBlur('taxNumber')}
                       error={!!fieldErrors.taxNumber && touched.taxNumber}
-                      helperText={touched.taxNumber && fieldErrors.taxNumber || t('company.taxFormat')}
+                      helperText={(touched.taxNumber && fieldErrors.taxNumber) || t('company.taxFormat')}
                       placeholder="300123456700003"
                       InputProps={{ 
                         startAdornment: <Receipt sx={{ mr: 1, color: 'success.main' }} /> 

@@ -82,7 +82,7 @@ const LocationPicker = ({ open, onClose, onSelect, defaultLocation = null }) => 
         handleLocationChange(defaultPos.lat, defaultPos.lng);
       }
     }
-  }, [scriptLoaded, open, map]);
+  }, [scriptLoaded, open, map]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Reverse Geocoding
   const reverseGeocode = useCallback(async (lat, lng) => {

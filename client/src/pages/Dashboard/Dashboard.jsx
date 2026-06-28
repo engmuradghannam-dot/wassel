@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   Box, Grid, Paper, Typography, CircularProgress,
-  List, ListItem, ListItemText, Chip, Avatar
+  List, ListItem, ListItemText, Chip
 } from '@mui/material';
 import {
   Inventory2, LocalShipping, People, ShoppingCart,
