@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
-  LivekitRoom,
+  LiveKitRoom,
   GridLayout,
   ParticipantTile,
   RoomAudioRenderer,
@@ -11,7 +11,6 @@ import {
   useParticipants,
   VideoConference,
   FocusLayout,
-  FocusLayoutContainer,
   CarouselLayout,
   useConnectionState,
 } from '@livekit/components-react';
@@ -95,7 +94,7 @@ const VideoCall = ({ open, onClose, roomName, participantName, callType = 'video
       )}
 
       {token && !loading && (
-        <LivekitRoom
+        <LiveKitRoom
           serverUrl={LIVEKIT_URL}
           token={token}
           connect={true}
@@ -111,7 +110,7 @@ const VideoCall = ({ open, onClose, roomName, participantName, callType = 'video
             callType={callType}
           />
           <RoomAudioRenderer />
-        </LivekitRoom>
+        </LiveKitRoom>
       )}
     </Box>
   );
@@ -247,12 +246,12 @@ const MeetRoom = ({ onClose, roomName, callType }) => {
               <ParticipantTile />
             </GridLayout>
           ) : (
-            <FocusLayoutContainer style={{ height: '100%' }}>
+            <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
               <CarouselLayout tracks={tracks}>
                 <ParticipantTile />
               </CarouselLayout>
               <FocusLayout track={tracks[0]} />
-            </FocusLayoutContainer>
+            </div>
           )}
         </Box>
 
