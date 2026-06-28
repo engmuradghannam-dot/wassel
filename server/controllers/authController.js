@@ -63,7 +63,7 @@ exports.googleCallback = async (req, res) => {
     );
 
     const redirectUrl = process.env.CLIENT_URL || 'http://localhost:3000';
-    // FIX: was res.redirectrect (typo) — now correctly res.redirect
+    // FIX: was res.redirect (typo) — now correctly res.redirect
     res.redirect(`${redirectUrl}/auth/callback?token=${token}`);
   } catch (error) {
     console.error('Google callback error:', error);
