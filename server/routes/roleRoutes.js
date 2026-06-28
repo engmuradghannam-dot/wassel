@@ -1,10 +1,17 @@
 const express = require('express');
 const router = express.Router();
-const { protect } = require('../middleware/auth');
+const { protect, authorize } = require('../middleware/auth');
+const {
+  getRoles, getRole, createRole, updateRole, deleteRole
+} = require('../controllers/roleController');
 
-// Placeholder routes - implement as needed
-router.get('/', protect, (req, res) => {
-  res.json({ success: true, message: 'Route placeholder', data: [] });
-});
+router.route('/')
+  .get(protect, getRoles)
+  .post(protect, authorize('admin'), createRole);
+
+router.route('/:id')
+  .get(protect, getRole)
+  .put(protect, authorize('admin'), updateRole)
+  .delete(protect, authorize('admin'), deleteRole);
 
 module.exports = router;
