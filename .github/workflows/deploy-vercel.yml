@@ -16,14 +16,17 @@ jobs:
         with:
           node-version: '20'
 
+      - name: Install dependencies & Build
+        run: |
+          cd client
+          npm install --legacy-peer-deps
+          CI=false npm run build
+
       - name: Install Vercel CLI
         run: npm install -g vercel
 
       - name: Deploy to Vercel
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
         run: |
-          cd client
-          vercel --token $VERCEL_TOKEN --prod --yes
+          vercel --token $VERCEL_TOKEN --prod --yes --cwd client
