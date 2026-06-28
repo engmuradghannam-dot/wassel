@@ -1,0 +1,94 @@
+name: Seed Database (Superadmin)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  seed:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Install server deps
+        run: cd server && npm install
+
+      - name: Create superadmin user
+        env:
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+        run: |
+          cd server
+          node -e "
+          const mongoose = require('mongoose');
+          const bcrypt = require('bcryptjs');
+
+          mongoose.connect(process.env.MONGODB_URI).then(async () => {
+            console.log('✅ Connected to MongoDB');
+
+            const User = require('./models/User');
+            const Company = require('./models/Company');
+
+            const EMAIL = 'eng.murad.ghannam@gmail.com';
+            const PASSWORD = 'Admin2026@';
+
+            // Find or create company
+            let company = await Company.findOne({ name: 'Wassel' });
+            if (!company) {
+              company = await Company.create({
+                name: 'Wassel',
+                nameEn: 'Wassel',
+                currency: 'SAR',
+                timezone: 'Asia/Riyadh',
+                plan: 'enterprise',
+                planExpiresAt: new Date('2030-01-01'),
+                maxUsers: 9999,
+                maxEmployees: 9999,
+                maxBranches: 99,
+                isActive: true
+              });
+              console.log('✅ Company created:', company.name);
+            } else {
+              console.log('ℹ️  Company exists:', company.name);
+            }
+
+            // Check existing user
+            let user = await User.findOne({ email: EMAIL });
+            if (user) {
+              // Update password and make superadmin
+              user.password = await bcrypt.hash(PASSWORD, 10);
+              user.role = 'superadmin';
+              user.isActive = true;
+              user.company = company._id;
+              await user.save();
+              console.log('✅ User updated — role: superadmin, password reset');
+            } else {
+              user = await User.create({
+                name: 'Murad Ghannam',
+                email: EMAIL,
+                password: await bcrypt.hash(PASSWORD, 10),
+                role: 'superadmin',
+                company: company._id,
+                isActive: true,
+                isOnline: false,
+                lastSeen: new Date()
+              });
+              console.log('✅ Superadmin created');
+            }
+
+            console.log('📧 Email:', EMAIL);
+            console.log('🔑 Password:', PASSWORD);
+            console.log('👤 Role: superadmin');
+
+            await mongoose.disconnect();
+            process.exit(0);
+          }).catch(err => {
+            console.error('❌', err.message);
+            process.exit(1);
+          });
+          "
