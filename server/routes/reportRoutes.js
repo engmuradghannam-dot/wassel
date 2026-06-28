@@ -1,11 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const { protect } = require('../middleware/auth');
-const { tenantGuard } = require('../middleware/tenant');
+const {  } = require('../middleware/tenant');
 const { getDashboard, getInventoryReport, getPurchaseReport } = require('../controllers/reportController');
 
-router.get('/dashboard', protect, tenantGuard, getDashboard);
-router.get('/inventory', protect, tenantGuard, getInventoryReport);
-router.get('/purchases', protect, tenantGuard, getPurchaseReport);
+router.get('/dashboard', protect, getDashboard);
+router.get('/inventory', protect, getInventoryReport);
+router.get('/purchases', protect, getPurchaseReport);
 
 module.exports = router;
