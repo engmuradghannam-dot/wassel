@@ -7,19 +7,21 @@ jobs:
   debug:
     runs-on: ubuntu-latest
     steps:
-      - name: Debug Vercel Token
+      - name: Get Vercel IDs
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
-          echo "Token prefix: ${VERCEL_TOKEN:0:10}..."
-          echo "Token length: ${#VERCEL_TOKEN}"
+          echo "## Vercel User Info" >> $GITHUB_STEP_SUMMARY
+          USER=$(curl -s "https://api.vercel.com/v2/user" -H "Authorization: Bearer $VERCEL_TOKEN")
+          echo "User raw: $USER"
+          echo "$USER" >> $GITHUB_STEP_SUMMARY
           
-          echo "=== Testing API ==="
-          RESP=$(curl -sv "https://api.vercel.com/v2/user" \
-            -H "Authorization: Bearer $VERCEL_TOKEN" 2>&1)
-          echo "$RESP"
+          echo "## Projects" >> $GITHUB_STEP_SUMMARY
+          PROJECTS=$(curl -s "https://api.vercel.com/v9/projects" -H "Authorization: Bearer $VERCEL_TOKEN")
+          echo "Projects raw: $PROJECTS"
+          echo "$PROJECTS" >> $GITHUB_STEP_SUMMARY
           
-          echo "=== Testing with token as-is ==="
-          curl -s "https://api.vercel.com/v2/user" \
-            -H "Authorization: Bearer $VERCEL_TOKEN" \
-            -w "\nHTTP_CODE: %{http_code}"
+          echo "## Teams" >> $GITHUB_STEP_SUMMARY
+          TEAMS=$(curl -s "https://api.vercel.com/v2/teams" -H "Authorization: Bearer $VERCEL_TOKEN")
+          echo "Teams raw: $TEAMS"
+          echo "$TEAMS" >> $GITHUB_STEP_SUMMARY
