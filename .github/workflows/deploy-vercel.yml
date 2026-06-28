@@ -1,32 +1,13 @@
-name: Deploy to Vercel
-
+name: Deploy to Vercel (Legacy - disabled)
+# Replaced by vercel-full-deploy.yml
 on:
-  push:
-    branches: [main, master]
-
+  workflow_dispatch:
+    inputs:
+      note:
+        description: 'This workflow is replaced by vercel-full-deploy.yml'
+        default: 'disabled'
 jobs:
-  deploy:
+  info:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Install dependencies & Build
-        run: |
-          cd client
-          npm install --legacy-peer-deps
-          CI=false npm run build
-
-      - name: Install Vercel CLI
-        run: npm install -g vercel
-
-      - name: Deploy to Vercel
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-        run: |
-          vercel --token $VERCEL_TOKEN --prod --yes --cwd client
+      - run: echo "Use vercel-full-deploy.yml instead"
