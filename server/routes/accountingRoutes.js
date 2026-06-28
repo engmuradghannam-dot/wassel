@@ -1,51 +1,44 @@
 const express = require('express');
 const router = express.Router();
 const { protect, authorize } = require('../middleware/auth');
+const { tenantGuard } = require('../middleware/tenant');
 const {
-  // Accounts
   getAccounts, getAccount, createAccount, updateAccount, deleteAccount, seedAccounts,
-  // Journal Entries
   getJournalEntries, getJournalEntry, createJournalEntry, postJournalEntry, voidJournalEntry, deleteJournalEntry,
-  // Transactions
   getTransactions, createTransaction,
-  // Reports
   getBalanceSheet, getIncomeStatement, getTrialBalance, getAccountLedger
 } = require('../controllers/accountingController');
 
-// Chart of Accounts
 router.route('/accounts')
-  .get(protect, getAccounts)
-  .post(protect, authorize('admin', 'manager'), createAccount);
+  .get( protect, tenantGuard, getAccounts)
+  .post(protect, tenantGuard, authorize('admin','manager'), createAccount);
 
-router.post('/accounts/seed', protect, authorize('admin'), seedAccounts);
+router.post('/accounts/seed', protect, tenantGuard, authorize('admin'), seedAccounts);
 
 router.route('/accounts/:id')
-  .get(protect, getAccount)
-  .put(protect, authorize('admin', 'manager'), updateAccount)
-  .delete(protect, authorize('admin'), deleteAccount);
+  .get(   protect, tenantGuard, getAccount)
+  .put(   protect, tenantGuard, authorize('admin','manager'), updateAccount)
+  .delete(protect, tenantGuard, authorize('admin'), deleteAccount);
 
-router.get('/accounts/:accountId/ledger', protect, getAccountLedger);
+router.get('/accounts/:accountId/ledger', protect, tenantGuard, getAccountLedger);
 
-// Journal Entries
 router.route('/journal')
-  .get(protect, getJournalEntries)
-  .post(protect, authorize('admin', 'manager'), createJournalEntry);
+  .get( protect, tenantGuard, getJournalEntries)
+  .post(protect, tenantGuard, authorize('admin','manager'), createJournalEntry);
 
 router.route('/journal/:id')
-  .get(protect, getJournalEntry)
-  .delete(protect, authorize('admin'), deleteJournalEntry);
+  .get(   protect, tenantGuard, getJournalEntry)
+  .delete(protect, tenantGuard, authorize('admin'), deleteJournalEntry);
 
-router.put('/journal/:id/post', protect, authorize('admin', 'manager'), postJournalEntry);
-router.put('/journal/:id/void', protect, authorize('admin'), voidJournalEntry);
+router.put('/journal/:id/post', protect, tenantGuard, authorize('admin','manager'), postJournalEntry);
+router.put('/journal/:id/void', protect, tenantGuard, authorize('admin'), voidJournalEntry);
 
-// Transactions
 router.route('/transactions')
-  .get(protect, getTransactions)
-  .post(protect, createTransaction);
+  .get( protect, tenantGuard, getTransactions)
+  .post(protect, tenantGuard, createTransaction);
 
-// Financial Reports
-router.get('/reports/balance-sheet', protect, getBalanceSheet);
-router.get('/reports/income-statement', protect, getIncomeStatement);
-router.get('/reports/trial-balance', protect, getTrialBalance);
+router.get('/reports/balance-sheet',   protect, tenantGuard, getBalanceSheet);
+router.get('/reports/income-statement',protect, tenantGuard, getIncomeStatement);
+router.get('/reports/trial-balance',   protect, tenantGuard, getTrialBalance);
 
 module.exports = router;
