@@ -3,43 +3,59 @@ name: Vercel Debug
 on:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   debug:
     runs-on: ubuntu-latest
     steps:
-      - name: Get Vercel IDs
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Get Vercel IDs and write to file
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
-          mkdir -p /tmp/vercel-info
-          
-          curl -s "https://api.vercel.com/v2/user" \
-            -H "Authorization: Bearer $VERCEL_TOKEN" \
-            > /tmp/vercel-info/user.json
-          
-          curl -s "https://api.vercel.com/v9/projects" \
-            -H "Authorization: Bearer $VERCEL_TOKEN" \
-            > /tmp/vercel-info/projects.json
-            
-          cat /tmp/vercel-info/user.json
-          cat /tmp/vercel-info/projects.json
-          
           python3 - << 'PYEOF'
-          import json
+          import urllib.request, json
+
+          token = "${{ secrets.VERCEL_TOKEN }}"
           
-          with open('/tmp/vercel-info/user.json') as f:
-              u = json.load(f).get('user', {})
-              print(f"ORG_ID={u.get('id','NOT_FOUND')}")
-              print(f"USERNAME={u.get('username','NOT_FOUND')}")
+          def fetch(url):
+              req = urllib.request.Request(url, headers={"Authorization": f"Bearer {token}"})
+              try:
+                  with urllib.request.urlopen(req) as r:
+                      return json.load(r)
+              except Exception as e:
+                  return {"error": str(e)}
           
-          with open('/tmp/vercel-info/projects.json') as f:
-              d = json.load(f)
-              for p in d.get('projects', []):
-                  print(f"PROJECT: {p['name']} -> ID={p['id']} accountId={p.get('accountId','?')}")
+          user = fetch("https://api.vercel.com/v2/user")
+          projects = fetch("https://api.vercel.com/v9/projects")
+          teams = fetch("https://api.vercel.com/v2/teams")
+          
+          u = user.get("user", user)
+          result = {
+              "org_id": u.get("id", ""),
+              "username": u.get("username", ""),
+              "user_raw": user,
+              "projects": projects.get("projects", []),
+              "teams": teams,
+          }
+          
+          with open("vercel-ids.json", "w") as f:
+              json.dump(result, f, indent=2)
+          
+          print("ORG_ID:", result["org_id"])
+          print("USERNAME:", result["username"])
+          for p in result["projects"]:
+              print(f"PROJECT: {p['name']} -> {p['id']}")
           PYEOF
 
-      - name: Upload info
-        uses: actions/upload-artifact@v4
-        with:
-          name: vercel-info
-          path: /tmp/vercel-info/
+      - name: Commit IDs file
+        run: |
+          git config user.email "ci@wassel.app"
+          git config user.name "CI Bot"
+          git add vercel-ids.json
+          git diff --staged --quiet || git commit -m "ci: save vercel IDs [skip ci]"
+          git push
