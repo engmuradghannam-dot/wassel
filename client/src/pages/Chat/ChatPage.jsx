@@ -1,1082 +1,689 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
-  Box, Container, Grid, Paper, Typography, TextField, Button,
-  IconButton, Avatar, Badge, Divider, List, ListItem, ListItemAvatar,
-  ListItemText, ListItemButton, AppBar, Toolbar, InputAdornment,
-  SpeedDial, SpeedDialAction, SpeedDialIcon, Dialog, DialogTitle,
-  DialogContent, DialogActions, Chip, Tooltip, Fade, Zoom,
-  Menu, MenuItem, Snackbar, Alert, CircularProgress, Drawer,
-  useMediaQuery, useTheme, Fab, Card, CardContent
+  Box, Grid, Typography, TextField, IconButton, Avatar, Badge,
+  List, ListItem, ListItemAvatar, ListItemText, ListItemButton,
+  AppBar, Toolbar, InputAdornment, Divider, Paper, Chip, Tooltip,
+  Fade, Menu, MenuItem, ListItemIcon, CircularProgress, Alert,
+  Dialog, DialogTitle, DialogContent, DialogActions, Button,
+  Snackbar
 } from '@mui/material';
 import {
-  Send, AttachFile, EmojiEmotions, MoreVert, Search,
-  VideoCall, Call, Phone, Videocam, VideocamOff, Mic, MicOff,
-  CallEnd, ScreenShare, StopScreenShare, People, Chat as ChatIcon,
-  ArrowBack, Add, Delete, Archive, Block, Report, Settings,
-  Close, Fullscreen, FullscreenExit, VolumeUp, VolumeOff,
-  PushPin, Reply, Forward, ContentCopy, Edit, CheckCircle,
-  RadioButtonUnchecked, DoneAll, AccessTime, Image, InsertDriveFile,
-  AudioFile, VideoFile, LocationOn, ContactPhone, Speed,
-  KeyboardVoice, PhotoCamera, Screenshot, StickyNote2, Poll,
-  CalendarToday, TaskAlt, Notifications, NotificationsOff,
-  MarkChatRead, MarkChatUnread, ExitToApp, PersonAdd,
-  GroupAdd, Info, Warning, Error as ErrorIcon, Refresh,
-  CloudUpload, CloudDone, CloudOff, SignalCellular4Bar,
-  SignalCellularConnectedNoInternet0Bar, Wifi, WifiOff,
-  BatteryFull, BatteryAlert, Thermostat, WaterDrop, Air,
-  LightMode, DarkMode, Contrast, Brightness4, Brightness7,
-  Palette, FormatColorFill, TextFormat, FontDownload,
-  Translate, Language, Public, Globe, Map, Explore,
-  MyLocation, Navigation, Directions, Route, Traffic,
-  LocalShipping, DeliveryDining, LocalMall, Storefront,
-  Business, Home, Apartment, LocationCity, Villa, Cottage,
-  Hotel, Restaurant, LocalCafe, LocalBar, LocalDining,
-  Fastfood, LunchDining, DinnerDining, BrunchDining,
-  BakeryDining, RamenDining, SetMeal, EggAlt, Icecream,
-  LocalPizza, LocalFlorist, LocalGroceryStore, LocalConvenienceStore,
-  LocalPharmacy, LocalHospital, LocalPolice, FireTruck,
-  LocalFireDepartment, LocalActivity, LocalAtm, LocalBank,
-  LocalGasStation, LocalCarWash, LocalParking, LocalTaxi,
-  DirectionsCar, DirectionsBus, DirectionsRailway, DirectionsBoat,
-  Flight, Train, Subway, Tram, ElectricScooter, ElectricBike,
-  PedalBike, Motorcycle, ElectricCar, LocalShippingOutlined,
-  Inventory, Warehouse, Factory, PrecisionManufacturing,
-  Engineering, Construction, Handyman, Plumbing, ElectricalServices,
-  Carpentry, Roofing, Fence, Deck, Yard, Grass, Park, Forest,
-  Nature, NaturePeople, Eco, Recycling, Water, OilBarrel,
-  SolarPower, WindPower, BatteryChargingFull, Power,
-  FlashOn, OfflineBolt, ElectricalServicesOutlined,
-  Build, BuildCircle, HandymanOutlined, Architecture,
-  DesignServices, FormatPaint, ColorLens, Brush, PaletteOutlined,
-  Gradient, Opacity, InvertColors, Tonality, FilterBAndW,
-  FilterHdr, FilterVintage, FilterDrama, FilterFrames,
-  FilterNone, FilterTiltShift, FilterCenterFocus, BlurOn,
-  BlurCircular, BlurLinear, Dehaze, Flare, Looks, Looks3,
-  Looks4, Looks5, Looks6, LooksOne, LooksTwo, Crop, CropFree,
-  CropDin, CropLandscape, CropPortrait, CropSquare, Crop169,
-  Crop32, Crop75, Crop54, Crop16_9, Panorama, PanoramaFishEye,
-  PanoramaHorizontal, PanoramaVertical, PanoramaWideAngle,
-  Photo, PhotoAlbum, PhotoCamera, PhotoCameraBack, PhotoCameraFront,
-  PhotoFilter, PhotoLibrary, PhotoSizeSelectActual, PhotoSizeSelectLarge,
-  PhotoSizeSelectSmall, PictureAsPdf, Portrait, RawOff, RawOn,
-  ShutterSpeed, Slideshow, SwitchCamera, SwitchVideo, TagFaces,
-  Texture, Timelapse, Timer, Timer10, Timer3, TimerOff, Toys,
-  Transform, Tune, ViewComfy, ViewCompact, Vignette, WbAuto,
-  WbCloudy, WbIncandescent, WbIridescent, WbShade, WbSunny,
-  WbTwilight, WbTwilightOutlined, WbTwilightRounded,
-  WbTwilightSharp, WbTwilightTwoTone, WbTwilightOutlined,
-  AddAPhoto, AddPhotoAlternate, Collections, CollectionsBookmark,
-  Filter, Filter1, Filter2, Filter3, Filter4, Filter5, Filter6,
-  Filter7, Filter8, Filter9, Filter9Plus, FilterBAndWOutlined,
-  FilterCenterFocusOutlined, FilterDramaOutlined, FilterFramesOutlined,
-  FilterHdrOutlined, FilterList, FilterListOff, FilterNoneOutlined,
-  FilterTiltShiftOutlined, FilterVintageOutlined, FlareOutlined,
-  GradientOutlined, Grain, GridOff, GridOn, HdrOff, HdrOn,
-  HdrPlus, HdrStrong, HdrWeak, Hevc, HideImage, ImageAspectRatio,
-  ImageNotSupported, ImageSearch, Iso, Landscape, LeakAdd,
-  LeakRemove, Lens, LinkedCamera, Looks3Outlined, Looks4Outlined,
-  Looks5Outlined, Looks6Outlined, LooksOneOutlined, LooksTwoOutlined,
-  LooksOutlined, Loupe, MicExternalOff, MicExternalOn, MonochromePhotos,
-  MotionPhotosAuto, MotionPhotosOff, MotionPhotosOn, MotionPhotosPause,
-  Movie, MovieCreation, MovieFilter, Mp, MusicNote, MusicOff,
-  NatureOutlined, NaturePeopleOutlined, NavigateBefore, NavigateNext,
-  PaletteOutlined, PanoramaOutlined, PanoramaFishEyeOutlined,
-  PanoramaHorizontalOutlined, PanoramaVerticalOutlined,
-  PanoramaWideAngleOutlined, PartyMode, PermCameraMic, PermMedia,
-  PhotoAlbumOutlined, PhotoCameraBackOutlined, PhotoCameraFrontOutlined,
-  PhotoCameraOutlined, PhotoFilterOutlined, PhotoLibraryOutlined,
-  PhotoOutlined, PhotoSizeSelectActualOutlined, PhotoSizeSelectLargeOutlined,
-  PhotoSizeSelectSmallOutlined, PictureAsPdfOutlined, PortraitOutlined,
-  ProductImage, ReceiptLong, RemoveRedEye, Rotate90DegreesCcw,
-  RotateLeft, RotateRight, ShutterSpeedOutlined, SlideshowOutlined,
-  Straighten, Style, SubdirectoryArrowLeft, SubdirectoryArrowRight,
-  SwitchCameraOutlined, SwitchVideoOutlined, TagFacesOutlined,
-  TextureOutlined, ThermostatOutlined, TimelapseOutlined,
-  Timer10Outlined, Timer3Outlined, TimerOffOutlined, TimerOutlined,
-  ToysOutlined, TransformOutlined, TuneOutlined, Tungsten,
-  ViewComfyOutlined, ViewCompactOutlined, VignetteOutlined,
-  Vrpano, WbAutoOutlined, WbCloudyOutlined, WbIncandescentOutlined,
-  WbIridescentOutlined, WbShadeOutlined, WbSunnyOutlined,
-  WbTwilightOutlined, WbTwilightRoundedOutlined, WbTwilightSharpOutlined,
-  WbTwilightTwoToneOutlined, AddAPhotoOutlined, AddPhotoAlternateOutlined,
-  CollectionsOutlined, CollectionsBookmarkOutlined, FilterOutlined,
-  Filter1Outlined, Filter2Outlined, Filter3Outlined, Filter4Outlined,
-  Filter5Outlined, Filter6Outlined, Filter7Outlined, Filter8Outlined,
-  Filter9Outlined, Filter9PlusOutlined, FilterBAndWOutlinedOutlined,
-  FilterCenterFocusOutlinedOutlined, FilterDramaOutlinedOutlined,
-  FilterFramesOutlinedOutlined, FilterHdrOutlinedOutlined,
-  FilterListOutlined, FilterListOffOutlined, FilterNoneOutlinedOutlined,
-  FilterTiltShiftOutlinedOutlined, FilterVintageOutlinedOutlined,
-  FlareOutlinedOutlined, GradientOutlinedOutlined, GrainOutlined,
-  GridOffOutlined, GridOnOutlined, HdrOffOutlined, HdrOnOutlined,
-  HdrPlusOutlined, HdrStrongOutlined, HdrWeakOutlined, HevcOutlined,
-  HideImageOutlined, ImageAspectRatioOutlined, ImageNotSupportedOutlined,
-  ImageSearchOutlined, IsoOutlined, LandscapeOutlined, LeakAddOutlined,
-  LeakRemoveOutlined, LensOutlined, LinkedCameraOutlined,
-  Looks3OutlinedOutlined, Looks4OutlinedOutlined, Looks5OutlinedOutlined,
-  Looks6OutlinedOutlined, LooksOneOutlinedOutlined, LooksTwoOutlinedOutlined,
-  LooksOutlinedOutlined, LoupeOutlined, MicExternalOffOutlined,
-  MicExternalOnOutlined, MonochromePhotosOutlined, MotionPhotosAutoOutlined,
-  MotionPhotosOffOutlined, MotionPhotosOnOutlined, MotionPhotosPauseOutlined,
-  MovieOutlined, MovieCreationOutlined, MovieFilterOutlined, MpOutlined,
-  MusicNoteOutlined, MusicOffOutlined, NatureOutlinedOutlined,
-  NaturePeopleOutlinedOutlined, NavigateBeforeOutlined, NavigateNextOutlined,
-  PaletteOutlinedOutlined, PanoramaOutlinedOutlined, PanoramaFishEyeOutlinedOutlined,
-  PanoramaHorizontalOutlinedOutlined, PanoramaVerticalOutlinedOutlined,
-  PanoramaWideAngleOutlinedOutlined, PartyModeOutlined, PermCameraMicOutlined,
-  PermMediaOutlined, PhotoAlbumOutlinedOutlined, PhotoCameraBackOutlinedOutlined,
-  PhotoCameraFrontOutlinedOutlined, PhotoCameraOutlinedOutlined,
-  PhotoFilterOutlinedOutlined, PhotoLibraryOutlinedOutlined,
-  PhotoOutlinedOutlined, PhotoSizeSelectActualOutlinedOutlined,
-  PhotoSizeSelectLargeOutlinedOutlined, PhotoSizeSelectSmallOutlinedOutlined,
-  PictureAsPdfOutlinedOutlined, PortraitOutlinedOutlined, ProductImageOutlined,
-  ReceiptLongOutlined, RemoveRedEyeOutlined, Rotate90DegreesCcwOutlined,
-  RotateLeftOutlined, RotateRightOutlined, ShutterSpeedOutlinedOutlined,
-  SlideshowOutlinedOutlined, StraightenOutlined, StyleOutlined,
-  SubdirectoryArrowLeftOutlined, SubdirectoryArrowRightOutlined,
-  SwitchCameraOutlinedOutlined, SwitchVideoOutlinedOutlined,
-  TagFacesOutlinedOutlined, TextureOutlinedOutlined, ThermostatOutlinedOutlined,
-  TimelapseOutlinedOutlined, Timer10OutlinedOutlined, Timer3OutlinedOutlined,
-  TimerOffOutlinedOutlined, TimerOutlinedOutlined, ToysOutlinedOutlined,
-  TransformOutlinedOutlined, TuneOutlinedOutlined, TungstenOutlined,
-  ViewComfyOutlinedOutlined, ViewCompactOutlinedOutlined,
-  VignetteOutlinedOutlined, VrpanoOutlined, WbAutoOutlinedOutlined,
-  WbCloudyOutlinedOutlined, WbIncandescentOutlinedOutlined,
-  WbIridescentOutlinedOutlined, WbShadeOutlinedOutlined,
-  WbSunnyOutlinedOutlined, WbTwilightOutlinedOutlined,
-  WbTwilightRoundedOutlinedOutlined, WbTwilightSharpOutlinedOutlined,
-  WbTwilightTwoToneOutlinedOutlined
+  Send, AttachFile, Search, Videocam, Phone, MoreVert,
+  ArrowBack, Add, Delete, Close, DoneAll, AccessTime,
+  Reply, Forward, ContentCopy, People, PersonAdd, GroupAdd,
+  PushPin, NotificationsOff, Block, Info, KeyboardVoice,
+  EmojiEmotions, InsertDriveFile, Chat as ChatIcon, Mic,
+  CheckCircle, RadioButtonUnchecked
 } from '@mui/icons-material';
-import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
-import VideoCall from '../../components/VideoCall';
 import axios from 'axios';
+import { io } from 'socket.io-client';
+import VideoCall from '../../components/VideoCall';
 
-// Sample chat data
-const sampleChats = [
-  {
-    id: 1,
-    name: 'أحمد محمد',
-    nameEn: 'Ahmed Mohammed',
-    avatar: '/avatars/ahmed.jpg',
-    lastMessage: 'مرحباً، كيف حالك؟',
-    lastMessageTime: '10:30',
-    unreadCount: 2,
-    isOnline: true,
-    isTyping: false,
-    status: 'online'
-  },
-  {
-    id: 2,
-    name: 'سارة علي',
-    nameEn: 'Sara Ali',
-    avatar: '/avatars/sara.jpg',
-    lastMessage: 'تم إرسال الملف',
-    lastMessageTime: '09:15',
-    unreadCount: 0,
-    isOnline: false,
-    isTyping: false,
-    status: 'offline',
-    lastSeen: 'منذ ساعة'
-  },
-  {
-    id: 3,
-    name: 'خالد عبدالله',
-    nameEn: 'Khaled Abdullah',
-    avatar: '/avatars/khaled.jpg',
-    lastMessage: 'نلتقي غداً إن شاء الله',
-    lastMessageTime: 'أمس',
-    unreadCount: 1,
-    isOnline: true,
-    isTyping: true,
-    status: 'online'
-  },
-  {
-    id: 4,
-    name: 'فريق المبيعات',
-    nameEn: 'Sales Team',
-    avatar: '/avatars/team.jpg',
-    lastMessage: 'محمد: تم إغلاق الصفقة!',
-    lastMessageTime: '08:45',
-    unreadCount: 5,
-    isOnline: true,
-    isTyping: false,
-    status: 'online',
-    isGroup: true,
-    members: 8
-  },
-  {
-    id: 5,
-    name: 'منى سعيد',
-    nameEn: 'Mona Saeed',
-    avatar: '/avatars/mona.jpg',
-    lastMessage: 'شكراً جزيلاً',
-    lastMessageTime: 'الإثنين',
-    unreadCount: 0,
-    isOnline: false,
-    isTyping: false,
-    status: 'offline',
-    lastSeen: 'منذ يومين'
-  }
-];
+const SERVER_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
-// Sample messages
-const sampleMessages = [
-  {
-    id: 1,
-    senderId: 1,
-    text: 'مرحباً، كيف حالك؟',
-    time: '10:30',
-    date: '2026-06-28',
-    isRead: true,
-    type: 'text',
-    status: 'read'
-  },
-  {
-    id: 2,
-    senderId: 'me',
-    text: 'أهلاً أحمد، بخير الحمد لله. وأنت؟',
-    time: '10:31',
-    date: '2026-06-28',
-    isRead: true,
-    type: 'text',
-    status: 'read'
-  },
-  {
-    id: 3,
-    senderId: 1,
-    text: 'بخير، هل يمكننا إجراء مكالمة فيديو لمناقشة المشروع؟',
-    time: '10:32',
-    date: '2026-06-28',
-    isRead: false,
-    type: 'text',
-    status: 'delivered'
-  }
-];
+// ─── Helpers ─────────────────────────────────────────────────────────────
+const getOtherParticipant = (room, myId) => {
+  if (!room || room.type !== 'direct') return null;
+  return room.participants?.find(p => p._id !== myId);
+};
 
+const getRoomName = (room, myId) => {
+  if (!room) return '';
+  if (room.type === 'group') return room.name || 'مجموعة';
+  const other = getOtherParticipant(room, myId);
+  return other?.name || 'محادثة';
+};
+
+const getRoomAvatar = (room, myId) => {
+  if (!room || room.type === 'group') return null;
+  return getOtherParticipant(room, myId)?.avatar || null;
+};
+
+const getRoomOnline = (room, myId) => {
+  if (!room || room.type === 'group') return false;
+  return getOtherParticipant(room, myId)?.isOnline || false;
+};
+
+// ─── Main Chat Page ───────────────────────────────────────────────────────
 const ChatPage = () => {
-  const { t } = useTranslation();
-  const theme = useTheme();
-  const navigate = useNavigate();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-
-  const [chats, setChats] = useState(sampleChats);
-  const [selectedChat, setSelectedChat] = useState(null);
-  const [messages, setMessages] = useState(sampleMessages);
+  const [rooms, setRooms] = useState([]);
+  const [selectedRoom, setSelectedRoom] = useState(null);
+  const [messages, setMessages] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [myId, setMyId] = useState(null);
   const [newMessage, setNewMessage] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
-  const [showEmoji, setShowEmoji] = useState(false);
-  const [anchorEl, setAnchorEl] = useState(null);
-  const [speedDialOpen, setSpeedDialOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [typingUsers, setTypingUsers] = useState({});
+  const [replyTo, setReplyTo] = useState(null);
+  const [msgMenu, setMsgMenu] = useState({ anchor: null, msg: null });
+  const [optionsMenu, setOptionsMenu] = useState(null);
   const [videoCallOpen, setVideoCallOpen] = useState(false);
   const [voiceCallOpen, setVoiceCallOpen] = useState(false);
   const [callRoomName, setCallRoomName] = useState('');
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [chatInfoOpen, setChatInfoOpen] = useState(false);
-  const [isRecording, setIsRecording] = useState(false);
-  const [recordingTime, setRecordingTime] = useState(0);
-  const [selectedFiles, setSelectedFiles] = useState([]);
-  const [replyTo, setReplyTo] = useState(null);
-  const [forwardDialogOpen, setForwardDialogOpen] = useState(false);
-  const [messageMenuAnchor, setMessageMenuAnchor] = useState(null);
-  const [selectedMessage, setSelectedMessage] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [connectionStatus, setConnectionStatus] = useState('connected');
+  const [newChatOpen, setNewChatOpen] = useState(false);
+  const [snackbar, setSnackbar] = useState({ open: false, message: '' });
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 900);
 
+  const socketRef = useRef(null);
   const messagesEndRef = useRef(null);
+  const typingTimeoutRef = useRef(null);
   const fileInputRef = useRef(null);
-  const recordingInterval = useRef(null);
 
-  // Auto-scroll to bottom
-  useEffect(() => {
+  // Scroll to bottom
+  const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
-
-  // Simulate connection status
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setConnectionStatus(prev => {
-        const statuses = ['connected', 'connected', 'connected', 'slow', 'connected'];
-        return statuses[Math.floor(Math.random() * statuses.length)];
-      });
-    }, 30000);
-    return () => clearInterval(interval);
   }, []);
 
-  // Handle typing indicator
+  useEffect(() => { scrollToBottom(); }, [messages]);
+
+  // Resize handler
   useEffect(() => {
-    if (newMessage.length > 0) {
-      setIsTyping(true);
-      const timeout = setTimeout(() => setIsTyping(false), 3000);
-      return () => clearTimeout(timeout);
-    }
-  }, [newMessage]);
+    const handleResize = () => setIsMobile(window.innerWidth < 900);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
-  const handleChatSelect = (chat) => {
-    setSelectedChat(chat);
-    if (isMobile) setDrawerOpen(false);
+  // Initialize Socket.io
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
 
-    // Mark messages as read
-    setChats(prev => prev.map(c => 
-      c.id === chat.id ? { ...c, unreadCount: 0 } : c
-    ));
-  };
+    socketRef.current = io(SERVER_URL, {
+      auth: { token },
+      transports: ['websocket', 'polling']
+    });
 
-  const handleSendMessage = () => {
-    if (!newMessage.trim() && selectedFiles.length === 0) return;
+    socketRef.current.on('connect', () => {
+      console.log('Socket connected');
+      const userId = localStorage.getItem('userId');
+      if (userId) {
+        setMyId(userId);
+        socketRef.current.emit('user_online', userId);
+      }
+    });
 
-    const message = {
-      id: Date.now(),
-      senderId: 'me',
-      text: newMessage,
-      time: new Date().toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' }),
-      date: new Date().toISOString().split('T')[0],
-      isRead: false,
-      type: selectedFiles.length > 0 ? 'file' : 'text',
-      files: selectedFiles,
-      replyTo: replyTo,
-      status: 'sending'
-    };
-
-    setMessages(prev => [...prev, message]);
-    setNewMessage('');
-    setSelectedFiles([]);
-    setReplyTo(null);
-
-    // Simulate message delivery
-    setTimeout(() => {
-      setMessages(prev => prev.map(m => 
-        m.id === message.id ? { ...m, status: 'delivered' } : m
+    socketRef.current.on('new_message', (message) => {
+      setMessages(prev => [...prev, message]);
+      // Update room last message
+      setRooms(prev => prev.map(r =>
+        r._id === message.room ? { ...r, lastMessage: message, lastActivity: new Date() } : r
       ));
-    }, 1000);
+    });
 
-    setTimeout(() => {
-      setMessages(prev => prev.map(m => 
-        m.id === message.id ? { ...m, status: 'read' } : m
+    socketRef.current.on('user_typing', ({ userId, userName, isTyping }) => {
+      setTypingUsers(prev => ({ ...prev, [userId]: isTyping ? userName : null }));
+    });
+
+    socketRef.current.on('user_status', ({ userId, isOnline }) => {
+      setRooms(prev => prev.map(r => ({
+        ...r,
+        participants: r.participants?.map(p =>
+          p._id === userId ? { ...p, isOnline } : p
+        )
+      })));
+    });
+
+    socketRef.current.on('message_deleted', ({ messageId }) => {
+      setMessages(prev => prev.map(m =>
+        m._id === messageId ? { ...m, isDeleted: true, text: 'تم حذف هذه الرسالة' } : m
       ));
-    }, 3000);
-  };
+    });
 
-  const handleStartVideoCall = () => {
-    if (!selectedChat) {
-      setSnackbar({ open: true, message: t('chat.selectChatFirst'), severity: 'warning' });
-      return;
+    return () => socketRef.current?.disconnect();
+  }, []);
+
+  // Load initial data
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem('token');
+      const headers = { Authorization: `Bearer ${token}` };
+
+      const [roomsRes, usersRes, meRes] = await Promise.all([
+        axios.get('/api/chat/rooms', { headers }),
+        axios.get('/api/users', { headers }),
+        axios.get('/api/auth/me', { headers })
+      ]);
+
+      if (roomsRes.data.success) setRooms(roomsRes.data.data);
+      if (usersRes.data.success) setUsers(usersRes.data.data);
+      if (meRes.data.success) {
+        setMyId(meRes.data.data._id);
+        localStorage.setItem('userId', meRes.data.data._id);
+      }
+    } catch (err) {
+      console.error('Fetch error:', err);
+    } finally {
+      setLoading(false);
     }
-    const roomName = `video-${selectedChat.id}-${Date.now()}`;
-    setCallRoomName(roomName);
-    setVideoCallOpen(true);
   };
 
-  const handleStartVoiceCall = () => {
-    if (!selectedChat) {
-      setSnackbar({ open: true, message: t('chat.selectChatFirst'), severity: 'warning' });
-      return;
+  const selectRoom = async (room) => {
+    setSelectedRoom(room);
+    if (selectedRoom?._id) {
+      socketRef.current?.emit('leave_room', selectedRoom._id);
     }
-    const roomName = `audio-${selectedChat.id}-${Date.now()}`;
-    setCallRoomName(roomName);
-    setVoiceCallOpen(true);
-  };
+    socketRef.current?.emit('join_room', room._id);
 
-  const handleStartGroupCall = (callType) => {
-    const roomName = `group-${callType}-${Date.now()}`;
-    setCallRoomName(roomName);
-    if (callType === 'video') {
-      setVideoCallOpen(true);
-    } else {
-      setVoiceCallOpen(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.get(`/api/chat/rooms/${room._id}/messages`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.data.success) setMessages(res.data.data);
+    } catch (err) {
+      console.error(err);
     }
   };
 
-  const handleFileSelect = (e) => {
-    const files = Array.from(e.target.files);
-    setSelectedFiles(files);
-    setSnackbar({ open: true, message: t('chat.filesSelected', { count: files.length }), severity: 'info' });
+  const sendMessage = async () => {
+    if (!newMessage.trim() || !selectedRoom) return;
+
+    const token = localStorage.getItem('token');
+    try {
+      const res = await axios.post(`/api/chat/rooms/${selectedRoom._id}/messages`, {
+        text: newMessage,
+        replyTo: replyTo?._id
+      }, { headers: { Authorization: `Bearer ${token}` } });
+
+      if (res.data.success) {
+        setMessages(prev => [...prev, res.data.data]);
+        setNewMessage('');
+        setReplyTo(null);
+        socketRef.current?.emit('typing_stop', { roomId: selectedRoom._id, userId: myId });
+      }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
-  const handleStartRecording = () => {
-    setIsRecording(true);
-    setRecordingTime(0);
-    recordingInterval.current = setInterval(() => {
-      setRecordingTime(prev => prev + 1);
-    }, 1000);
+  const handleTyping = (e) => {
+    setNewMessage(e.target.value);
+    if (!selectedRoom) return;
+    socketRef.current?.emit('typing_start', {
+      roomId: selectedRoom._id,
+      userId: myId,
+      userName: 'أنا'
+    });
+    clearTimeout(typingTimeoutRef.current);
+    typingTimeoutRef.current = setTimeout(() => {
+      socketRef.current?.emit('typing_stop', { roomId: selectedRoom._id, userId: myId });
+    }, 2000);
   };
 
-  const handleStopRecording = () => {
-    setIsRecording(false);
-    clearInterval(recordingInterval.current);
-    setRecordingTime(0);
-    setSnackbar({ open: true, message: t('chat.voiceSent'), severity: 'success' });
+  const startDirectChat = async (userId) => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.post('/api/chat/rooms/direct', { userId }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.data.success) {
+        const room = res.data.data;
+        setRooms(prev => {
+          const exists = prev.find(r => r._id === room._id);
+          return exists ? prev : [room, ...prev];
+        });
+        selectRoom(room);
+        setNewChatOpen(false);
+      }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
-  const handleMessageMenuOpen = (event, message) => {
-    setMessageMenuAnchor(event.currentTarget);
-    setSelectedMessage(message);
+  const deleteMessage = async (msgId) => {
+    try {
+      const token = localStorage.getItem('token');
+      await axios.delete(`/api/chat/messages/${msgId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setMsgMenu({ anchor: null, msg: null });
+    } catch (err) {
+      console.error(err);
+    }
   };
 
-  const handleMessageMenuClose = () => {
-    setMessageMenuAnchor(null);
-    setSelectedMessage(null);
+  const startCall = (type) => {
+    if (!selectedRoom) return;
+    const roomName = `${type}-${selectedRoom._id}-${Date.now()}`;
+    setCallRoomName(roomName);
+    if (type === 'video') setVideoCallOpen(true);
+    else setVoiceCallOpen(true);
   };
 
-  const handleReply = () => {
-    setReplyTo(selectedMessage);
-    handleMessageMenuClose();
-  };
-
-  const handleForward = () => {
-    setForwardDialogOpen(true);
-    handleMessageMenuClose();
-  };
-
-  const handleDeleteMessage = () => {
-    setMessages(prev => prev.filter(m => m.id !== selectedMessage.id));
-    handleMessageMenuClose();
-    setSnackbar({ open: true, message: t('chat.messageDeleted'), severity: 'success' });
-  };
-
-  const handleCopyMessage = () => {
-    navigator.clipboard.writeText(selectedMessage.text);
-    handleMessageMenuClose();
-    setSnackbar({ open: true, message: t('chat.messageCopied'), severity: 'success' });
-  };
-
-  const formatTime = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  const filteredChats = chats.filter(chat => 
-    chat.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    chat.nameEn.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    chat.lastMessage.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredRooms = rooms.filter(r =>
+    getRoomName(r, myId).toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // Speed dial actions
-  const speedDialActions = [
-    { icon: <Videocam />, name: t('chat.newVideoCall'), action: () => handleStartGroupCall('video'), color: '#1976d2' },
-    { icon: <Phone />, name: t('chat.newVoiceCall'), action: () => handleStartGroupCall('audio'), color: '#388e3c' },
-    { icon: <PersonAdd />, name: t('chat.newChat'), action: () => setSnackbar({ open: true, message: t('chat.featureComingSoon'), severity: 'info' }), color: '#f57c00' },
-    { icon: <GroupAdd />, name: t('chat.newGroup'), action: () => setSnackbar({ open: true, message: t('chat.featureComingSoon'), severity: 'info' }), color: '#7b1fa2' },
-  ];
+  const typingText = Object.values(typingUsers).filter(Boolean).join(', ');
 
-  return (
-    <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column', bgcolor: 'grey.100' }}>
-      {/* Connection Status Bar */}
-      {connectionStatus !== 'connected' && (
-        <Box sx={{
-          bgcolor: connectionStatus === 'slow' ? 'warning.dark' : 'error.dark',
-          color: 'white',
-          py: 0.5,
-          px: 2,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 1
-        }}>
-          {connectionStatus === 'slow' ? (
-            <><SignalCellularConnectedNoInternet0Bar fontSize="small" /> {t('chat.slowConnection')}</>
-          ) : (
-            <><WifiOff fontSize="small" /> {t('chat.noConnection')}</>
+  // ── Sidebar ──
+  const Sidebar = (
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', bgcolor: '#fff' }}>
+      {/* Header */}
+      <Box sx={{ p: 2, borderBottom: '1px solid #e0e0e0', bgcolor: '#f8f9fa' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
+          <Typography variant="h6" fontWeight={700} sx={{ color: '#1a73e8' }}>
+            وصّل Chat
+          </Typography>
+          <Tooltip title="محادثة جديدة">
+            <IconButton size="small" onClick={() => setNewChatOpen(true)}
+              sx={{ bgcolor: '#1a73e8', color: 'white', '&:hover': { bgcolor: '#1557b0' } }}>
+              <Add fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        </Box>
+        <TextField
+          fullWidth size="small" placeholder="بحث في المحادثات..."
+          value={searchQuery}
+          onChange={e => setSearchQuery(e.target.value)}
+          InputProps={{
+            startAdornment: <Search sx={{ mr: 1, color: '#9aa0a6', fontSize: 20 }} />,
+            endAdornment: searchQuery && (
+              <IconButton size="small" onClick={() => setSearchQuery('')}><Close fontSize="small" /></IconButton>
+            ),
+            sx: { borderRadius: 3, bgcolor: '#fff', fontSize: 14 }
+          }}
+        />
+      </Box>
+
+      {/* Room List */}
+      {loading ? (
+        <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <CircularProgress size={32} />
+        </Box>
+      ) : (
+        <List sx={{ flex: 1, overflow: 'auto', p: 0 }}>
+          {filteredRooms.length === 0 && (
+            <Box sx={{ p: 4, textAlign: 'center' }}>
+              <ChatIcon sx={{ fontSize: 40, color: '#dadce0', mb: 1 }} />
+              <Typography variant="body2" color="text.secondary">لا توجد محادثات</Typography>
+            </Box>
           )}
+          {filteredRooms.map(room => {
+            const name = getRoomName(room, myId);
+            const avatar = getRoomAvatar(room, myId);
+            const online = getRoomOnline(room, myId);
+            const isSelected = selectedRoom?._id === room._id;
+
+            return (
+              <ListItemButton
+                key={room._id}
+                selected={isSelected}
+                onClick={() => selectRoom(room)}
+                sx={{
+                  py: 1.5, px: 2,
+                  bgcolor: isSelected ? '#e8f0fe' : 'transparent',
+                  borderLeft: isSelected ? '3px solid #1a73e8' : '3px solid transparent',
+                  '&:hover': { bgcolor: isSelected ? '#e8f0fe' : '#f8f9fa' }
+                }}
+              >
+                <ListItemAvatar>
+                  <Badge
+                    overlap="circular"
+                    anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                    variant="dot"
+                    sx={{ '& .MuiBadge-dot': { bgcolor: online ? '#34a853' : '#dadce0', width: 10, height: 10, border: '2px solid white' } }}
+                  >
+                    <Avatar src={avatar} sx={{ width: 44, height: 44, bgcolor: '#1a73e8', fontSize: 18 }}>
+                      {name?.[0]}
+                    </Avatar>
+                  </Badge>
+                </ListItemAvatar>
+                <ListItemText
+                  primary={
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Typography variant="subtitle2" fontWeight={600} noWrap sx={{ maxWidth: 140 }}>
+                        {name}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: 11 }}>
+                        {room.lastActivity ? new Date(room.lastActivity).toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' }) : ''}
+                      </Typography>
+                    </Box>
+                  }
+                  secondary={
+                    <Typography variant="body2" color="text.secondary" noWrap sx={{ fontSize: 12, maxWidth: 160 }}>
+                      {room.lastMessage?.text || 'لا توجد رسائل'}
+                    </Typography>
+                  }
+                />
+              </ListItemButton>
+            );
+          })}
+        </List>
+      )}
+    </Box>
+  );
+
+  // ── Chat Area ──
+  const ChatArea = selectedRoom ? (
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      {/* Chat Header */}
+      <AppBar position="static" elevation={0} sx={{ bgcolor: '#fff', borderBottom: '1px solid #e0e0e0' }}>
+        <Toolbar variant="dense" sx={{ minHeight: 64 }}>
+          {isMobile && (
+            <IconButton edge="start" onClick={() => setSelectedRoom(null)} sx={{ mr: 1, color: 'text.primary' }}>
+              <ArrowBack />
+            </IconButton>
+          )}
+          <Badge
+            overlap="circular" variant="dot"
+            sx={{ '& .MuiBadge-dot': { bgcolor: getRoomOnline(selectedRoom, myId) ? '#34a853' : '#dadce0', width: 10, height: 10, border: '2px solid white', bottom: 2, right: 2 } }}
+          >
+            <Avatar src={getRoomAvatar(selectedRoom, myId)} sx={{ width: 40, height: 40, bgcolor: '#1a73e8' }}>
+              {getRoomName(selectedRoom, myId)?.[0]}
+            </Avatar>
+          </Badge>
+
+          <Box sx={{ ml: 1.5, flex: 1 }}>
+            <Typography variant="subtitle1" fontWeight={600} sx={{ color: 'text.primary', lineHeight: 1.2 }}>
+              {getRoomName(selectedRoom, myId)}
+            </Typography>
+            <Typography variant="caption" sx={{ color: getRoomOnline(selectedRoom, myId) ? '#34a853' : 'text.secondary' }}>
+              {typingText
+                ? `${typingText} يكتب...`
+                : getRoomOnline(selectedRoom, myId) ? 'متصل الآن' : 'غير متصل'}
+            </Typography>
+          </Box>
+
+          <Box sx={{ display: 'flex', gap: 0.5 }}>
+            <Tooltip title="مكالمة صوتية">
+              <IconButton onClick={() => startCall('voice')} sx={{ color: '#34a853' }}>
+                <Phone />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="مكالمة فيديو">
+              <IconButton onClick={() => startCall('video')} sx={{ color: '#1a73e8' }}>
+                <Videocam />
+              </IconButton>
+            </Tooltip>
+            <IconButton onClick={e => setOptionsMenu(e.currentTarget)} sx={{ color: 'text.secondary' }}>
+              <MoreVert />
+            </IconButton>
+          </Box>
+        </Toolbar>
+      </AppBar>
+
+      {/* Messages */}
+      <Box sx={{
+        flex: 1, overflow: 'auto', p: 2,
+        bgcolor: '#f8f9fa',
+        backgroundImage: 'radial-gradient(circle at 1px 1px, #e8eaed 1px, transparent 0)',
+        backgroundSize: '20px 20px'
+      }}>
+        {messages.map((msg, idx) => {
+          const isMe = msg.sender?._id === myId || msg.sender === myId;
+          const showAvatar = !isMe && (idx === 0 || messages[idx - 1]?.sender?._id !== msg.sender?._id);
+
+          return (
+            <Fade key={msg._id || idx} in>
+              <Box sx={{
+                display: 'flex',
+                justifyContent: isMe ? 'flex-end' : 'flex-start',
+                mb: 0.5,
+                alignItems: 'flex-end',
+                gap: 1
+              }}>
+                {/* Avatar for others */}
+                {!isMe && (
+                  <Box sx={{ width: 32 }}>
+                    {showAvatar && (
+                      <Avatar sx={{ width: 32, height: 32, bgcolor: '#1a73e8', fontSize: 13 }}>
+                        {msg.sender?.name?.[0] || '?'}
+                      </Avatar>
+                    )}
+                  </Box>
+                )}
+
+                <Box sx={{ maxWidth: '70%' }}>
+                  {/* Sender name */}
+                  {!isMe && showAvatar && (
+                    <Typography variant="caption" sx={{ color: '#1a73e8', fontWeight: 600, ml: 1.5, mb: 0.3, display: 'block' }}>
+                      {msg.sender?.name}
+                    </Typography>
+                  )}
+
+                  {/* Reply preview */}
+                  {msg.replyTo && (
+                    <Box sx={{
+                      ml: isMe ? 0 : 1.5, mr: isMe ? 1.5 : 0,
+                      mb: 0.3, px: 1.5, py: 0.5,
+                      bgcolor: 'rgba(0,0,0,0.05)', borderRadius: 2,
+                      borderLeft: '3px solid #1a73e8'
+                    }}>
+                      <Typography variant="caption" color="text.secondary" noWrap>
+                        {msg.replyTo?.text}
+                      </Typography>
+                    </Box>
+                  )}
+
+                  {/* Message bubble */}
+                  <Paper
+                    elevation={0}
+                    onClick={e => !msg.isDeleted && setMsgMenu({ anchor: e.currentTarget, msg })}
+                    sx={{
+                      px: 2, py: 1, borderRadius: isMe ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
+                      bgcolor: isMe ? '#1a73e8' : '#fff',
+                      color: isMe ? 'white' : 'text.primary',
+                      cursor: msg.isDeleted ? 'default' : 'pointer',
+                      opacity: msg.isDeleted ? 0.6 : 1,
+                      boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+                      '&:hover': { filter: msg.isDeleted ? 'none' : 'brightness(0.95)' }
+                    }}
+                  >
+                    <Typography variant="body2" sx={{
+                      fontStyle: msg.isDeleted ? 'italic' : 'normal',
+                      fontSize: 14, lineHeight: 1.4
+                    }}>
+                      {msg.text}
+                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 0.5, mt: 0.3 }}>
+                      <Typography variant="caption" sx={{ opacity: 0.7, fontSize: 11 }}>
+                        {new Date(msg.createdAt).toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' })}
+                      </Typography>
+                      {isMe && (
+                        msg.readBy?.length > 1
+                          ? <DoneAll sx={{ fontSize: 13, color: '#a8d5a2' }} />
+                          : <DoneAll sx={{ fontSize: 13, opacity: 0.6 }} />
+                      )}
+                    </Box>
+                  </Paper>
+                </Box>
+              </Box>
+            </Fade>
+          );
+        })}
+        <div ref={messagesEndRef} />
+      </Box>
+
+      {/* Reply Preview */}
+      {replyTo && (
+        <Box sx={{ px: 2, py: 1, bgcolor: '#e8f0fe', display: 'flex', alignItems: 'center', gap: 1, borderTop: '1px solid #c2d3f0' }}>
+          <Reply sx={{ color: '#1a73e8', fontSize: 18 }} />
+          <Typography variant="body2" noWrap sx={{ flex: 1, color: '#1a73e8', fontSize: 13 }}>
+            رد على: {replyTo.text}
+          </Typography>
+          <IconButton size="small" onClick={() => setReplyTo(null)}><Close fontSize="small" /></IconButton>
         </Box>
       )}
 
-      <Grid container sx={{ flex: 1, overflow: 'hidden' }}>
-        {/* Sidebar - Chat List */}
-        {(!isMobile || !selectedChat) && (
-          <Grid item xs={12} md={4} lg={3} sx={{
-            height: '100%',
-            borderRight: '1px solid',
-            borderColor: 'divider',
-            bgcolor: 'background.paper',
-            display: 'flex',
-            flexDirection: 'column'
-          }}>
-            {/* Sidebar Header */}
-            <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-                <Typography variant="h6" fontWeight="bold">
-                  {t('chat.title')}
-                </Typography>
-                <Box sx={{ display: 'flex', gap: 1 }}>
-                  <Tooltip title={t('chat.newVideoCall')}>
-                    <IconButton color="primary" onClick={() => handleStartGroupCall('video')}>
-                      <Videocam />
-                    </IconButton>
-                  </Tooltip>
-                  <Tooltip title={t('chat.newVoiceCall')}>
-                    <IconButton color="success" onClick={() => handleStartGroupCall('audio')}>
-                      <Phone />
-                    </IconButton>
-                  </Tooltip>
-                </Box>
-              </Box>
+      {/* Input */}
+      <Box sx={{
+        p: 1.5, bgcolor: '#fff', borderTop: '1px solid #e0e0e0',
+        display: 'flex', alignItems: 'flex-end', gap: 1
+      }}>
+        <Tooltip title="إرفاق ملف">
+          <IconButton size="small" onClick={() => fileInputRef.current?.click()} sx={{ color: '#9aa0a6', mb: 0.5 }}>
+            <AttachFile />
+          </IconButton>
+        </Tooltip>
+        <input type="file" ref={fileInputRef} hidden multiple />
 
-              <TextField
-                fullWidth
-                size="small"
-                placeholder={t('chat.search')}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                InputProps={{
-                  startAdornment: <Search sx={{ mr: 1, color: 'text.secondary' }} />,
-                  endAdornment: searchQuery && (
-                    <IconButton size="small" onClick={() => setSearchQuery('')}>
-                      <Close fontSize="small" />
-                    </IconButton>
-                  )
-                }}
-              />
-            </Box>
-
-            {/* Chat List */}
-            <List sx={{ flex: 1, overflow: 'auto', p: 0 }}>
-              {filteredChats.map((chat) => (
-                <ListItem
-                  key={chat.id}
-                  disablePadding
-                  secondaryAction={
-                    chat.unreadCount > 0 && (
-                      <Badge
-                        badgeContent={chat.unreadCount}
-                        color="primary"
-                        sx={{ mr: 2 }}
-                      />
-                    )
-                  }
-                >
-                  <ListItemButton
-                    selected={selectedChat?.id === chat.id}
-                    onClick={() => handleChatSelect(chat)}
-                    sx={{
-                      borderLeft: selectedChat?.id === chat.id ? 3 : 0,
-                      borderColor: 'primary.main',
-                      bgcolor: selectedChat?.id === chat.id ? 'primary.light' : 'inherit'
-                    }}
-                  >
-                    <ListItemAvatar>
-                      <Badge
-                        overlap="circular"
-                        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-                        variant="dot"
-                        color={chat.isOnline ? 'success' : 'grey'}
-                      >
-                        <Avatar src={chat.avatar} alt={chat.name}>
-                          {chat.name[0]}
-                        </Avatar>
-                      </Badge>
-                    </ListItemAvatar>
-                    <ListItemText
-                      primary={
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Typography variant="subtitle2" fontWeight="bold" noWrap>
-                            {chat.name}
-                          </Typography>
-                          {chat.isGroup && (
-                            <Chip size="small" label={chat.members} icon={<People fontSize="small" />} />
-                          )}
-                        </Box>
-                      }
-                      secondary={
-                        <Box>
-                          <Typography variant="body2" color="text.secondary" noWrap sx={{ maxWidth: 150 }}>
-                            {chat.isTyping ? (
-                              <span style={{ color: '#1976d2', fontStyle: 'italic' }}>{t('chat.typing')}</span>
-                            ) : (
-                              chat.lastMessage
-                            )}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            {chat.lastMessageTime}
-                          </Typography>
-                        </Box>
-                      }
-                    />
-                  </ListItemButton>
-                </ListItem>
-              ))}
-            </List>
-          </Grid>
-        )}
-
-        {/* Chat Area */}
-        {selectedChat ? (
-          <Grid item xs={12} md={8} lg={9} sx={{
-            height: '100%',
-            display: 'flex',
-            flexDirection: 'column',
-            bgcolor: 'background.default'
-          }}>
-            {/* Chat Header */}
-            <AppBar position="static" color="default" elevation={1}>
-              <Toolbar variant="dense">
-                {isMobile && (
-                  <IconButton edge="start" onClick={() => setSelectedChat(null)} sx={{ mr: 1 }}>
-                    <ArrowBack />
-                  </IconButton>
-                )}
-
-                <Badge
-                  overlap="circular"
-                  anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-                  variant="dot"
-                  color={selectedChat.isOnline ? 'success' : 'grey'}
-                >
-                  <Avatar src={selectedChat.avatar} alt={selectedChat.name} />
-                </Badge>
-
-                <Box sx={{ ml: 2, flex: 1 }}>
-                  <Typography variant="subtitle1" fontWeight="bold">
-                    {selectedChat.name}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    {selectedChat.isTyping ? (
-                      <span style={{ color: '#1976d2' }}>{t('chat.typing')}</span>
-                    ) : selectedChat.isOnline ? (
-                      t('chat.online')
-                    ) : (
-                      selectedChat.lastSeen || t('chat.offline')
-                    )}
-                  </Typography>
-                </Box>
-
-                {/* Call Buttons in Header */}
-                <Box sx={{ display: 'flex', gap: 1 }}>
-                  <Tooltip title={t('chat.voiceCall')}>
-                    <IconButton color="success" onClick={handleStartVoiceCall}>
-                      <Phone />
-                    </IconButton>
-                  </Tooltip>
-                  <Tooltip title={t('chat.videoCall')}>
-                    <IconButton color="primary" onClick={handleStartVideoCall}>
-                      <Videocam />
-                    </IconButton>
-                  </Tooltip>
-                  <IconButton onClick={(e) => setAnchorEl(e.currentTarget)}>
-                    <MoreVert />
-                  </IconButton>
-                </Box>
-              </Toolbar>
-            </AppBar>
-
-            {/* Messages Area */}
-            <Box sx={{ flex: 1, overflow: 'auto', p: 2, bgcolor: 'grey.50' }}>
-              {messages.map((message, index) => (
-                <Fade key={message.id} in={true}>
-                  <Box sx={{
-                    display: 'flex',
-                    justifyContent: message.senderId === 'me' ? 'flex-end' : 'flex-start',
-                    mb: 1
-                  }}>
-                    <Paper
-                      elevation={1}
-                      sx={{
-                        maxWidth: '70%',
-                        p: 1.5,
-                        borderRadius: 2,
-                        bgcolor: message.senderId === 'me' ? 'primary.light' : 'background.paper',
-                        color: message.senderId === 'me' ? 'primary.contrastText' : 'text.primary',
-                        position: 'relative',
-                        cursor: 'pointer',
-                        '&:hover': { bgcolor: message.senderId === 'me' ? 'primary.main' : 'action.hover' }
-                      }}
-                      onContextMenu={(e) => handleMessageMenuOpen(e, message)}
-                    >
-                      {/* Reply indicator */}
-                      {message.replyTo && (
-                        <Box sx={{
-                          p: 1,
-                          mb: 1,
-                          borderLeft: 3,
-                          borderColor: 'divider',
-                          bgcolor: 'rgba(0,0,0,0.05)',
-                          borderRadius: 1
-                        }}>
-                          <Typography variant="caption" color="text.secondary">
-                            {message.replyTo.text}
-                          </Typography>
-                        </Box>
-                      )}
-
-                      <Typography variant="body1">{message.text}</Typography>
-
-                      {/* Files */}
-                      {message.files && message.files.map((file, idx) => (
-                        <Box key={idx} sx={{
-                          mt: 1,
-                          p: 1,
-                          bgcolor: 'rgba(0,0,0,0.05)',
-                          borderRadius: 1,
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 1
-                        }}>
-                          <InsertDriveFile />
-                          <Typography variant="caption">{file.name}</Typography>
-                        </Box>
-                      ))}
-
-                      <Box sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'flex-end',
-                        gap: 0.5,
-                        mt: 0.5
-                      }}>
-                        <Typography variant="caption" sx={{ opacity: 0.7 }}>
-                          {message.time}
-                        </Typography>
-                        {message.senderId === 'me' && (
-                          message.status === 'read' ? (
-                            <DoneAll sx={{ fontSize: 14, color: 'success.main' }} />
-                          ) : message.status === 'delivered' ? (
-                            <DoneAll sx={{ fontSize: 14, opacity: 0.5 }} />
-                          ) : (
-                            <AccessTime sx={{ fontSize: 14, opacity: 0.5 }} />
-                          )
-                        )}
-                      </Box>
-                    </Paper>
-                  </Box>
-                </Fade>
-              ))}
-              <div ref={messagesEndRef} />
-            </Box>
-
-            {/* Reply Preview */}
-            {replyTo && (
-              <Box sx={{
-                p: 1,
-                bgcolor: 'action.hover',
-                borderTop: '1px solid',
-                borderColor: 'divider',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 1
-              }}>
-                <Reply sx={{ color: 'primary.main' }} />
-                <Typography variant="body2" noWrap sx={{ flex: 1 }}>
-                  {replyTo.text}
-                </Typography>
-                <IconButton size="small" onClick={() => setReplyTo(null)}>
-                  <Close fontSize="small" />
+        <TextField
+          fullWidth multiline maxRows={4}
+          placeholder="اكتب رسالة..."
+          value={newMessage}
+          onChange={handleTyping}
+          onKeyPress={e => {
+            if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+          }}
+          sx={{
+            '& .MuiOutlinedInput-root': {
+              borderRadius: 4, bgcolor: '#f8f9fa', fontSize: 14,
+              '& fieldset': { borderColor: 'transparent' },
+              '&:hover fieldset': { borderColor: '#1a73e8' },
+              '&.Mui-focused fieldset': { borderColor: '#1a73e8' }
+            }
+          }}
+          InputProps={{
+            endAdornment: (
+              <InputAdornment position="end">
+                <IconButton size="small" sx={{ color: '#9aa0a6' }}>
+                  <EmojiEmotions fontSize="small" />
                 </IconButton>
-              </Box>
-            )}
+              </InputAdornment>
+            )
+          }}
+        />
 
-            {/* Selected Files Preview */}
-            {selectedFiles.length > 0 && (
-              <Box sx={{
-                p: 1,
-                bgcolor: 'action.hover',
-                borderTop: '1px solid',
-                borderColor: 'divider',
-                display: 'flex',
-                gap: 1,
-                overflow: 'auto'
-              }}>
-                {selectedFiles.map((file, idx) => (
-                  <Chip
-                    key={idx}
-                    label={file.name}
-                    onDelete={() => setSelectedFiles(prev => prev.filter((_, i) => i !== idx))}
-                    icon={<InsertDriveFile />}
-                  />
-                ))}
-              </Box>
-            )}
+        <IconButton
+          onClick={sendMessage}
+          disabled={!newMessage.trim()}
+          sx={{
+            bgcolor: newMessage.trim() ? '#1a73e8' : '#dadce0',
+            color: newMessage.trim() ? 'white' : '#9aa0a6',
+            mb: 0.5, width: 40, height: 40,
+            '&:hover': { bgcolor: newMessage.trim() ? '#1557b0' : '#dadce0' },
+            '&:disabled': { bgcolor: '#dadce0', color: '#9aa0a6' }
+          }}
+        >
+          <Send fontSize="small" />
+        </IconButton>
+      </Box>
+    </Box>
+  ) : (
+    <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', bgcolor: '#f8f9fa' }}>
+      <Box sx={{ textAlign: 'center', maxWidth: 320 }}>
+        <Box sx={{
+          width: 80, height: 80, borderRadius: '50%', bgcolor: '#e8f0fe',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', mx: 'auto', mb: 2
+        }}>
+          <ChatIcon sx={{ fontSize: 40, color: '#1a73e8' }} />
+        </Box>
+        <Typography variant="h6" fontWeight={600} gutterBottom>ابدأ محادثة</Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+          اختر محادثة من القائمة أو ابدأ محادثة جديدة
+        </Typography>
+        <Button
+          variant="contained"
+          startIcon={<PersonAdd />}
+          onClick={() => setNewChatOpen(true)}
+          sx={{ borderRadius: 3, textTransform: 'none', bgcolor: '#1a73e8', '&:hover': { bgcolor: '#1557b0' } }}
+        >
+          محادثة جديدة
+        </Button>
+      </Box>
+    </Box>
+  );
 
-            {/* Recording Indicator */}
-            {isRecording && (
-              <Box sx={{
-                p: 1,
-                bgcolor: 'error.light',
-                borderTop: '1px solid',
-                borderColor: 'divider',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 2
-              }}>
-                <Box sx={{
-                  width: 12,
-                  height: 12,
-                  borderRadius: '50%',
-                  bgcolor: 'error.main',
-                  animation: 'pulse 1s infinite'
-                }} />
-                <Typography variant="body2" color="error.main" fontWeight="bold">
-                  {formatTime(recordingTime)}
-                </Typography>
-                <Button
-                  variant="contained"
-                  color="error"
-                  size="small"
-                  onClick={handleStopRecording}
-                  startIcon={<Send />}
-                >
-                  {t('chat.send')}
-                </Button>
-              </Box>
-            )}
+  return (
+    <Box sx={{ height: '100vh', display: 'flex', overflow: 'hidden' }}>
+      {/* Sidebar */}
+      {(!isMobile || !selectedRoom) && (
+        <Box sx={{ width: isMobile ? '100%' : 320, flexShrink: 0, borderRight: '1px solid #e0e0e0', height: '100%' }}>
+          {Sidebar}
+        </Box>
+      )}
 
-            {/* Input Area */}
-            <Box sx={{
-              p: 2,
-              bgcolor: 'background.paper',
-              borderTop: '1px solid',
-              borderColor: 'divider',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 1
-            }}>
-              <SpeedDial
-                ariaLabel="SpeedDial"
-                icon={<SpeedDialIcon icon={<Add />} openIcon={<Close />} />}
-                onClose={() => setSpeedDialOpen(false)}
-                onOpen={() => setSpeedDialOpen(true)}
-                open={speedDialOpen}
-                direction="up"
-                FabProps={{ size: 'small' }}
-              >
-                {speedDialActions.map((action) => (
-                  <SpeedDialAction
-                    key={action.name}
-                    icon={action.icon}
-                    tooltipTitle={action.name}
-                    onClick={action.action}
-                    FabProps={{ sx: { bgcolor: action.color, color: 'white' } }}
-                  />
-                ))}
-              </SpeedDial>
+      {/* Chat */}
+      {(!isMobile || selectedRoom) && (
+        <Box sx={{ flex: 1, height: '100%', overflow: 'hidden' }}>
+          {ChatArea}
+        </Box>
+      )}
 
-              <IconButton onClick={() => fileInputRef.current?.click()}>
-                <AttachFile />
-              </IconButton>
-              <input
-                type="file"
-                ref={fileInputRef}
-                hidden
-                multiple
-                onChange={handleFileSelect}
-              />
+      {/* ── Dialogs & Menus ── */}
 
-              <TextField
-                fullWidth
-                multiline
-                maxRows={4}
-                placeholder={isRecording ? t('chat.recording') : t('chat.typeMessage')}
-                value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-                onKeyPress={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    handleSendMessage();
-                  }
-                }}
-                disabled={isRecording}
-                InputProps={{
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      <IconButton onClick={() => setShowEmoji(!showEmoji)}>
-                        <EmojiEmotions />
-                      </IconButton>
-                    </InputAdornment>
-                  )
-                }}
-              />
-
-              {newMessage.trim() || selectedFiles.length > 0 ? (
-                <IconButton
-                  color="primary"
-                  onClick={handleSendMessage}
-                  sx={{ bgcolor: 'primary.main', color: 'white', '&:hover': { bgcolor: 'primary.dark' } }}
-                >
-                  <Send />
-                </IconButton>
-              ) : (
-                <IconButton
-                  color={isRecording ? 'error' : 'default'}
-                  onMouseDown={handleStartRecording}
-                  onMouseUp={isRecording ? handleStopRecording : undefined}
-                  onTouchStart={handleStartRecording}
-                  onTouchEnd={isRecording ? handleStopRecording : undefined}
-                >
-                  {isRecording ? <Mic /> : <KeyboardVoice />}
-                </IconButton>
-              )}
-            </Box>
-          </Grid>
-        ) : (
-          <Grid item xs={12} md={8} lg={9} sx={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            bgcolor: 'grey.50'
-          }}>
-            <Box sx={{ textAlign: 'center', p: 4 }}>
-              <ChatIcon sx={{ fontSize: 80, color: 'grey.300', mb: 2 }} />
-              <Typography variant="h5" color="text.secondary" gutterBottom>
-                {t('chat.selectChat')}
-              </Typography>
-              <Typography variant="body1" color="text.secondary">
-                {t('chat.selectChatDescription')}
-              </Typography>
-
-              <Box sx={{ mt: 3, display: 'flex', gap: 2, justifyContent: 'center' }}>
-                <Button
-                  variant="contained"
-                  startIcon={<Videocam />}
-                  onClick={() => handleStartGroupCall('video')}
-                >
-                  {t('chat.newVideoCall')}
-                </Button>
-                <Button
-                  variant="outlined"
-                  startIcon={<Phone />}
-                  onClick={() => handleStartGroupCall('audio')}
-                >
-                  {t('chat.newVoiceCall')}
-                </Button>
-              </Box>
-            </Box>
-          </Grid>
-        )}
-      </Grid>
-
-      {/* Video Call Dialog */}
-      <VideoCall
-        open={videoCallOpen}
-        onClose={() => setVideoCallOpen(false)}
-        roomName={callRoomName}
-        participantName={selectedChat?.name || 'User'}
-        callType="video"
-      />
-
-      {/* Voice Call Dialog */}
-      <VideoCall
-        open={voiceCallOpen}
-        onClose={() => setVoiceCallOpen(false)}
-        roomName={callRoomName}
-        participantName={selectedChat?.name || 'User'}
-        callType="audio"
-      />
-
-      {/* Message Context Menu */}
-      <Menu
-        anchorEl={messageMenuAnchor}
-        open={Boolean(messageMenuAnchor)}
-        onClose={handleMessageMenuClose}
-      >
-        <MenuItem onClick={handleReply}>
-          <ListItemIcon><Reply fontSize="small" /></ListItemIcon>
-          <ListItemText>{t('chat.reply')}</ListItemText>
-        </MenuItem>
-        <MenuItem onClick={handleForward}>
-          <ListItemIcon><Forward fontSize="small" /></ListItemIcon>
-          <ListItemText>{t('chat.forward')}</ListItemText>
-        </MenuItem>
-        <MenuItem onClick={handleCopyMessage}>
-          <ListItemIcon><ContentCopy fontSize="small" /></ListItemIcon>
-          <ListItemText>{t('chat.copy')}</ListItemText>
-        </MenuItem>
-        <Divider />
-        <MenuItem onClick={handleDeleteMessage} sx={{ color: 'error.main' }}>
-          <ListItemIcon><Delete fontSize="small" color="error" /></ListItemIcon>
-          <ListItemText>{t('chat.delete')}</ListItemText>
-        </MenuItem>
-      </Menu>
-
-      {/* Chat Options Menu */}
-      <Menu
-        anchorEl={anchorEl}
-        open={Boolean(anchorEl)}
-        onClose={() => setAnchorEl(null)}
-      >
-        <MenuItem onClick={() => { setChatInfoOpen(true); setAnchorEl(null); }}>
-          <ListItemIcon><Info fontSize="small" /></ListItemIcon>
-          <ListItemText>{t('chat.info')}</ListItemText>
-        </MenuItem>
-        <MenuItem onClick={() => setAnchorEl(null)}>
-          <ListItemIcon><PushPin fontSize="small" /></ListItemIcon>
-          <ListItemText>{t('chat.pin')}</ListItemText>
-        </MenuItem>
-        <MenuItem onClick={() => setAnchorEl(null)}>
-          <ListItemIcon><NotificationsOff fontSize="small" /></ListItemIcon>
-          <ListItemText>{t('chat.mute')}</ListItemText>
-        </MenuItem>
-        <Divider />
-        <MenuItem onClick={() => setAnchorEl(null)} sx={{ color: 'error.main' }}>
-          <ListItemIcon><Block fontSize="small" color="error" /></ListItemIcon>
-          <ListItemText>{t('chat.block')}</ListItemText>
-        </MenuItem>
-        <MenuItem onClick={() => setAnchorEl(null)} sx={{ color: 'error.main' }}>
-          <ListItemIcon><Delete fontSize="small" color="error" /></ListItemIcon>
-          <ListItemText>{t('chat.deleteChat')}</ListItemText>
-        </MenuItem>
-      </Menu>
-
-      {/* Chat Info Dialog */}
-      <Dialog open={chatInfoOpen} onClose={() => setChatInfoOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Info />
-            {t('chat.chatInfo')}
-          </Box>
-        </DialogTitle>
-        <DialogContent>
-          {selectedChat && (
-            <Box sx={{ textAlign: 'center', py: 2 }}>
-              <Avatar src={selectedChat.avatar} sx={{ width: 80, height: 80, mx: 'auto', mb: 2 }} />
-              <Typography variant="h6">{selectedChat.name}</Typography>
-              <Typography variant="body2" color="text.secondary">{selectedChat.nameEn}</Typography>
-              <Chip
-                label={selectedChat.isOnline ? t('chat.online') : t('chat.offline')}
-                color={selectedChat.isOnline ? 'success' : 'default'}
-                sx={{ mt: 1 }}
-              />
-            </Box>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setChatInfoOpen(false)}>{t('common.close')}</Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Forward Dialog */}
-      <Dialog open={forwardDialogOpen} onClose={() => setForwardDialogOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>{t('chat.forwardTo')}</DialogTitle>
+      {/* New Chat Dialog */}
+      <Dialog open={newChatOpen} onClose={() => setNewChatOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700 }}>محادثة جديدة</DialogTitle>
         <DialogContent>
           <List>
-            {chats.map(chat => (
-              <ListItemButton key={chat.id} onClick={() => {
-                setSnackbar({ open: true, message: t('chat.messageForwarded'), severity: 'success' });
-                setForwardDialogOpen(false);
-              }}>
+            {users.filter(u => u._id !== myId).map(user => (
+              <ListItemButton key={user._id} onClick={() => startDirectChat(user._id)} sx={{ borderRadius: 2 }}>
                 <ListItemAvatar>
-                  <Avatar src={chat.avatar} />
+                  <Badge variant="dot" overlap="circular"
+                    sx={{ '& .MuiBadge-dot': { bgcolor: user.isOnline ? '#34a853' : '#dadce0', width: 10, height: 10 } }}>
+                    <Avatar src={user.avatar} sx={{ bgcolor: '#1a73e8' }}>{user.name?.[0]}</Avatar>
+                  </Badge>
                 </ListItemAvatar>
-                <ListItemText primary={chat.name} />
+                <ListItemText
+                  primary={user.name}
+                  secondary={user.isOnline ? 'متصل' : 'غير متصل'}
+                />
               </ListItemButton>
             ))}
           </List>
         </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setNewChatOpen(false)}>إغلاق</Button>
+        </DialogActions>
       </Dialog>
 
-      {/* Snackbar */}
+      {/* Message Context Menu */}
+      <Menu anchorEl={msgMenu.anchor} open={Boolean(msgMenu.anchor)} onClose={() => setMsgMenu({ anchor: null, msg: null })}>
+        <MenuItem onClick={() => { setReplyTo(msgMenu.msg); setMsgMenu({ anchor: null, msg: null }); }}>
+          <ListItemIcon><Reply fontSize="small" /></ListItemIcon>رد
+        </MenuItem>
+        <MenuItem onClick={() => { navigator.clipboard.writeText(msgMenu.msg?.text || ''); setMsgMenu({ anchor: null, msg: null }); setSnackbar({ open: true, message: 'تم النسخ' }); }}>
+          <ListItemIcon><ContentCopy fontSize="small" /></ListItemIcon>نسخ
+        </MenuItem>
+        <Divider />
+        <MenuItem onClick={() => deleteMessage(msgMenu.msg?._id)} sx={{ color: 'error.main' }}>
+          <ListItemIcon><Delete fontSize="small" color="error" /></ListItemIcon>حذف
+        </MenuItem>
+      </Menu>
+
+      {/* Room Options Menu */}
+      <Menu anchorEl={optionsMenu} open={Boolean(optionsMenu)} onClose={() => setOptionsMenu(null)}>
+        <MenuItem onClick={() => setOptionsMenu(null)}><ListItemIcon><PushPin fontSize="small" /></ListItemIcon>تثبيت</MenuItem>
+        <MenuItem onClick={() => setOptionsMenu(null)}><ListItemIcon><NotificationsOff fontSize="small" /></ListItemIcon>كتم الإشعارات</MenuItem>
+        <Divider />
+        <MenuItem onClick={() => setOptionsMenu(null)} sx={{ color: 'error.main' }}>
+          <ListItemIcon><Delete fontSize="small" color="error" /></ListItemIcon>حذف المحادثة
+        </MenuItem>
+      </Menu>
+
+      {/* Video Call */}
+      <VideoCall
+        open={videoCallOpen}
+        onClose={() => setVideoCallOpen(false)}
+        roomName={callRoomName}
+        participantName={localStorage.getItem('userName') || 'مستخدم'}
+        callType="video"
+      />
+
+      {/* Voice Call */}
+      <VideoCall
+        open={voiceCallOpen}
+        onClose={() => setVoiceCallOpen(false)}
+        roomName={callRoomName}
+        participantName={localStorage.getItem('userName') || 'مستخدم'}
+        callType="audio"
+      />
+
       <Snackbar
         open={snackbar.open}
-        autoHideDuration={4000}
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-      >
-        <Alert severity={snackbar.severity} onClose={() => setSnackbar({ ...snackbar, open: false })}>
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
+        autoHideDuration={2000}
+        onClose={() => setSnackbar({ open: false, message: '' })}
+        message={snackbar.message}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      />
     </Box>
   );
 };
