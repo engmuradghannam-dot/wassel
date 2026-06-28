@@ -1,0 +1,26 @@
+name: Test Login API
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Test login endpoint
+        run: |
+          echo "=== Health Check ==="
+          curl -s https://wassel-cyj5.onrender.com/api/health | python3 -c "import sys,json; d=json.load(sys.stdin); print('Status:', d.get('status'))" || echo "Not responding"
+          
+          echo "=== Login Test ==="
+          curl -s -X POST https://wassel-cyj5.onrender.com/api/users/login \
+            -H "Content-Type: application/json" \
+            -d '{"email":"eng.murad.ghannam@gmail.com","password":"Admin2026@"}' | python3 -c "
+          import sys,json
+          d=json.load(sys.stdin)
+          if d.get('success'):
+              print('✅ LOGIN SUCCESS')
+              print('Role:', d['data']['user']['role'])
+          else:
+              print('❌ LOGIN FAILED:', d.get('message'))
+          "
