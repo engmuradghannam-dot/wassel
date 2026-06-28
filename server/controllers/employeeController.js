@@ -1,69 +1,50 @@
 const Employee = require('../models/Employee');
+const { buildFilter } = require('../middleware/tenant');
 
 exports.getEmployees = async (req, res) => {
   try {
     const { department, branch, status } = req.query;
-    const filter = {};
-    if (department) filter.department = department;
-    if (branch) filter.branch = branch;
-    if (status) filter.status = status;
-
-    const employees = await Employee.find(filter)
-      .populate('branch', 'name')
-      .populate('manager', 'name')
-      .sort({ name: 1 });
+    const extra = {};
+    if (department) extra.department = department;
+    if (branch)     extra.branch     = branch;
+    if (status)     extra.status     = status;
+    const employees = await Employee.find(buildFilter(req, extra))
+      .populate('branch','name').populate('manager','name').sort({ name: 1 });
     res.json({ success: true, count: employees.length, data: employees });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
-  }
+  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
 };
-
 exports.getEmployee = async (req, res) => {
   try {
-    const employee = await Employee.findById(req.params.id)
-      .populate('branch', 'name')
-      .populate('manager', 'name email');
-    if (!employee) return res.status(404).json({ success: false, message: 'Employee not found' });
-    res.json({ success: true, data: employee });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
-  }
+    const emp = await Employee.findOne(buildFilter(req, { _id: req.params.id }))
+      .populate('branch','name').populate('manager','name email');
+    if (!emp) return res.status(404).json({ success: false, message: 'الموظف غير موجود' });
+    res.json({ success: true, data: emp });
+  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
 };
-
 exports.createEmployee = async (req, res) => {
   try {
-    const employee = await Employee.create(req.body);
-    res.status(201).json({ success: true, data: employee });
-  } catch (err) {
-    res.status(400).json({ success: false, message: err.message });
-  }
+    const emp = await Employee.create({ ...req.body, company: req.company });
+    res.status(201).json({ success: true, data: emp });
+  } catch (err) { res.status(400).json({ success: false, message: err.message }); }
 };
-
 exports.updateEmployee = async (req, res) => {
   try {
-    const employee = await Employee.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
-    if (!employee) return res.status(404).json({ success: false, message: 'Employee not found' });
-    res.json({ success: true, data: employee });
-  } catch (err) {
-    res.status(400).json({ success: false, message: err.message });
-  }
+    const emp = await Employee.findOneAndUpdate(
+      buildFilter(req, { _id: req.params.id }), req.body, { new: true, runValidators: true });
+    if (!emp) return res.status(404).json({ success: false, message: 'الموظف غير موجود' });
+    res.json({ success: true, data: emp });
+  } catch (err) { res.status(400).json({ success: false, message: err.message }); }
 };
-
 exports.deleteEmployee = async (req, res) => {
   try {
-    const employee = await Employee.findByIdAndDelete(req.params.id);
-    if (!employee) return res.status(404).json({ success: false, message: 'Employee not found' });
-    res.json({ success: true, message: 'Employee deleted' });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
-  }
+    const emp = await Employee.findOneAndDelete(buildFilter(req, { _id: req.params.id }));
+    if (!emp) return res.status(404).json({ success: false, message: 'الموظف غير موجود' });
+    res.json({ success: true, message: 'تم حذف الموظف' });
+  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
 };
-
 exports.getDepartments = async (req, res) => {
   try {
-    const departments = await Employee.distinct('department');
-    res.json({ success: true, data: departments.filter(Boolean) });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
-  }
+    const depts = await Employee.distinct('department', buildFilter(req));
+    res.json({ success: true, data: depts.filter(Boolean) });
+  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
 };
