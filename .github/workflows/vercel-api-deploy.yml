@@ -1,43 +1,12 @@
 name: Vercel API Deploy
-
+# Replaced by vercel-deploy-final.yml
 on:
   workflow_dispatch:
-  push:
-    branches: [main, master]
-    paths:
-      - 'client/**'
-
+    inputs:
+      note:
+        default: 'disabled - use vercel-deploy-final'
 jobs:
-  deploy:
+  skip:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Build client
-        run: |
-          cd client
-          npm install --legacy-peer-deps
-          CI=false npm run build
-
-      - name: Install Vercel CLI & Deploy
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-        run: |
-          npm install -g vercel@latest
-
-          # Pull project settings (creates .vercel/project.json)
-          cd client
-          
-          echo "Attempting vercel link..."
-          vercel link --token "$VERCEL_TOKEN" --yes 2>&1 || true
-          
-          echo "Deploying prebuilt..."
-          vercel deploy --prebuilt --prod \
-            --token "$VERCEL_TOKEN" \
-            --yes 2>&1
+      - run: echo "Disabled"

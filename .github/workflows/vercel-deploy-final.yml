@@ -1,0 +1,52 @@
+name: Vercel Deploy Final
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install & Build
+        run: |
+          cd client
+          npm install --legacy-peer-deps
+          CI=false REACT_APP_API_URL=https://wassel-cyj5.onrender.com npm run build
+
+      - name: Deploy via Vercel API
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          # Get org and project IDs
+          USER=$(curl -sf "https://api.vercel.com/v2/user" -H "Authorization: Bearer $VERCEL_TOKEN")
+          ORG_ID=$(echo "$USER" | python3 -c "import sys,json; print(json.load(sys.stdin).get('user',{}).get('id',''))")
+          
+          PROJECTS=$(curl -sf "https://api.vercel.com/v9/projects" -H "Authorization: Bearer $VERCEL_TOKEN")
+          PROJECT_ID=$(echo "$PROJECTS" | python3 -c "
+          import sys,json
+          d=json.load(sys.stdin)
+          projects=d.get('projects',[])
+          if projects:
+              print(projects[0]['id'])
+          ")
+          
+          echo "ORG_ID=$ORG_ID"
+          echo "PROJECT_ID=$PROJECT_ID"
+          
+          # Create .vercel/project.json for CLI
+          mkdir -p client/.vercel
+          echo "{\"orgId\":\"$ORG_ID\",\"projectId\":\"$PROJECT_ID\"}" > client/.vercel/project.json
+          cat client/.vercel/project.json
+          
+          # Install Vercel CLI and deploy prebuilt
+          npm install -g vercel@latest
+          cd client
+          vercel deploy --prebuilt --prod --token "$VERCEL_TOKEN" --yes
