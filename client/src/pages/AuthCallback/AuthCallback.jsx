@@ -14,21 +14,31 @@ const AuthCallback = () => {
       navigate('/login?error=auth_failed');
       return;
     }
+
     localStorage.setItem('token', token);
+
     api.get('/api/auth/me')
       .then(res => {
         if (res.data.success) {
-          localStorage.setItem('userId',   res.data.data._id);
+          localStorage.setItem('userId', res.data.data._id);
           localStorage.setItem('userName', res.data.data.name);
           localStorage.setItem('userRole', res.data.data.role);
         }
       })
       .catch(() => {})
-      .finally(() => navigate('/dashboard'));
+      .finally(() => {
+        navigate('/dashboard');
+      });
   }, [token, error, navigate]);
 
   return (
-    <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+    <Box sx={{ 
+      minHeight: '100vh', 
+      display: 'flex', 
+      flexDirection: 'column', 
+      alignItems: 'center', 
+      justifyContent: 'center' 
+    }}>
       <CircularProgress size={50} sx={{ mb: 2 }} />
       <Typography variant="h6">جاري تسجيل الدخول...</Typography>
     </Box>
