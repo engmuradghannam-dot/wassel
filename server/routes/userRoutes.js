@@ -17,13 +17,11 @@ router.post('/register', register);
 router.post('/login', login);
 
 // Protected routes
-router.use(protect);
-
-router.get('/', authorize('admin'), getUsers);
-router.post('/', authorize('admin'), createUser);
-router.get('/:id', getUser);
-router.put('/:id', authorize('admin'), updateUser);
-router.delete('/:id', authorize('admin'), deleteUser);
-router.put('/status/online', updateOnlineStatus);
+router.get('/', protect, authorize('admin'), getUsers);
+router.post('/', protect, authorize('admin'), createUser);
+router.get('/:id', protect, getUser);
+router.put('/:id', protect, authorize('admin'), updateUser);
+router.delete('/:id', protect, authorize('admin'), deleteUser);
+router.put('/status/online', protect, updateOnlineStatus);
 
 module.exports = router;
