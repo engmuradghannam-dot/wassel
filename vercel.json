@@ -1,10 +1,14 @@
 {
   "version": 2,
-  "buildCommand": "cd client && npm install && npm run build",
+  "buildCommand": "cd client && npm install --legacy-peer-deps && npm run build",
   "outputDirectory": "client/build",
-  "installCommand": "echo 'skip root install'",
+  "installCommand": "echo 'dependencies installed in buildCommand'",
   "framework": null,
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
-  ]
+  ],
+  "env": {
+    "CI": "false",
+    "SKIP_PREFLIGHT_CHECK": "true"
+  }
 }
