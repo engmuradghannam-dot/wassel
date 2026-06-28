@@ -1,0 +1,74 @@
+name: Vercel API Deploy
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, master]
+    paths:
+      - 'client/**'
+      - '.github/workflows/vercel-api-deploy.yml'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Get Vercel project info & trigger deploy
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          echo "=== Vercel User ==="
+          USER=$(curl -sf "https://api.vercel.com/v2/user" \
+            -H "Authorization: Bearer $VERCEL_TOKEN")
+          echo "$USER" | python3 -c "import sys,json; u=json.load(sys.stdin).get('user',{}); print('ID:', u.get('id')); print('Username:', u.get('username'))"
+          ORG_ID=$(echo "$USER" | python3 -c "import sys,json; print(json.load(sys.stdin).get('user',{}).get('id',''))")
+
+          echo "=== Vercel Projects ==="
+          PROJECTS=$(curl -sf "https://api.vercel.com/v9/projects" \
+            -H "Authorization: Bearer $VERCEL_TOKEN")
+          echo "$PROJECTS" | python3 -c "
+          import sys,json
+          d=json.load(sys.stdin)
+          for p in d.get('projects',[]):
+              print(f\"  {p['name']} -> {p['id']}\")
+          "
+          PROJECT_ID=$(echo "$PROJECTS" | python3 -c "
+          import sys,json
+          d=json.load(sys.stdin)
+          for p in d.get('projects',[]):
+              if 'wassel' in p['name'].lower():
+                  print(p['id'])
+                  break
+          ")
+          echo "ORG_ID=$ORG_ID PROJECT_ID=$PROJECT_ID"
+
+          echo "=== Triggering Deploy ==="
+          if [ -n "$PROJECT_ID" ]; then
+            curl -s -X POST "https://api.vercel.com/v13/deployments" \
+              -H "Authorization: Bearer $VERCEL_TOKEN" \
+              -H "Content-Type: application/json" \
+              -d "{
+                \"name\": \"wassel\",
+                \"project\": \"$PROJECT_ID\",
+                \"target\": \"production\",
+                \"gitSource\": {
+                  \"type\": \"github\",
+                  \"repoId\": \"1279527364\",
+                  \"ref\": \"main\"
+                }
+              }" | python3 -c "
+          import sys,json
+          d=json.load(sys.stdin)
+          print('Deploy ID:', d.get('id','?'))
+          print('Status:', d.get('status','?'))
+          print('URL:', d.get('url','?'))
+          if 'error' in d:
+              print('ERROR:', d['error'])
+          "
+          else
+            echo "No wassel project found on Vercel account"
+            echo "Projects found:"
+            echo "$PROJECTS" | python3 -c "import sys,json; [print(p['name']) for p in json.load(sys.stdin).get('projects',[])]"
+          fi
