@@ -25,7 +25,7 @@ const LocationPicker = ({ open, onClose, onSelect, defaultLocation = null }) => 
   const defaultPos = defaultLocation || { lat: 24.7136, lng: 46.6753 }; // Riyadh
 
   // Load Google Maps Script
-  useEffect(() => {
+  useEffect(() => { // eslint-disable-next-line react-hooks/exhaustive-deps
     if (open && !scriptLoaded && GOOGLE_MAPS_API_KEY) {
       const existingScript = document.getElementById('google-maps-script');
       if (!existingScript) {

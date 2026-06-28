@@ -33,7 +33,7 @@ const InventoryPage = () => {
     } catch { } finally { setLoading(false); }
   };
 
-  useEffect(() => { fetch(); }, []);
+  useEffect(() => { // eslint-disable-next-line react-hooks/exhaustive-deps fetch(); }, []);
 
   const openAdd = () => { setForm(emptyItem); setEditId(null); setDialog(true); };
   const openEdit = (item) => { setForm({ ...item }); setEditId(item._id); setDialog(true); };

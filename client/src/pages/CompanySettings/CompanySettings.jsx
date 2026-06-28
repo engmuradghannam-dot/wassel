@@ -9,10 +9,10 @@ import {
 } from '@mui/material';
 import {
   Business, LocationOn, Phone, Email, Language, Receipt,
-  Upload, Save, Map, PhotoCamera, Numbers, CheckCircle,
-  Edit, Delete, Add, LocationCity, GpsFixed, MyLocation,
-  MapOutlined, Public, Store, Assignment, Verified,
-  Warning, Info, NavigateNext, NavigateBefore, Flag,
+  Save, Map, PhotoCamera, Numbers, CheckCircle,
+  Delete, Add, LocationCity, GpsFixed, MyLocation,
+  Assignment, Verified,
+  Warning, Info, NavigateNext, NavigateBefore,
   Person, Groups, CorporateFare
 } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';

@@ -75,7 +75,7 @@ const ChatPage = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, []);
 
-  useEffect(() => { scrollToBottom(); }, [messages]);
+  useEffect(() => { // eslint-disable-next-line react-hooks/exhaustive-deps scrollToBottom(); }, [messages]);
 
   // Resize handler
   useEffect(() => {

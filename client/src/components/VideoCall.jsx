@@ -1,15 +1,13 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   LiveKitRoom,
   GridLayout,
   ParticipantTile,
   RoomAudioRenderer,
-  ControlBar,
   useTracks,
   useLocalParticipant,
   useRoomContext,
   useParticipants,
-  VideoConference,
   FocusLayout,
   CarouselLayout,
   useConnectionState,
@@ -18,16 +16,15 @@ import '@livekit/components-styles';
 import { Track, ConnectionState } from 'livekit-client';
 import {
   Box, Typography, IconButton, Avatar, Chip, Tooltip,
-  Badge, Fade, CircularProgress, Alert, Button, Dialog,
-  Drawer, List, ListItem, ListItemAvatar, ListItemText,
-  TextField, Divider, Paper, Snackbar
+  CircularProgress, Alert, Button,
+  List, ListItem, ListItemAvatar, ListItemText,
+  TextField, Snackbar
 } from '@mui/material';
 import {
   Mic, MicOff, Videocam, VideocamOff, CallEnd,
-  ScreenShare, StopScreenShare, People, Chat as ChatIcon,
-  ContentCopy, Fullscreen, FullscreenExit, Settings,
+  ScreenShare, People, Chat as ChatIcon,
+  ContentCopy, Fullscreen, FullscreenExit,
   Close, Send, FiberManualRecord, GridView, ViewSidebar,
-  PresentToAll, ClosedCaption, EmojiEmotions, PanTool,
   Refresh
 } from '@mui/icons-material';
 import axios from 'axios';
@@ -40,7 +37,7 @@ const VideoCall = ({ open, onClose, roomName, participantName, callType = 'video
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
+  useEffect(() => { // eslint-disable-next-line react-hooks/exhaustive-deps
     if (open && roomName && participantName) {
       fetchToken();
     } else {
