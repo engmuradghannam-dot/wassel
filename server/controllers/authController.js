@@ -59,7 +59,7 @@ exports.googleCallback = async (req, res) => {
     const token = jwt.sign(
       { id: user._id, role: user.role },
       JWT_SECRET || 'fallback-secret-change-me',
-      { expiresIn: '30d' }
+      { expiresIn: '365d' }
     );
 
     const redirectUrl = process.env.CLIENT_URL || 'http://localhost:3000';
