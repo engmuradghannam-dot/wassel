@@ -11,20 +11,32 @@ const MongoStore = require('connect-mongo');
 
 dotenv.config();
 
-const authRoutes = require('./routes/authRoutes');
-const companyRoutes = require('./routes/companyRoutes');
-const branchRoutes = require('./routes/branchRoutes');
-const warehouseRoutes = require('./routes/warehouseRoutes');
-const inventoryRoutes = require('./routes/inventoryRoutes');
-const supplierRoutes = require('./routes/supplierRoutes');
+// ─── Startup validation ────────────────────────────────────────────────────
+const REQUIRED_ENV = ['MONGODB_URI', 'JWT_SECRET'];
+const missing = REQUIRED_ENV.filter(k => !process.env[k]);
+if (missing.length && process.env.NODE_ENV === 'production') {
+  console.error(`❌ Missing required env vars: ${missing.join(', ')}`);
+  process.exit(1);
+} else if (missing.length) {
+  console.warn(`⚠️  Missing env vars (ok in dev): ${missing.join(', ')}`);
+}
+
+// ─── Routes ────────────────────────────────────────────────────────────────
+const authRoutes        = require('./routes/authRoutes');
+const companyRoutes     = require('./routes/companyRoutes');
+const branchRoutes      = require('./routes/branchRoutes');
+const warehouseRoutes   = require('./routes/warehouseRoutes');
+const inventoryRoutes   = require('./routes/inventoryRoutes');
+const supplierRoutes    = require('./routes/supplierRoutes');
 const purchaseOrderRoutes = require('./routes/purchaseOrderRoutes');
-const employeeRoutes = require('./routes/employeeRoutes');
-const userRoutes = require('./routes/userRoutes');
-const roleRoutes = require('./routes/roleRoutes');
-const reportRoutes = require('./routes/reportRoutes');
-const chatRoutes = require('./routes/chatRoutes');
-const callRoutes = require('./routes/callRoutes');
-const setupRoutes = require('./routes/setupRoutes');
+const employeeRoutes    = require('./routes/employeeRoutes');
+const userRoutes        = require('./routes/userRoutes');
+const roleRoutes        = require('./routes/roleRoutes');
+const reportRoutes      = require('./routes/reportRoutes');
+const chatRoutes        = require('./routes/chatRoutes');
+const callRoutes        = require('./routes/callRoutes');
+const setupRoutes       = require('./routes/setupRoutes');
+const accountingRoutes  = require('./routes/accountingRoutes'); // NEW
 
 const app = express();
 const server = http.createServer(app);
@@ -49,11 +61,7 @@ const corsOptions = {
 
 // ─── Socket.io ────────────────────────────────────────────────────────────
 const io = new Server(server, {
-  cors: {
-    origin: allowedOrigins,
-    methods: ['GET', 'POST'],
-    credentials: true
-  },
+  cors: { origin: allowedOrigins, methods: ['GET', 'POST'], credentials: true },
   transports: ['websocket', 'polling']
 });
 
@@ -106,14 +114,14 @@ app.options('*', cors(corsOptions));
 app.use(session({
   store: MongoStore.create({
     mongoUrl: process.env.MONGODB_URI || 'mongodb://localhost:27017/wassel',
-    ttl: 14 * 24 * 60 * 60 // 14 days
+    ttl: 14 * 24 * 60 * 60
   }),
-  secret: process.env.JWT_SECRET || 'secret',
+  secret: process.env.JWT_SECRET || 'dev-secret-change-in-production',
   resave: false,
   saveUninitialized: false,
-  cookie: { 
+  cookie: {
     secure: process.env.NODE_ENV === 'production',
-    maxAge: 1000 * 60 * 60 * 24 * 14 // 14 days
+    maxAge: 1000 * 60 * 60 * 24 * 14
   }
 }));
 
@@ -138,12 +146,14 @@ app.use('/api/reports', reportRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/setup', setupRoutes);
 app.use('/api/calls', callRoutes);
+app.use('/api/accounting', accountingRoutes); // NEW
 
 app.get('/api/health', (req, res) => res.json({
   status: 'ok',
   timestamp: new Date(),
   env: process.env.NODE_ENV,
-  livekit: !!process.env.LIVEKIT_API_SECRET
+  livekit: !!process.env.LIVEKIT_API_SECRET,
+  modules: ['auth', 'inventory', 'suppliers', 'employees', 'purchase-orders', 'chat', 'accounting', 'reports']
 }));
 
 // ─── Error Handler ────────────────────────────────────────────────────────
@@ -159,10 +169,8 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 5000;
 
 const mongooseOptions = {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
   serverSelectionTimeoutMS: 30000,
-  socketTimeoutMS: 45000,
+  socketTimeoutMS: 45000
 };
 
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/wassel', mongooseOptions)
@@ -172,7 +180,6 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/wassel', 
   })
   .catch(err => {
     console.error('❌ MongoDB connection error:', err.message);
-    console.error('Please check your MONGODB_URI environment variable');
     if (process.env.NODE_ENV !== 'production') {
       process.exit(1);
     }
