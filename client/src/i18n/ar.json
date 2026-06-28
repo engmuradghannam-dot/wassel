@@ -124,7 +124,7 @@
     "accept": "رد",
     "reject": "رفض",
     "callEnded": "انتهت المكالمة",
-    "mute": "كتم الصوت",
+    "mute": "كتم الإشعارات",
     "unmute": "إلغاء الكتم",
     "cameraOn": "تشغيل الكاميرا",
     "cameraOff": "إيقاف الكاميرا",
@@ -143,7 +143,6 @@
     "delete": "حذف",
     "deleteChat": "حذف المحادثة",
     "pin": "تثبيت",
-    "mute": "كتم الإشعارات",
     "block": "حظر",
     "info": "معلومات",
     "chatInfo": "معلومات المحادثة",
@@ -194,5 +193,13 @@
     "reports": "التقارير",
     "settings": "الإعدادات",
     "logout": "تسجيل الخروج"
+  },
+  "auth": {
+    "signInWithGoogle": "تسجيل الدخول عبر Google",
+    "signingIn": "جاري تسجيل الدخول...",
+    "googleSignInFailed": "فشل تسجيل الدخول عبر Google. يرجى المحاولة مرة أخرى.",
+    "googleSignInHint": "سيتم توجيهك إلى صفحة Google للمصادقة",
+    "googleAuthError": "خطأ في مصادقة Google. تحقق من إعدادات OAuth.",
+    "noGoogleClientId": "معرف عميل Google غير مُكون. يرجى التحقق من ملف .env"
   }
 }

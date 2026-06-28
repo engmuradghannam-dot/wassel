@@ -3,6 +3,8 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const path = require('path');
+const passport = require('passport');
+const session = require('express-session');
 
 // Load env vars
 dotenv.config();
@@ -23,6 +25,17 @@ const chatRoutes = require('./routes/chatRoutes');
 const callRoutes = require('./routes/callRoutes');
 
 const app = express();
+
+// Session middleware (required for Passport)
+app.use(session({
+  secret: process.env.JWT_SECRET || 'secret',
+  resave: false,
+  saveUninitialized: false
+}));
+
+// Passport middleware
+app.use(passport.initialize());
+app.use(passport.session());
 
 // Body parser
 app.use(express.json());
