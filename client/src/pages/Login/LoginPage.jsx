@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import {
   Box, Paper, Typography, TextField, Button, Divider,
-  InputAdornment, IconButton, Alert, CircularProgress, Chip
+  InputAdornment, IconButton, Alert, CircularProgress, Chip, Link
 } from '@mui/material';
 import {
   Email, Lock, Visibility, VisibilityOff, Login as LoginIcon
 } from '@mui/icons-material';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link as RouterLink } from 'react-router-dom'; // FIX: add RouterLink
 
 const LoginPage = () => {
   const navigate = useNavigate();
@@ -35,7 +35,8 @@ const LoginPage = () => {
   };
 
   const handleGoogle = () => {
-    window.location.href = '/api/auth/google';
+    const apiUrl = process.env.REACT_APP_API_URL || '';
+    window.location.href = `${apiUrl}/api/auth/google`;
   };
 
   return (
@@ -109,19 +110,21 @@ const LoginPage = () => {
           الدخول عبر Google
         </Button>
 
-        <Box sx={{ mt: 2, textAlign: 'center' }}>
-          <Chip size="small" label="WasselERP v2.0" variant="outlined" sx={{ fontSize: 11 }} />
-        </Box>
-      </Paper>
-    <Box textAlign="center" mt={2}>
-          <Typography variant="body2">
+        {/* FIX: Link + RouterLink now properly imported */}
+        <Box sx={{ mt: 2.5, textAlign: 'center' }}>
+          <Typography variant="body2" color="text.secondary">
             ليس لديك حساب؟{' '}
-            <Link component={RouterLink} to="/register" underline="hover" color="primary">
+            <Link component={RouterLink} to="/register" underline="hover" color="primary" fontWeight={600}>
               سجّل الآن
             </Link>
           </Typography>
         </Box>
-      </Box>
+
+        <Box sx={{ mt: 1.5, textAlign: 'center' }}>
+          <Chip size="small" label="WasselERP v2.0" variant="outlined" sx={{ fontSize: 11 }} />
+        </Box>
+      </Paper>
+    </Box>
   );
 };
 
