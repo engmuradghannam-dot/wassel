@@ -16,97 +16,65 @@ jobs:
           node-version: '24'
 
       - name: Install deps
-        run: |
-          cd server
-          npm install
+        run: cd server && npm install
 
-      - name: Create superadmin via MongoDB
+      - name: Create superadmin
         env:
           MONGODB_URI: ${{ secrets.MONGODB_URI }}
         run: |
-          node << 'JSEOF'
-          const mongoose = require('/home/runner/work/wassel/wassel/server/node_modules/mongoose');
-          const bcrypt   = require('/home/runner/work/wassel/wassel/server/node_modules/bcryptjs');
-
-          const MONGODB_URI = process.env.MONGODB_URI;
-          const EMAIL    = 'eng.murad.ghannam@gmail.com';
-          const PASSWORD = 'Admin2026@';
+          cd server
+          node -e "
+          const mongoose = require('mongoose');
+          const bcrypt   = require('bcryptjs');
 
           const CompanySchema = new mongoose.Schema({
             name: String, nameEn: String, currency: { type: String, default: 'SAR' },
             timezone: String, plan: String, planExpiresAt: Date,
             maxUsers: Number, maxEmployees: Number, maxBranches: Number,
-            isActive: { type: Boolean, default: true }, isSuspended: { type: Boolean, default: false },
-            owner: mongoose.Schema.Types.ObjectId, createdBy: mongoose.Schema.Types.ObjectId
+            isActive: { type: Boolean, default: true },
+            isSuspended: { type: Boolean, default: false },
+            owner: mongoose.Schema.Types.ObjectId,
+            createdBy: mongoose.Schema.Types.ObjectId
           }, { timestamps: true });
 
           const UserSchema = new mongoose.Schema({
-            name: String, email: { type: String, unique: true },
+            name: String,
+            email: { type: String, unique: true },
             password: { type: String, default: null },
-            googleId: { type: String, default: null },
+            googleId:  { type: String, default: null },
             role: { type: String, default: 'user' },
-            company: { type: mongoose.Schema.Types.ObjectId, ref: 'Company', default: null },
-            avatar: String, isOnline: { type: Boolean, default: false },
-            lastSeen: Date, isActive: { type: Boolean, default: true }
+            company: { type: mongoose.Schema.Types.ObjectId, default: null },
+            isOnline: { type: Boolean, default: false },
+            lastSeen: Date,
+            isActive: { type: Boolean, default: true }
           }, { timestamps: true });
 
           (async () => {
             try {
-              await mongoose.connect(MONGODB_URI);
-              console.log('✅ Connected to MongoDB');
-
-              const Company = mongoose.models.Company || mongoose.model('Company', CompanySchema);
-              const User    = mongoose.models.User    || mongoose.model('User', UserSchema);
-
-              // Create or find company
+              await mongoose.connect(process.env.MONGODB_URI);
+              console.log('Connected');
+              const Company = mongoose.model('Company', CompanySchema);
+              const User    = mongoose.model('User',    UserSchema);
               let company = await Company.findOne({ name: 'Wassel' });
               if (!company) {
-                company = await Company.create({
-                  name: 'Wassel', nameEn: 'Wassel', currency: 'SAR',
-                  timezone: 'Asia/Riyadh', plan: 'enterprise',
-                  planExpiresAt: new Date('2030-01-01'),
-                  maxUsers: 9999, maxEmployees: 9999, maxBranches: 99,
-                  isActive: true
-                });
-                console.log('✅ Company created:', company.name);
-              } else {
-                console.log('ℹ️  Company exists:', company.name);
+                company = await Company.create({ name: 'Wassel', nameEn: 'Wassel', currency: 'SAR', timezone: 'Asia/Riyadh', plan: 'enterprise', planExpiresAt: new Date('2030-01-01'), maxUsers: 9999, maxEmployees: 9999, maxBranches: 99, isActive: true });
+                console.log('Company created');
               }
-
-              const hashedPw = await bcrypt.hash(PASSWORD, 10);
-
-              // Upsert superadmin
-              const user = await User.findOneAndUpdate(
-                { email: EMAIL },
-                {
-                  $set: {
-                    name: 'Murad Ghannam',
-                    email: EMAIL,
-                    password: hashedPw,
-                    role: 'superadmin',
-                    company: company._id,
-                    isActive: true,
-                    lastSeen: new Date()
-                  }
-                },
-                { upsert: true, new: true, setDefaultsOnInsert: true }
+              const hashed = await bcrypt.hash('Admin2026@', 10);
+              await User.collection.findOneAndUpdate(
+                { email: 'eng.murad.ghannam@gmail.com' },
+                { \$set: { name: 'Murad Ghannam', email: 'eng.murad.ghannam@gmail.com', password: hashed, role: 'superadmin', company: company._id, isActive: true, lastSeen: new Date() } },
+                { upsert: true }
               );
-
-              // Update company owner
-              await Company.findByIdAndUpdate(company._id, { owner: user._id, createdBy: user._id });
-
-              console.log('');
-              console.log('🎉 Superadmin ready!');
-              console.log('📧 Email:   ', EMAIL);
-              console.log('🔑 Password:', PASSWORD);
-              console.log('👤 Role:    superadmin');
-              console.log('🏢 Company: ', company.name);
-
-              await mongoose.disconnect();
+              console.log('DONE - superadmin ready');
+              console.log('Email: eng.murad.ghannam@gmail.com');
+              console.log('Password: Admin2026@');
               process.exit(0);
-            } catch (err) {
-              console.error('❌ Error:', err.message);
+            } catch(e) {
+              console.error('ERROR:', e.message);
+              console.error(e.stack);
               process.exit(1);
             }
           })();
-          JSEOF
+          " 2>&1 | tee /tmp/seed-output.txt
+          cat /tmp/seed-output.txt >> $GITHUB_STEP_SUMMARY
