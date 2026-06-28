@@ -14,63 +14,30 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node 20
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      - name: Get Vercel project info
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-        run: |
-          USER_RESP=$(curl -s "https://api.vercel.com/v2/user" \
-            -H "Authorization: Bearer $VERCEL_TOKEN")
-          echo "User response: $USER_RESP"
-          
-          ORG_ID=$(echo "$USER_RESP" | python3 -c "
-          import sys,json
-          try:
-              d=json.load(sys.stdin)
-              print(d.get('user',d).get('id',''))
-          except: print('')
-          ")
-          echo "ORG_ID: $ORG_ID"
-          echo "VERCEL_ORG_ID=$ORG_ID" >> $GITHUB_ENV
-
-          PROJ_RESP=$(curl -s "https://api.vercel.com/v9/projects" \
-            -H "Authorization: Bearer $VERCEL_TOKEN")
-          echo "Projects: $PROJ_RESP"
-          
-          PROJECT_ID=$(echo "$PROJ_RESP" | python3 -c "
-          import sys,json
-          try:
-              d=json.load(sys.stdin)
-              for p in d.get('projects',[]):
-                  print(p['id'])
-                  break
-          except: print('')
-          ")
-          echo "PROJECT_ID: $PROJECT_ID"
-          echo "VERCEL_PROJECT_ID=$PROJECT_ID" >> $GITHUB_ENV
-
-      - name: Install Vercel CLI
-        run: npm install -g vercel@latest
-
-      - name: Deploy to Vercel
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: ${{ env.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ env.VERCEL_PROJECT_ID }}
+      - name: Build client
         run: |
           cd client
           npm install --legacy-peer-deps
           CI=false npm run build
+
+      - name: Install Vercel CLI & Deploy
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          npm install -g vercel@latest
+
+          # Pull project settings (creates .vercel/project.json)
+          cd client
           
-          if [ -n "$VERCEL_ORG_ID" ] && [ -n "$VERCEL_PROJECT_ID" ]; then
-            echo "Deploying with project IDs..."
-            vercel --token "$VERCEL_TOKEN" --prod --yes
-          else
-            echo "Deploying without project IDs..."
-            vercel --token "$VERCEL_TOKEN" --prod --yes \
-              --name wassel
-          fi
+          echo "Attempting vercel link..."
+          vercel link --token "$VERCEL_TOKEN" --yes 2>&1 || true
+          
+          echo "Deploying prebuilt..."
+          vercel deploy --prebuilt --prod \
+            --token "$VERCEL_TOKEN" \
+            --yes 2>&1
