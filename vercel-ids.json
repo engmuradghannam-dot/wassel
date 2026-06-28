@@ -1,0 +1,11 @@
+{
+  "org_id": "",
+  "username": "",
+  "user_raw": {
+    "error": "HTTP Error 403: Forbidden"
+  },
+  "projects": [],
+  "teams": {
+    "error": "HTTP Error 403: Forbidden"
+  }
+}
