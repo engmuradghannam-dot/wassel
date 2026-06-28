@@ -1,0 +1,34 @@
+name: Get Vercel Project Info
+
+on:
+  workflow_dispatch:
+
+jobs:
+  get-info:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get Vercel user and project IDs
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          echo "=== User Info ==="
+          curl -s "https://api.vercel.com/v2/user" \
+            -H "Authorization: Bearer $VERCEL_TOKEN" | python3 -c "
+          import sys,json
+          d=json.load(sys.stdin)
+          u=d.get('user',d)
+          print('Username:', u.get('username'))
+          print('OrgID (personal):', u.get('id'))
+          "
+
+          echo "=== Projects ==="
+          curl -s "https://api.vercel.com/v9/projects" \
+            -H "Authorization: Bearer $VERCEL_TOKEN" | python3 -c "
+          import sys,json
+          d=json.load(sys.stdin)
+          for p in d.get('projects',[]):
+              print('PROJECT_NAME:', p['name'])
+              print('PROJECT_ID:', p['id'])
+              print('ACCOUNT_ID:', p.get('accountId','?'))
+              print('---')
+          "
