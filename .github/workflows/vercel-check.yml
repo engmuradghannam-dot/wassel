@@ -7,33 +7,41 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - name: List Vercel deployments
+      - name: Get Vercel info
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
-          echo "=== All Projects ==="
-          curl -s "https://api.vercel.com/v9/projects" \
-            -H "Authorization: Bearer $VERCEL_TOKEN" | python3 -c "
-          import sys,json
-          d=json.load(sys.stdin)
-          for p in d.get('projects',[]):
-              print(f'Project: {p[\"name\"]} | ID: {p[\"id\"]} | URL: {p.get(\"alias\",[\"?\"])[0] if p.get(\"alias\") else \"?\"}')
-          "
-          
-          echo "=== Recent Deployments ==="
-          curl -s "https://api.vercel.com/v6/deployments?limit=5" \
-            -H "Authorization: Bearer $VERCEL_TOKEN" | python3 -c "
-          import sys,json
-          d=json.load(sys.stdin)
-          for dep in d.get('deployments',[]):
-              print(f'URL: {dep.get(\"url\",\"?\")} | State: {dep.get(\"state\",\"?\")} | Created: {dep.get(\"created\",\"?\")}')
-          "
-          
-          echo "=== Token Test ==="
+          mkdir -p /tmp/vercel-out
+
+          echo "=== User ===" | tee /tmp/vercel-out/info.txt
           curl -s "https://api.vercel.com/v2/user" \
-            -H "Authorization: Bearer $VERCEL_TOKEN" | python3 -c "
+            -H "Authorization: Bearer $VERCEL_TOKEN" | tee /tmp/vercel-out/user.json | python3 -c "
           import sys,json
           d=json.load(sys.stdin)
           u=d.get('user',d)
-          print(f'Username: {u.get(\"username\",\"?\")} | ID: {u.get(\"id\",\"?\")}')
-          "
+          print(f'Username: {u.get(\"username\")} | ID: {u.get(\"id\")}')
+          " | tee -a /tmp/vercel-out/info.txt
+
+          echo "=== Projects ===" | tee -a /tmp/vercel-out/info.txt
+          curl -s "https://api.vercel.com/v9/projects" \
+            -H "Authorization: Bearer $VERCEL_TOKEN" | tee /tmp/vercel-out/projects.json | python3 -c "
+          import sys,json
+          d=json.load(sys.stdin)
+          for p in d.get('projects',[]):
+              aliases = [a.get('domain','') for a in p.get('latestDeployments',[{}])]
+              print(f'  {p[\"name\"]} | ID: {p[\"id\"]} | accountId: {p.get(\"accountId\")}')
+          " | tee -a /tmp/vercel-out/info.txt
+
+          echo "=== Deployments ===" | tee -a /tmp/vercel-out/info.txt
+          curl -s "https://api.vercel.com/v6/deployments?limit=3" \
+            -H "Authorization: Bearer $VERCEL_TOKEN" | tee /tmp/vercel-out/deployments.json | python3 -c "
+          import sys,json
+          d=json.load(sys.stdin)
+          for dep in d.get('deployments',[]):
+              print(f'  {dep.get(\"url\")} | {dep.get(\"state\")} | {dep.get(\"name\")}')
+          " | tee -a /tmp/vercel-out/info.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vercel-info
+          path: /tmp/vercel-out/
