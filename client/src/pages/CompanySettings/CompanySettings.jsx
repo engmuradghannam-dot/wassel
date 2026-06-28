@@ -12,7 +12,8 @@ import {
   Upload, Save, Map, PhotoCamera, Numbers, CheckCircle,
   Edit, Delete, Add, LocationCity, GpsFixed, MyLocation,
   MapOutlined, Public, Store, Assignment, Verified,
-  Warning, Info, NavigateNext, NavigateBefore, Flag
+  Warning, Info, NavigateNext, NavigateBefore, Flag,
+  Person, Groups, CorporateFare
 } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
 import LocationPicker from '../../components/LocationPicker';
