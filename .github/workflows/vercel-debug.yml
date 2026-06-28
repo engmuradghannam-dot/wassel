@@ -1,0 +1,25 @@
+name: Vercel Debug
+
+on:
+  workflow_dispatch:
+
+jobs:
+  debug:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Debug Vercel Token
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          echo "Token prefix: ${VERCEL_TOKEN:0:10}..."
+          echo "Token length: ${#VERCEL_TOKEN}"
+          
+          echo "=== Testing API ==="
+          RESP=$(curl -sv "https://api.vercel.com/v2/user" \
+            -H "Authorization: Bearer $VERCEL_TOKEN" 2>&1)
+          echo "$RESP"
+          
+          echo "=== Testing with token as-is ==="
+          curl -s "https://api.vercel.com/v2/user" \
+            -H "Authorization: Bearer $VERCEL_TOKEN" \
+            -w "\nHTTP_CODE: %{http_code}"
