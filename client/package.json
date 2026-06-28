@@ -51,6 +51,6 @@
   },
   "proxy": "http://localhost:5000",
   "engines": {
-    "node": "18.x"
+    "node": "24.x"
   }
 }
