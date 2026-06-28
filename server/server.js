@@ -38,6 +38,7 @@ const chatRoutes          = require('./routes/chatRoutes');
 const callRoutes          = require('./routes/callRoutes');
 const setupRoutes         = require('./routes/setupRoutes');
 const accountingRoutes    = require('./routes/accountingRoutes');
+const paymentRoutes       = require('./routes/paymentRoutes');
 
 const app    = express();
 const server = http.createServer(app);
@@ -127,6 +128,7 @@ app.use('/api/chat',           chatRoutes);
 app.use('/api/setup',          setupRoutes);
 app.use('/api/calls',          callRoutes);
 app.use('/api/accounting',     accountingRoutes);
+app.use('/api/payments',       paymentRoutes);
 
 app.get('/api/health', (req, res) => res.json({
   status: 'ok', timestamp: new Date(),
