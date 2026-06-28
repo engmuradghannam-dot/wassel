@@ -1,10 +1,17 @@
 const express = require('express');
 const router = express.Router();
-const { protect } = require('../middleware/auth');
+const { protect, authorize } = require('../middleware/auth');
+const {
+  getSuppliers, getSupplier, createSupplier, updateSupplier, deleteSupplier
+} = require('../controllers/supplierController');
 
-// Placeholder routes - implement as needed
-router.get('/', protect, (req, res) => {
-  res.json({ success: true, message: 'Route placeholder', data: [] });
-});
+router.route('/')
+  .get(protect, getSuppliers)
+  .post(protect, authorize('admin', 'manager'), createSupplier);
+
+router.route('/:id')
+  .get(protect, getSupplier)
+  .put(protect, authorize('admin', 'manager'), updateSupplier)
+  .delete(protect, authorize('admin'), deleteSupplier);
 
 module.exports = router;
