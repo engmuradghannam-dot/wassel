@@ -1,10 +1,17 @@
 const express = require('express');
 const router = express.Router();
-const { protect } = require('../middleware/auth');
+const { protect, authorize } = require('../middleware/auth');
+const {
+  getBranches, getBranch, createBranch, updateBranch, deleteBranch
+} = require('../controllers/branchController');
 
-// Placeholder routes - implement as needed
-router.get('/', protect, (req, res) => {
-  res.json({ success: true, message: 'Route placeholder', data: [] });
-});
+router.route('/')
+  .get(protect, getBranches)
+  .post(protect, authorize('admin', 'manager'), createBranch);
+
+router.route('/:id')
+  .get(protect, getBranch)
+  .put(protect, authorize('admin', 'manager'), updateBranch)
+  .delete(protect, authorize('admin'), deleteBranch);
 
 module.exports = router;
