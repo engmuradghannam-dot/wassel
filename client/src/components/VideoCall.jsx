@@ -16,7 +16,7 @@ import '@livekit/components-styles';
 import { Track, ConnectionState } from 'livekit-client';
 import {
   Box, Typography, IconButton, Avatar, Chip, Tooltip,
-  CircularProgress, Alert, Button,
+  CircularProgress, Alert, Button, Badge,
   List, ListItem, ListItemAvatar, ListItemText,
   TextField, Snackbar
 } from '@mui/material';

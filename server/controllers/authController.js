@@ -1,4 +1,3 @@
-const passport = require('passport');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
@@ -6,42 +5,30 @@ const signToken = (user) =>
   jwt.sign({ id: user._id, role: user.role, company: user.company },
     process.env.JWT_SECRET, { expiresIn: '365d' });
 
-// ─── Google OAuth Callback ────────────────────────────────────────────────
-exports.googleCallback = (req, res, next) => {
-  passport.authenticate('google', { session: false }, async (err, profile) => {
-    if (err || !profile) {
-      return res.redirect(`${process.env.CLIENT_URL}/login?error=google_auth_failed`);
+// ─── Google OAuth Callback ─────────────────────────────────────────────────
+// At this point passport has already authenticated & set req.user
+exports.googleCallback = async (req, res) => {
+  try {
+    if (!req.user) {
+      return res.redirect(`${process.env.CLIENT_URL || 'http://localhost:3000'}/login?error=google_auth_failed`);
     }
 
-    try {
-      let user = await User.findOne({ email: profile.emails[0].value });
+    const user = req.user;
+    user.isOnline = true;
+    user.lastSeen = new Date();
+    await user.save();
 
-      if (!user) {
-        // Create new user from Google profile
-        user = await User.create({
-          name: profile.displayName,
-          email: profile.emails[0].value,
-          googleId: profile.id,
-          avatar: profile.photos?.[0]?.value,
-          role: 'user',
-          isActive: true,
-          isOnline: true,
-          lastSeen: new Date()
-        });
-      }
-
-      const token = signToken(user);
-
-      // Redirect to frontend with token
-      res.redirect(`${process.env.CLIENT_URL}/auth/callback?token=${token}`);
-    } catch (error) {
-      console.error('Google auth error:', error);
-      res.redirect(`${process.env.CLIENT_URL}/login?error=auth_failed`);
-    }
-  })(req, res, next);
+    const token = signToken(user);
+    const clientUrl = process.env.CLIENT_URL || 'http://localhost:3000';
+    res.redirect(`${clientUrl}/auth/callback?token=${token}`);
+  } catch (error) {
+    console.error('Google auth error:', error);
+    const clientUrl = process.env.CLIENT_URL || 'http://localhost:3000';
+    res.redirect(`${clientUrl}/login?error=auth_failed`);
+  }
 };
 
-// ─── Get current user ─────────────────────────────────────────────────────
+// ─── Get current user ──────────────────────────────────────────────────────
 exports.getMe = async (req, res) => {
   try {
     const user = await User.findById(req.user.id)

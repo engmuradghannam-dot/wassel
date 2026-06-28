@@ -14,6 +14,9 @@ const mongoSanitize = require('express-mongo-sanitize');
 
 dotenv.config();
 
+// ─── Passport Config ───────────────────────────────────────────────────────
+require('./middleware/passport');
+
 // ─── Startup validation ────────────────────────────────────────────────────
 const REQUIRED_ENV = ['MONGODB_URI', 'JWT_SECRET'];
 const missing = REQUIRED_ENV.filter(k => !process.env[k]);
@@ -41,6 +44,7 @@ const chatRoutes = require('./routes/chatRoutes');
 const callRoutes = require('./routes/callRoutes');
 const accountingRoutes = require('./routes/accountingRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
+const setupRoutes = require('./routes/setupRoutes');
 
 const app = express();
 const server = http.createServer(app);
@@ -155,6 +159,7 @@ app.use('/api/chat', chatRoutes);
 app.use('/api/calls', callRoutes);
 app.use('/api/accounting', accountingRoutes);
 app.use('/api/payments', paymentRoutes);
+app.use('/api/setup', setupRoutes);
 
 app.get('/api/health', (req, res) => res.json({
   status: 'ok', timestamp: new Date(),
