@@ -66,6 +66,7 @@ function App() {
           <Routes>
             {/* Public */}
             <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
 
             {/* Auth callback */}
             <Route path="/auth/callback" element={<AuthCallback />} />

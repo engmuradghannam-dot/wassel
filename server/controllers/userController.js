@@ -85,6 +85,56 @@ exports.login = async (req, res) => {
   }
 };
 
+
+// @desc    Register new user/company (Public)
+// @route   POST /api/users/register
+// @access  Public
+exports.register = async (req, res) => {
+  try {
+    const { name, email, password, companyName } = req.body;
+
+    // Check if user exists
+    const exists = await User.findOne({ email });
+    if (exists) return res.status(400).json({ success: false, message: 'البريد الإلكتروني مستخدم بالفعل' });
+
+    // Hash password
+    const hashed = await bcrypt.hash(password, 10);
+
+    // Create user with admin role (first user = company owner)
+    const user = await User.create({ 
+      name, 
+      email, 
+      password: hashed, 
+      role: 'admin',
+      isActive: true,
+      isOnline: true,
+      lastSeen: new Date()
+    });
+
+    // Create default company settings if companyName provided
+    if (companyName) {
+      const Company = require('../models/Company');
+      await Company.create({
+        name: companyName,
+        nameEn: companyName,
+        userId: user._id
+      });
+    }
+
+    // Generate token
+    const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET || 'secret', { expiresIn: '30d' });
+
+    res.status(201).json({ 
+      success: true, 
+      message: 'تم إنشاء الحساب بنجاح',
+      data: { ...user.toObject(), password: undefined }, 
+      token 
+    });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+};
+
 exports.updateOnlineStatus = async (req, res) => {
   try {
     const { isOnline } = req.body;

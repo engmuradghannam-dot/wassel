@@ -2,9 +2,17 @@ const express = require('express');
 const router = express.Router();
 const { protect, authorize } = require('../middleware/auth');
 const {
-  getUsers, getUser, createUser, updateUser, deleteUser, login, updateOnlineStatus
+  getUsers, getUser, createUser, updateUser, deleteUser, login, updateOnlineStatus, register
 } = require('../controllers/userController');
 
+// @route   POST /api/users/register
+// @desc    Register new company/user (Public)
+// @access  Public
+router.post('/register', register);
+
+// @route   POST /api/users/login
+// @desc    Login user
+// @access  Public
 router.post('/login', login);
 
 router.route('/')

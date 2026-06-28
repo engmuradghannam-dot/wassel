@@ -113,7 +113,15 @@ const LoginPage = () => {
           <Chip size="small" label="WasselERP v2.0" variant="outlined" sx={{ fontSize: 11 }} />
         </Box>
       </Paper>
-    </Box>
+    <Box textAlign="center" mt={2}>
+          <Typography variant="body2">
+            ليس لديك حساب؟{' '}
+            <Link component={RouterLink} to="/register" underline="hover" color="primary">
+              سجّل الآن
+            </Link>
+          </Typography>
+        </Box>
+      </Box>
   );
 };
 
