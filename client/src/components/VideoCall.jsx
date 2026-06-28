@@ -1,76 +1,175 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   LivekitRoom,
-  VideoConference,
   GridLayout,
   ParticipantTile,
-  ControlBar,
   RoomAudioRenderer,
+  ControlBar,
   useTracks,
   useLocalParticipant,
-  useRoomContext
+  useRoomContext,
+  useParticipants,
+  VideoConference,
+  FocusLayout,
+  FocusLayoutContainer,
+  CarouselLayout,
+  useConnectionState,
 } from '@livekit/components-react';
-import { Room, Track } from 'livekit-client';
+import '@livekit/components-styles';
+import { Track, ConnectionState } from 'livekit-client';
 import {
-  Dialog, DialogTitle, DialogContent, Box, Typography,
-  IconButton, Button, CircularProgress, Alert, Snackbar,
-  Avatar, Chip, Fade, Paper
+  Box, Typography, IconButton, Avatar, Chip, Tooltip,
+  Badge, Fade, CircularProgress, Alert, Button, Dialog,
+  Drawer, List, ListItem, ListItemAvatar, ListItemText,
+  TextField, Divider, Paper, Snackbar
 } from '@mui/material';
 import {
-  Close, Mic, MicOff, Videocam, VideocamOff,
-  CallEnd, ScreenShare, StopScreenShare, VolumeUp, VolumeOff,
-  Chat, People, Settings, Fullscreen, FullscreenExit
+  Mic, MicOff, Videocam, VideocamOff, CallEnd,
+  ScreenShare, StopScreenShare, People, Chat as ChatIcon,
+  ContentCopy, Fullscreen, FullscreenExit, Settings,
+  Close, Send, FiberManualRecord, GridView, ViewSidebar,
+  PresentToAll, ClosedCaption, EmojiEmotions, PanTool,
+  Refresh
 } from '@mui/icons-material';
-import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 
-const VideoCall = ({ open, onClose, roomName, participantName, callType = 'video' }) => {
-  const { t } = useTranslation();
-  const [token, setToken] = useState(null);
-  const [error, setError] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [room, setRoom] = useState(null);
-  const [isConnected, setIsConnected] = useState(false);
-  const [showChat, setShowChat] = useState(false);
-  const [showParticipants, setShowParticipants] = useState(false);
-  const [isFullscreen, setIsFullscreen] = useState(false);
+const LIVEKIT_URL = process.env.REACT_APP_LIVEKIT_URL || 'wss://wassel-y6htlkxc.livekit.cloud';
 
-  // Get token from server
+// ─── Main VideoCall Component ───────────────────────────────────────────
+const VideoCall = ({ open, onClose, roomName, participantName, callType = 'video' }) => {
+  const [token, setToken] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
   useEffect(() => {
     if (open && roomName && participantName) {
       fetchToken();
+    } else {
+      setToken(null);
+      setError(null);
     }
   }, [open, roomName, participantName]);
 
   const fetchToken = async () => {
     try {
       setLoading(true);
-      const res = await axios.post('/api/calls/token', {
-        roomName,
-        participantName
-      });
-
-      if (res.data.success) {
-        setToken(res.data.data.token);
-      }
+      setError(null);
+      const res = await axios.post('/api/calls/token', { roomName, participantName });
+      if (res.data.success) setToken(res.data.data.token);
     } catch (err) {
-      setError(err.response?.data?.message || t('call.tokenError'));
+      setError(err.response?.data?.message || 'فشل الاتصال بالخادم');
     } finally {
       setLoading(false);
     }
   };
 
-  // Handle room connection
-  const handleConnected = useCallback((room) => {
-    setRoom(room);
-    setIsConnected(true);
+  if (!open) return null;
+
+  return (
+    <Box sx={{
+      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+      bgcolor: '#202124', zIndex: 9999, display: 'flex', flexDirection: 'column'
+    }}>
+      {loading && (
+        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3 }}>
+          <Box sx={{
+            width: 120, height: 120, borderRadius: '50%',
+            bgcolor: 'rgba(255,255,255,0.1)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            animation: 'pulse 2s infinite',
+            '@keyframes pulse': { '0%,100%': { transform: 'scale(1)' }, '50%': { transform: 'scale(1.05)' } }
+          }}>
+            <Videocam sx={{ fontSize: 48, color: '#8ab4f8' }} />
+          </Box>
+          <Typography variant="h6" color="white">جاري الاتصال...</Typography>
+          <CircularProgress sx={{ color: '#8ab4f8' }} />
+        </Box>
+      )}
+
+      {error && (
+        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
+          <Alert severity="error" sx={{ maxWidth: 400 }}>{error}</Alert>
+          <Button variant="contained" startIcon={<Refresh />} onClick={fetchToken}>إعادة المحاولة</Button>
+          <Button variant="text" sx={{ color: 'grey.400' }} onClick={onClose}>إغلاق</Button>
+        </Box>
+      )}
+
+      {token && !loading && (
+        <LivekitRoom
+          serverUrl={LIVEKIT_URL}
+          token={token}
+          connect={true}
+          audio={true}
+          video={callType === 'video'}
+          data-lk-theme="default"
+          style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column' }}
+          onDisconnected={onClose}
+        >
+          <MeetRoom
+            onClose={onClose}
+            roomName={roomName}
+            callType={callType}
+          />
+          <RoomAudioRenderer />
+        </LivekitRoom>
+      )}
+    </Box>
+  );
+};
+
+// ─── Google Meet Style Room ──────────────────────────────────────────────
+const MeetRoom = ({ onClose, roomName, callType }) => {
+  const [showChat, setShowChat] = useState(false);
+  const [showParticipants, setShowParticipants] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [layout, setLayout] = useState('grid'); // 'grid' | 'spotlight'
+  const [chatMessages, setChatMessages] = useState([]);
+  const [chatInput, setChatInput] = useState('');
+  const [snackbar, setSnackbar] = useState({ open: false, msg: '' });
+  const [time, setTime] = useState(0);
+
+  const { localParticipant } = useLocalParticipant();
+  const room = useRoomContext();
+  const participants = useParticipants();
+  const connectionState = useConnectionState();
+
+  const tracks = useTracks(
+    [
+      { source: Track.Source.Camera, withPlaceholder: true },
+      { source: Track.Source.ScreenShare, withPlaceholder: false },
+    ],
+    { onlySubscribed: false }
+  );
+
+  // Meeting timer
+  useEffect(() => {
+    const interval = setInterval(() => setTime(t => t + 1), 1000);
+    return () => clearInterval(interval);
   }, []);
 
-  const handleDisconnected = useCallback(() => {
-    setIsConnected(false);
-    setRoom(null);
-    onClose();
-  }, [onClose]);
+  const formatTime = (s) => {
+    const h = Math.floor(s / 3600);
+    const m = Math.floor((s % 3600) / 60);
+    const sec = s % 60;
+    if (h > 0) return `${h}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+    return `${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+  };
+
+  const copyRoomLink = () => {
+    navigator.clipboard.writeText(`وصّل - غرفة: ${roomName}`);
+    setSnackbar({ open: true, msg: 'تم نسخ معرّف الغرفة' });
+  };
+
+  const sendChatMessage = () => {
+    if (!chatInput.trim()) return;
+    setChatMessages(prev => [...prev, {
+      id: Date.now(),
+      sender: localParticipant?.identity || 'أنا',
+      text: chatInput,
+      time: new Date().toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' })
+    }]);
+    setChatInput('');
+  };
 
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
@@ -82,344 +181,290 @@ const VideoCall = ({ open, onClose, roomName, participantName, callType = 'video
     }
   };
 
-  // Server connection options
-  const serverUrl = process.env.REACT_APP_LIVEKIT_URL || 'wss://wassel-y6htlkxc.livekit.cloud';
+  const isConnected = connectionState === ConnectionState.Connected;
 
   return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      maxWidth={false}
-      fullWidth
-      fullScreen
-      PaperProps={{
-        sx: {
-          bgcolor: '#1a1a2e',
-          color: 'white',
-          m: 0,
-          maxHeight: '100vh',
-          overflow: 'hidden'
-        }
-      }}
-    >
-      {/* Header */}
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', bgcolor: '#202124' }}>
+
+      {/* ── Top Bar ── */}
       <Box sx={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        p: 2,
-        borderBottom: '1px solid rgba(255,255,255,0.1)'
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        px: 3, py: 1.5, bgcolor: '#202124', borderBottom: '1px solid rgba(255,255,255,0.1)'
       }}>
+        {/* Left: title + time */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Typography variant="h6" fontWeight="bold">
-            {callType === 'video' ? t('call.videoCall') : t('call.voiceCall')}
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <FiberManualRecord sx={{ fontSize: 10, color: '#ea4335', animation: 'blink 1s infinite', '@keyframes blink': { '0%,100%': { opacity: 1 }, '50%': { opacity: 0 } } }} />
+            <Typography variant="body2" sx={{ color: '#e8eaed', fontWeight: 500 }}>
+              {formatTime(time)}
+            </Typography>
+          </Box>
           <Chip
             size="small"
-            label={isConnected ? t('call.connected') : t('call.connecting')}
-            color={isConnected ? 'success' : 'warning'}
+            label={isConnected ? 'متصل' : 'جاري الاتصال...'}
+            sx={{
+              bgcolor: isConnected ? 'rgba(52,168,83,0.2)' : 'rgba(251,188,4,0.2)',
+              color: isConnected ? '#34a853' : '#fbbc04',
+              border: `1px solid ${isConnected ? '#34a853' : '#fbbc04'}`
+            }}
           />
-          <Typography variant="caption" color="grey.400">
-            {roomName}
-          </Typography>
         </Box>
 
+        {/* Center: room name */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, cursor: 'pointer' }} onClick={copyRoomLink}>
+          <Typography variant="body1" sx={{ color: '#e8eaed', fontWeight: 600 }}>
+            {roomName}
+          </Typography>
+          <Tooltip title="نسخ معرّف الغرفة">
+            <ContentCopy sx={{ fontSize: 16, color: '#9aa0a6' }} />
+          </Tooltip>
+        </Box>
+
+        {/* Right: layout + fullscreen */}
         <Box sx={{ display: 'flex', gap: 1 }}>
-          <IconButton onClick={toggleFullscreen} sx={{ color: 'white' }}>
-            {isFullscreen ? <FullscreenExit /> : <Fullscreen />}
-          </IconButton>
-          <IconButton onClick={() => setShowParticipants(!showParticipants)} sx={{ color: 'white' }}>
-            <People />
-          </IconButton>
-          <IconButton onClick={() => setShowChat(!showChat)} sx={{ color: 'white' }}>
-            <Chat />
-          </IconButton>
-          <IconButton onClick={onClose} sx={{ color: 'error.main', bgcolor: 'error.dark' }}>
-            <Close />
-          </IconButton>
+          <Tooltip title="تغيير التخطيط">
+            <IconButton
+              onClick={() => setLayout(l => l === 'grid' ? 'spotlight' : 'grid')}
+              sx={{ color: '#e8eaed' }}
+            >
+              {layout === 'grid' ? <ViewSidebar /> : <GridView />}
+            </IconButton>
+          </Tooltip>
+          <Tooltip title={isFullscreen ? 'خروج من الشاشة الكاملة' : 'شاشة كاملة'}>
+            <IconButton onClick={toggleFullscreen} sx={{ color: '#e8eaed' }}>
+              {isFullscreen ? <FullscreenExit /> : <Fullscreen />}
+            </IconButton>
+          </Tooltip>
         </Box>
       </Box>
 
-      {/* Content */}
-      <DialogContent sx={{ p: 0, display: 'flex', height: 'calc(100vh - 64px)', overflow: 'hidden' }}>
+      {/* ── Video Area ── */}
+      <Box sx={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+        {/* Video Grid */}
+        <Box sx={{ flex: 1, position: 'relative', p: 1 }}>
+          {layout === 'grid' ? (
+            <GridLayout tracks={tracks} style={{ height: '100%', width: '100%' }}>
+              <ParticipantTile />
+            </GridLayout>
+          ) : (
+            <FocusLayoutContainer style={{ height: '100%' }}>
+              <CarouselLayout tracks={tracks}>
+                <ParticipantTile />
+              </CarouselLayout>
+              <FocusLayout track={tracks[0]} />
+            </FocusLayoutContainer>
+          )}
+        </Box>
 
-        {/* Loading */}
-        {loading && (
+        {/* ── Side Panel (Chat / Participants) ── */}
+        {(showChat || showParticipants) && (
           <Box sx={{
-            flex: 1,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 2
+            width: 320, bgcolor: '#292a2d', borderLeft: '1px solid rgba(255,255,255,0.1)',
+            display: 'flex', flexDirection: 'column'
           }}>
-            <CircularProgress size={60} color="primary" />
-            <Typography variant="h6">{t('call.connecting')}</Typography>
-            <Typography variant="body2" color="grey.400">
-              {t('call.pleaseWait')}
-            </Typography>
-          </Box>
-        )}
-
-        {/* Error */}
-        {error && (
-          <Box sx={{
-            flex: 1,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 2,
-            p: 4
-          }}>
-            <Alert severity="error" sx={{ maxWidth: 500, width: '100%' }}>
-              {error}
-            </Alert>
-            <Button variant="contained" onClick={fetchToken}>
-              {t('call.retry')}
-            </Button>
-          </Box>
-        )}
-
-        {/* LiveKit Room */}
-        {token && !loading && !error && (
-          <Box sx={{ flex: 1, display: 'flex' }}>
-            <Box sx={{ flex: 1, position: 'relative' }}>
-              <LivekitRoom
-                serverUrl={serverUrl}
-                token={token}
-                connect={true}
-                onConnected={handleConnected}
-                onDisconnected={handleDisconnected}
-                audio={callType === 'video' || callType === 'audio'}
-                video={callType === 'video'}
-                data-lk-theme="default"
-                style={{ height: '100%', width: '100%' }}
-              >
-                <VideoConference />
-                <RoomAudioRenderer />
-                <CustomControlBar />
-              </LivekitRoom>
+            {/* Panel header */}
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', p: 2, borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+              <Typography variant="subtitle1" sx={{ color: '#e8eaed', fontWeight: 600 }}>
+                {showChat ? 'دردشة المكالمة' : `المشاركون (${participants.length})`}
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 0.5 }}>
+                <IconButton size="small" onClick={() => { setShowChat(true); setShowParticipants(false); }}
+                  sx={{ color: showChat ? '#8ab4f8' : '#9aa0a6' }}>
+                  <ChatIcon fontSize="small" />
+                </IconButton>
+                <IconButton size="small" onClick={() => { setShowParticipants(true); setShowChat(false); }}
+                  sx={{ color: showParticipants ? '#8ab4f8' : '#9aa0a6' }}>
+                  <People fontSize="small" />
+                </IconButton>
+                <IconButton size="small" onClick={() => { setShowChat(false); setShowParticipants(false); }}
+                  sx={{ color: '#9aa0a6' }}>
+                  <Close fontSize="small" />
+                </IconButton>
+              </Box>
             </Box>
 
-            {/* Side Panel */}
-            {(showChat || showParticipants) && (
-              <Paper sx={{
-                width: 300,
-                bgcolor: '#16213e',
-                borderLeft: '1px solid rgba(255,255,255,0.1)',
-                display: 'flex',
-                flexDirection: 'column'
-              }}>
-                {showParticipants && (
-                  <Box sx={{ p: 2, flex: 1 }}>
-                    <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
-                      {t('call.participants')}
-                    </Typography>
-                    <ParticipantsList />
-                  </Box>
-                )}
+            {/* Participants */}
+            {showParticipants && (
+              <List sx={{ flex: 1, overflow: 'auto' }}>
+                {participants.map(p => (
+                  <ListItem key={p.identity}>
+                    <ListItemAvatar>
+                      <Badge
+                        variant="dot"
+                        color="success"
+                        overlap="circular"
+                        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                      >
+                        <Avatar sx={{ bgcolor: '#1a73e8', width: 36, height: 36 }}>
+                          {p.identity?.[0]?.toUpperCase()}
+                        </Avatar>
+                      </Badge>
+                    </ListItemAvatar>
+                    <ListItemText
+                      primary={<Typography sx={{ color: '#e8eaed', fontSize: 14 }}>{p.identity}</Typography>}
+                      secondary={
+                        <Box sx={{ display: 'flex', gap: 0.5, mt: 0.5 }}>
+                          {p.isSpeaking && <Chip size="small" label="يتكلم" sx={{ bgcolor: 'rgba(52,168,83,0.2)', color: '#34a853', height: 16, fontSize: 10 }} />}
+                          {p.isCameraEnabled === false && <Chip size="small" label="كاميرا مغلقة" sx={{ bgcolor: 'rgba(234,67,53,0.2)', color: '#ea4335', height: 16, fontSize: 10 }} />}
+                          {p.isMicrophoneEnabled === false && <Chip size="small" label="مكتوم" sx={{ bgcolor: 'rgba(234,67,53,0.2)', color: '#ea4335', height: 16, fontSize: 10 }} />}
+                        </Box>
+                      }
+                    />
+                  </ListItem>
+                ))}
+              </List>
+            )}
 
-                {showChat && (
-                  <Box sx={{ p: 2, flex: 1, borderTop: showParticipants ? '1px solid rgba(255,255,255,0.1)' : 'none' }}>
-                    <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
-                      {t('call.chat')}
-                    </Typography>
-                    <CallChat />
-                  </Box>
-                )}
-              </Paper>
+            {/* Chat */}
+            {showChat && (
+              <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                <Box sx={{ flex: 1, overflow: 'auto', p: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  {chatMessages.length === 0 && (
+                    <Box sx={{ textAlign: 'center', mt: 4 }}>
+                      <ChatIcon sx={{ fontSize: 40, color: 'rgba(255,255,255,0.2)', mb: 1 }} />
+                      <Typography sx={{ color: '#9aa0a6', fontSize: 13 }}>
+                        لا توجد رسائل بعد
+                      </Typography>
+                    </Box>
+                  )}
+                  {chatMessages.map(msg => (
+                    <Box key={msg.id}>
+                      <Typography sx={{ color: '#8ab4f8', fontSize: 12, fontWeight: 600 }}>
+                        {msg.sender} · {msg.time}
+                      </Typography>
+                      <Typography sx={{ color: '#e8eaed', fontSize: 13, mt: 0.3 }}>
+                        {msg.text}
+                      </Typography>
+                    </Box>
+                  ))}
+                </Box>
+                <Box sx={{ p: 1.5, borderTop: '1px solid rgba(255,255,255,0.1)', display: 'flex', gap: 1 }}>
+                  <TextField
+                    fullWidth size="small"
+                    placeholder="أرسل رسالة..."
+                    value={chatInput}
+                    onChange={e => setChatInput(e.target.value)}
+                    onKeyPress={e => e.key === 'Enter' && sendChatMessage()}
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        bgcolor: 'rgba(255,255,255,0.08)', color: '#e8eaed', borderRadius: 3,
+                        '& fieldset': { borderColor: 'rgba(255,255,255,0.15)' },
+                        '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.3)' },
+                      },
+                      '& input::placeholder': { color: '#9aa0a6' }
+                    }}
+                  />
+                  <IconButton onClick={sendChatMessage} sx={{ color: chatInput ? '#8ab4f8' : '#5f6368' }}>
+                    <Send />
+                  </IconButton>
+                </Box>
+              </Box>
             )}
           </Box>
         )}
-      </DialogContent>
-    </Dialog>
-  );
-};
+      </Box>
 
-// Custom Control Bar
-const CustomControlBar = () => {
-  const { t } = useTranslation();
-  const { localParticipant } = useLocalParticipant();
-  const room = useRoomContext();
-  const [isMuted, setIsMuted] = useState(false);
-  const [isCameraOff, setIsCameraOff] = useState(false);
-  const [isScreenSharing, setIsScreenSharing] = useState(false);
-
-  const toggleMute = async () => {
-    if (localParticipant) {
-      await localParticipant.setMicrophoneEnabled(!isMuted);
-      setIsMuted(!isMuted);
-    }
-  };
-
-  const toggleCamera = async () => {
-    if (localParticipant) {
-      await localParticipant.setCameraEnabled(!isCameraOff);
-      setIsCameraOff(!isCameraOff);
-    }
-  };
-
-  const toggleScreenShare = async () => {
-    if (localParticipant) {
-      await localParticipant.setScreenShareEnabled(!isScreenSharing);
-      setIsScreenSharing(!isScreenSharing);
-    }
-  };
-
-  const endCall = () => {
-    if (room) {
-      room.disconnect();
-    }
-  };
-
-  return (
-    <Box sx={{
-      position: 'absolute',
-      bottom: 20,
-      left: '50%',
-      transform: 'translateX(-50%)',
-      display: 'flex',
-      gap: 2,
-      p: 2,
-      borderRadius: 4,
-      bgcolor: 'rgba(0,0,0,0.6)',
-      backdropFilter: 'blur(10px)'
-    }}>
-      <IconButton
-        onClick={toggleMute}
-        sx={{
-          bgcolor: isMuted ? 'error.main' : 'rgba(255,255,255,0.2)',
-          color: 'white',
-          '&:hover': { bgcolor: isMuted ? 'error.dark' : 'rgba(255,255,255,0.3)' }
-        }}
-      >
-        {isMuted ? <MicOff /> : <Mic />}
-      </IconButton>
-
-      <IconButton
-        onClick={toggleCamera}
-        sx={{
-          bgcolor: isCameraOff ? 'error.main' : 'rgba(255,255,255,0.2)',
-          color: 'white',
-          '&:hover': { bgcolor: isCameraOff ? 'error.dark' : 'rgba(255,255,255,0.3)' }
-        }}
-      >
-        {isCameraOff ? <VideocamOff /> : <Videocam />}
-      </IconButton>
-
-      <IconButton
-        onClick={toggleScreenShare}
-        sx={{
-          bgcolor: isScreenSharing ? 'primary.main' : 'rgba(255,255,255,0.2)',
-          color: 'white',
-          '&:hover': { bgcolor: isScreenSharing ? 'primary.dark' : 'rgba(255,255,255,0.3)' }
-        }}
-      >
-        {isScreenSharing ? <StopScreenShare /> : <ScreenShare />}
-      </IconButton>
-
-      <IconButton
-        onClick={endCall}
-        sx={{
-          bgcolor: 'error.main',
-          color: 'white',
-          '&:hover': { bgcolor: 'error.dark' }
-        }}
-      >
-        <CallEnd />
-      </IconButton>
-    </Box>
-  );
-};
-
-// Participants List
-const ParticipantsList = () => {
-  const { t } = useTranslation();
-  const tracks = useTracks([Track.Source.Camera, Track.Source.Microphone]);
-
-  return (
-    <Box>
-      {tracks.map((track) => (
-        <Box key={track.participant.identity} sx={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 1,
-          p: 1,
-          borderRadius: 1,
-          '&:hover': { bgcolor: 'rgba(255,255,255,0.05)' }
-        }}>
-          <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.main' }}>
-            {track.participant.identity[0]}
-          </Avatar>
-          <Typography variant="body2">
-            {track.participant.identity}
+      {/* ── Bottom Control Bar (Google Meet style) ── */}
+      <Box sx={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        px: 3, py: 2, bgcolor: '#202124', borderTop: '1px solid rgba(255,255,255,0.1)',
+        minHeight: 80
+      }}>
+        {/* Left: time */}
+        <Box sx={{ flex: 1, display: 'flex', alignItems: 'center' }}>
+          <Typography sx={{ color: '#9aa0a6', fontSize: 13 }}>
+            {new Date().toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' })}
           </Typography>
-          {track.participant.isSpeaking && (
-            <Chip size="small" label={t('call.speaking')} color="success" />
-          )}
         </Box>
-      ))}
-    </Box>
-  );
-};
 
-// Call Chat
-const CallChat = () => {
-  const { t } = useTranslation();
-  const [messages, setMessages] = useState([]);
-  const [newMessage, setNewMessage] = useState('');
+        {/* Center: main controls */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <MeetControlButton
+            icon={localParticipant?.isMicrophoneEnabled !== false ? <Mic /> : <MicOff />}
+            activeColor={localParticipant?.isMicrophoneEnabled !== false ? undefined : '#ea4335'}
+            tooltip={localParticipant?.isMicrophoneEnabled !== false ? 'كتم الميكروفون' : 'تشغيل الميكروفون'}
+            onClick={() => localParticipant?.setMicrophoneEnabled(localParticipant?.isMicrophoneEnabled === false)}
+          />
+          <MeetControlButton
+            icon={localParticipant?.isCameraEnabled !== false ? <Videocam /> : <VideocamOff />}
+            activeColor={localParticipant?.isCameraEnabled !== false ? undefined : '#ea4335'}
+            tooltip={localParticipant?.isCameraEnabled !== false ? 'إيقاف الكاميرا' : 'تشغيل الكاميرا'}
+            onClick={() => localParticipant?.setCameraEnabled(localParticipant?.isCameraEnabled === false)}
+          />
+          <MeetControlButton
+            icon={<ScreenShare />}
+            tooltip="مشاركة الشاشة"
+            onClick={() => localParticipant?.setScreenShareEnabled(!localParticipant?.isScreenShareEnabled)}
+          />
 
-  const sendMessage = () => {
-    if (newMessage.trim()) {
-      setMessages(prev => [...prev, {
-        id: Date.now(),
-        text: newMessage,
-        sender: 'me',
-        time: new Date().toLocaleTimeString()
-      }]);
-      setNewMessage('');
-    }
-  };
+          {/* End Call */}
+          <Tooltip title="إنهاء المكالمة">
+            <IconButton
+              onClick={() => { room?.disconnect(); onClose(); }}
+              sx={{
+                bgcolor: '#ea4335', color: 'white', width: 56, height: 56, borderRadius: 4,
+                mx: 1,
+                '&:hover': { bgcolor: '#c5221f' }
+              }}
+            >
+              <CallEnd />
+            </IconButton>
+          </Tooltip>
+        </Box>
 
-  return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <Box sx={{ flex: 1, overflow: 'auto', mb: 2 }}>
-        {messages.map(msg => (
-          <Box key={msg.id} sx={{
-            p: 1,
-            mb: 1,
-            borderRadius: 1,
-            bgcolor: msg.sender === 'me' ? 'primary.main' : 'rgba(255,255,255,0.1)',
-            alignSelf: msg.sender === 'me' ? 'flex-end' : 'flex-start',
-            maxWidth: '80%'
-          }}>
-            <Typography variant="body2">{msg.text}</Typography>
-            <Typography variant="caption" color="grey.400">{msg.time}</Typography>
-          </Box>
-        ))}
-      </Box>
-      <Box sx={{ display: 'flex', gap: 1 }}>
-        <TextField
-          fullWidth
-          size="small"
-          placeholder={t('call.typeMessage')}
-          value={newMessage}
-          onChange={(e) => setNewMessage(e.target.value)}
-          onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-          sx={{
-            '& .MuiOutlinedInput-root': {
-              bgcolor: 'rgba(255,255,255,0.1)',
-              color: 'white'
+        {/* Right: chat + participants */}
+        <Box sx={{ flex: 1, display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 1 }}>
+          <MeetControlButton
+            icon={
+              <Badge badgeContent={chatMessages.length || 0} color="error" max={9}>
+                <ChatIcon />
+              </Badge>
             }
-          }}
-        />
-        <Button variant="contained" onClick={sendMessage}>
-          {t('call.send')}
-        </Button>
+            tooltip="الدردشة"
+            active={showChat}
+            onClick={() => { setShowChat(v => !v); setShowParticipants(false); }}
+          />
+          <MeetControlButton
+            icon={
+              <Badge badgeContent={participants.length} color="primary" max={99}>
+                <People />
+              </Badge>
+            }
+            tooltip="المشاركون"
+            active={showParticipants}
+            onClick={() => { setShowParticipants(v => !v); setShowChat(false); }}
+          />
+        </Box>
       </Box>
+
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={2000}
+        onClose={() => setSnackbar({ open: false, msg: '' })}
+        message={snackbar.msg}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      />
     </Box>
   );
 };
+
+// ─── Reusable Control Button ─────────────────────────────────────────────
+const MeetControlButton = ({ icon, tooltip, onClick, active, activeColor }) => (
+  <Tooltip title={tooltip}>
+    <IconButton
+      onClick={onClick}
+      sx={{
+        width: 48, height: 48, borderRadius: 3,
+        bgcolor: active ? 'rgba(138,180,248,0.15)' : activeColor ? `${activeColor}22` : 'rgba(255,255,255,0.1)',
+        color: active ? '#8ab4f8' : activeColor || '#e8eaed',
+        border: active ? '1px solid rgba(138,180,248,0.4)' : '1px solid transparent',
+        transition: 'all 0.2s',
+        '&:hover': { bgcolor: active ? 'rgba(138,180,248,0.25)' : 'rgba(255,255,255,0.2)' }
+      }}
+    >
+      {icon}
+    </IconButton>
+  </Tooltip>
+);
 
 export default VideoCall;
