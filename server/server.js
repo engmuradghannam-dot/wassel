@@ -10,7 +10,6 @@ const { Server } = require('socket.io');
 
 dotenv.config();
 
-// Route files
 const authRoutes = require('./routes/authRoutes');
 const companyRoutes = require('./routes/companyRoutes');
 const branchRoutes = require('./routes/branchRoutes');
@@ -28,43 +27,52 @@ const callRoutes = require('./routes/callRoutes');
 const app = express();
 const server = http.createServer(app);
 
-// Socket.io setup
+// ─── CORS ─────────────────────────────────────────────────────────────────
+const allowedOrigins = [
+  process.env.CLIENT_URL,
+  'http://localhost:3000',
+  'http://localhost:3001',
+  'https://wassel-seven.vercel.app'
+].filter(Boolean);
+
+const corsOptions = {
+  origin: (origin, cb) => {
+    if (!origin || allowedOrigins.some(o => origin.startsWith(o))) return cb(null, true);
+    cb(new Error(`CORS blocked: ${origin}`));
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+};
+
+// ─── Socket.io ────────────────────────────────────────────────────────────
 const io = new Server(server, {
   cors: {
-    origin: process.env.CLIENT_URL || 'http://localhost:3000',
+    origin: allowedOrigins,
     methods: ['GET', 'POST'],
     credentials: true
-  }
+  },
+  transports: ['websocket', 'polling']
 });
 
-// Make io accessible in controllers
 app.set('io', io);
 
-// Socket.io real-time chat
-const onlineUsers = new Map(); // userId -> socketId
+const onlineUsers = new Map();
 
 io.on('connection', (socket) => {
-  console.log('Socket connected:', socket.id);
-
-  // User comes online
-  socket.on('user_online', (userId) => {
+  socket.on('user_online', async (userId) => {
     onlineUsers.set(userId, socket.id);
     socket.userId = userId;
     io.emit('user_status', { userId, isOnline: true });
+    try {
+      const User = require('./models/User');
+      await User.findByIdAndUpdate(userId, { isOnline: true, lastSeen: new Date() });
+    } catch {}
   });
 
-  // Join chat room
-  socket.on('join_room', (roomId) => {
-    socket.join(roomId);
-    console.log(`User joined room: ${roomId}`);
-  });
+  socket.on('join_room', (roomId) => socket.join(roomId));
+  socket.on('leave_room', (roomId) => socket.leave(roomId));
 
-  // Leave chat room
-  socket.on('leave_room', (roomId) => {
-    socket.leave(roomId);
-  });
-
-  // Typing indicator
   socket.on('typing_start', ({ roomId, userId, userName }) => {
     socket.to(roomId).emit('user_typing', { userId, userName, isTyping: true });
   });
@@ -73,40 +81,40 @@ io.on('connection', (socket) => {
     socket.to(roomId).emit('user_typing', { userId, isTyping: false });
   });
 
-  // Message read
   socket.on('mark_read', ({ roomId, userId }) => {
     socket.to(roomId).emit('messages_read', { roomId, userId });
   });
 
-  // Disconnect
-  socket.on('disconnect', () => {
+  socket.on('disconnect', async () => {
     if (socket.userId) {
       onlineUsers.delete(socket.userId);
       io.emit('user_status', { userId: socket.userId, isOnline: false });
+      try {
+        const User = require('./models/User');
+        await User.findByIdAndUpdate(socket.userId, { isOnline: false, lastSeen: new Date() });
+      } catch {}
     }
-    console.log('Socket disconnected:', socket.id);
   });
 });
 
-// Middleware
+// ─── Middleware ───────────────────────────────────────────────────────────
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
+
 app.use(session({
   secret: process.env.JWT_SECRET || 'secret',
   resave: false,
-  saveUninitialized: false
+  saveUninitialized: false,
+  cookie: { secure: process.env.NODE_ENV === 'production' }
 }));
 
 app.use(passport.initialize());
 app.use(passport.session());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:3000',
-  credentials: true
-}));
-
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// Routes
+// ─── Routes ───────────────────────────────────────────────────────────────
 app.use('/api/auth', authRoutes);
 app.use('/api/company', companyRoutes);
 app.use('/api/branches', branchRoutes);
@@ -121,10 +129,14 @@ app.use('/api/reports', reportRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/calls', callRoutes);
 
-// Health check
-app.get('/api/health', (req, res) => res.json({ status: 'ok', timestamp: new Date() }));
+app.get('/api/health', (req, res) => res.json({
+  status: 'ok',
+  timestamp: new Date(),
+  env: process.env.NODE_ENV,
+  livekit: !!process.env.LIVEKIT_API_SECRET
+}));
 
-// Error handler
+// ─── Error Handler ────────────────────────────────────────────────────────
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(err.statusCode || 500).json({
@@ -133,15 +145,15 @@ app.use((err, req, res, next) => {
   });
 });
 
+// ─── Start ────────────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 5000;
 
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/wassel')
   .then(() => {
-    console.log('MongoDB Connected');
-    server.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
-    });
+    console.log('✅ MongoDB Connected');
+    server.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
   })
   .catch(err => {
-    console.error('MongoDB connection error:', err);
+    console.error('❌ MongoDB connection error:', err.message);
+    process.exit(1);
   });
