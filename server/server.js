@@ -7,6 +7,7 @@ const passport = require('passport');
 const session = require('express-session');
 const http = require('http');
 const { Server } = require('socket.io');
+const MongoStore = require('connect-mongo');
 
 dotenv.config();
 
@@ -102,10 +103,17 @@ app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
 
 app.use(session({
+  store: MongoStore.create({
+    mongoUrl: process.env.MONGODB_URI || 'mongodb://localhost:27017/wassel',
+    ttl: 14 * 24 * 60 * 60 // 14 days
+  }),
   secret: process.env.JWT_SECRET || 'secret',
   resave: false,
   saveUninitialized: false,
-  cookie: { secure: process.env.NODE_ENV === 'production' }
+  cookie: { 
+    secure: process.env.NODE_ENV === 'production',
+    maxAge: 1000 * 60 * 60 * 24 * 14 // 14 days
+  }
 }));
 
 app.use(passport.initialize());
@@ -148,12 +156,22 @@ app.use((err, req, res, next) => {
 // ─── Start ────────────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 5000;
 
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/wassel')
+const mongooseOptions = {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+  serverSelectionTimeoutMS: 30000,
+  socketTimeoutMS: 45000,
+};
+
+mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/wassel', mongooseOptions)
   .then(() => {
     console.log('✅ MongoDB Connected');
     server.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
   })
   .catch(err => {
     console.error('❌ MongoDB connection error:', err.message);
-    process.exit(1);
+    console.error('Please check your MONGODB_URI environment variable');
+    if (process.env.NODE_ENV !== 'production') {
+      process.exit(1);
+    }
   });

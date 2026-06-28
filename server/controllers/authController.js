@@ -65,9 +65,9 @@ exports.googleCallback = async (req, res) => {
 
     // Redirect to frontend with token
     const redirectUrl = process.env.CLIENT_URL || 'http://localhost:3000';
-    res.redirect(`${redirectUrl}/auth/callback?token=${token}`);
+    res.redirectrect(`${redirectUrl}/auth/callback?token=${token}`);
   } catch (error) {
-    res.redirect(`${process.env.CLIENT_URL || 'http://localhost:3000'}/login?error=auth_failed`);
+    res.redirectrect(`${process.env.CLIENT_URL || 'http://localhost:3000'}/login?error=auth_failed`);
   }
 };
 
