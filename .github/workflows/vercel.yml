@@ -1,38 +1,10 @@
 name: Deploy to Vercel
 on:
   workflow_dispatch:
-  push:
-    branches: [master, main]
-    paths:
-      - 'client/**'
-      - 'server/**'
 
 jobs:
-  deploy:
+  info:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-
-      - name: Setup Node 18
-        uses: actions/setup-node@v3
-        with:
-          node-version: '18'
-
-      - name: Install dependencies
-        working-directory: ./client
-        run: npm install --legacy-peer-deps
-
-      - name: Build
-        working-directory: ./client
-        run: CI=false npm run build
-
-      - name: Install Vercel CLI
-        run: npm install -g vercel@latest
-
-      - name: Deploy to Vercel Production
-        working-directory: ./client
-        run: vercel deploy --prod --prebuilt --token=${{ secrets.VERCEL_TOKEN }} --yes
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      - name: Info
+        run: echo "Vercel deploys automatically via GitHub integration. This workflow is manual-only."
