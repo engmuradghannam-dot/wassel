@@ -13,14 +13,16 @@ const PrivateRoute = ({ children }) => {
 };
 
 // ─── Lazy Pages ───────────────────────────────────────────────────────────
-const LoginPage         = React.lazy(() => import('./pages/Login/LoginPage'));
-const Dashboard         = React.lazy(() => import('./pages/Dashboard/Dashboard'));
-const ChatPage          = React.lazy(() => import('./pages/Chat/ChatPage'));
-const CompanySettings   = React.lazy(() => import('./pages/CompanySettings/CompanySettings'));
-const InventoryPage     = React.lazy(() => import('./pages/Inventory/InventoryPage'));
-const SuppliersPage     = React.lazy(() => import('./pages/Suppliers/SuppliersPage'));
-const EmployeesPage     = React.lazy(() => import('./pages/Employees/EmployeesPage'));
-const PurchaseOrdersPage = React.lazy(() => import('./pages/PurchaseOrders/PurchaseOrdersPage'));
+const LoginPage           = React.lazy(() => import('./pages/Login/LoginPage'));
+const RegisterPage        = React.lazy(() => import('./pages/Register/RegisterPage')); // FIX: was missing
+const Dashboard           = React.lazy(() => import('./pages/Dashboard/Dashboard'));
+const ChatPage            = React.lazy(() => import('./pages/Chat/ChatPage'));
+const CompanySettings     = React.lazy(() => import('./pages/CompanySettings/CompanySettings'));
+const InventoryPage       = React.lazy(() => import('./pages/Inventory/InventoryPage'));
+const SuppliersPage       = React.lazy(() => import('./pages/Suppliers/SuppliersPage'));
+const EmployeesPage       = React.lazy(() => import('./pages/Employees/EmployeesPage'));
+const PurchaseOrdersPage  = React.lazy(() => import('./pages/PurchaseOrders/PurchaseOrdersPage'));
+const AccountingPage      = React.lazy(() => import('./pages/Accounting/AccountingPage')); // NEW
 
 // ─── Loading ──────────────────────────────────────────────────────────────
 const PageLoader = () => (
@@ -56,47 +58,19 @@ const theme = createTheme({
   }
 }, arSD);
 
-// ─── App ──────────────────────────────────────────────────────────────────
-function App() {
-  return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <Router>
-        <Suspense fallback={<PageLoader />}>
-          <Routes>
-            {/* Public */}
-            <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
-
-            {/* Auth callback */}
-            <Route path="/auth/callback" element={<AuthCallback />} />
-
-            {/* Private */}
-            <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
-            <Route path="/chat" element={<PrivateRoute><ChatPage /></PrivateRoute>} />
-            <Route path="/inventory" element={<PrivateRoute><InventoryPage /></PrivateRoute>} />
-            <Route path="/suppliers" element={<PrivateRoute><SuppliersPage /></PrivateRoute>} />
-            <Route path="/employees" element={<PrivateRoute><EmployeesPage /></PrivateRoute>} />
-            <Route path="/purchase-orders" element={<PrivateRoute><PurchaseOrdersPage /></PrivateRoute>} />
-            <Route path="/company-settings" element={<PrivateRoute><CompanySettings /></PrivateRoute>} />
-
-            {/* Default */}
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
-          </Routes>
-        </Suspense>
-      </Router>
-    </ThemeProvider>
-  );
-}
-
 // ─── Auth Callback (Google OAuth) ─────────────────────────────────────────
+// FIX: was defined in App but not imported → caused ReferenceError
 const AuthCallback = () => {
   const params = new URLSearchParams(window.location.search);
   const token = params.get('token');
-  if (token) {
+  const error = params.get('error');
+
+  React.useEffect(() => {
+    if (error || !token) {
+      window.location.href = '/login?error=auth_failed';
+      return;
+    }
     localStorage.setItem('token', token);
-    // Fetch user info
     fetch('/api/auth/me', { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json())
       .then(d => {
@@ -108,10 +82,44 @@ const AuthCallback = () => {
       })
       .catch(() => {})
       .finally(() => { window.location.href = '/dashboard'; });
-  } else {
-    window.location.href = '/login?error=auth_failed';
-  }
+  }, [token, error]);
+
   return <PageLoader />;
 };
+
+// ─── App ──────────────────────────────────────────────────────────────────
+function App() {
+  return (
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <Router>
+        <Suspense fallback={<PageLoader />}>
+          <Routes>
+            {/* Public */}
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} /> {/* FIX: RegisterPage now imported */}
+
+            {/* Auth callback (Google OAuth) */}
+            <Route path="/auth/callback" element={<AuthCallback />} /> {/* FIX: AuthCallback now defined above */}
+
+            {/* Private */}
+            <Route path="/dashboard"        element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+            <Route path="/chat"             element={<PrivateRoute><ChatPage /></PrivateRoute>} />
+            <Route path="/inventory"        element={<PrivateRoute><InventoryPage /></PrivateRoute>} />
+            <Route path="/suppliers"        element={<PrivateRoute><SuppliersPage /></PrivateRoute>} />
+            <Route path="/employees"        element={<PrivateRoute><EmployeesPage /></PrivateRoute>} />
+            <Route path="/purchase-orders"  element={<PrivateRoute><PurchaseOrdersPage /></PrivateRoute>} />
+            <Route path="/company-settings" element={<PrivateRoute><CompanySettings /></PrivateRoute>} />
+            <Route path="/accounting"       element={<PrivateRoute><AccountingPage /></PrivateRoute>} /> {/* NEW */}
+
+            {/* Default */}
+            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          </Routes>
+        </Suspense>
+      </Router>
+    </ThemeProvider>
+  );
+}
 
 export default App;
