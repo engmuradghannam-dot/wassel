@@ -23,6 +23,7 @@ const EmployeesPage      = React.lazy(() => import('./pages/Employees/EmployeesP
 const PurchaseOrdersPage = React.lazy(() => import('./pages/PurchaseOrders/PurchaseOrdersPage'));
 const AccountingPage     = React.lazy(() => import('./pages/Accounting/AccountingPage'));
 const BranchesPage       = React.lazy(() => import('./pages/Branches/BranchesPage'));
+const WarehousesPage     = React.lazy(() => import('./pages/Warehouses/WarehousesPage'));
 
 const PageLoader = () => (
   <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
@@ -72,6 +73,7 @@ function App() {
             <Route path="/purchase-orders"  element={<PrivateRoute><PurchaseOrdersPage /></PrivateRoute>} />
             <Route path="/accounting"       element={<PrivateRoute><AccountingPage /></PrivateRoute>} />
             <Route path="/branches"         element={<PrivateRoute><BranchesPage /></PrivateRoute>} />
+            <Route path="/warehouses"       element={<PrivateRoute><WarehousesPage /></PrivateRoute>} />
 
             <Route path="/"  element={<Navigate to="/login" replace />} />
             <Route path="*"  element={<Navigate to="/login" replace />} />
