@@ -7,13 +7,24 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - name: Test Login
+      - name: Full Debug Test
         run: |
-          echo "=== Health ==="
-          curl -s --max-time 30 https://wassel-cyj5.onrender.com/api/health
+          echo "=== 1. Health Check ==="
+          HEALTH=$(curl -s --max-time 30 https://wassel-cyj5.onrender.com/api/health)
+          echo "$HEALTH"
 
           echo ""
-          echo "=== Login ==="
-          curl -s --max-time 30 -X POST https://wassel-cyj5.onrender.com/api/users/login \
+          echo "=== 2. Login Test ==="
+          LOGIN=$(curl -sv --max-time 30 -X POST \
+            https://wassel-cyj5.onrender.com/api/users/login \
             -H "Content-Type: application/json" \
-            -d '{"email":"eng.murad.ghannam@gmail.com","password":"Admin2026@"}'
+            -d '{"email":"eng.murad.ghannam@gmail.com","password":"Admin2026@"}' 2>&1)
+          echo "$LOGIN"
+
+          echo ""
+          echo "=== 3. Check if user exists ==="
+          # Try setup endpoint to verify DB connection
+          curl -s --max-time 30 -X POST \
+            https://wassel-cyj5.onrender.com/api/setup/setup-admin \
+            -H "Content-Type: application/json" \
+            -d '{"name":"Murad","email":"eng.murad.ghannam@gmail.com","password":"Admin2026@"}'
