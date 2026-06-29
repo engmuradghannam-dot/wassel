@@ -1,0 +1,43 @@
+{
+  "lang": "English",
+  "dir": "ltr",
+  "common": {
+    "save": "Save", "cancel": "Cancel", "confirm": "Confirm", "delete": "Delete",
+    "edit": "Edit", "add": "Add", "search": "Search", "loading": "Loading...",
+    "close": "Close", "back": "Back", "next": "Next", "previous": "Previous",
+    "yes": "Yes", "no": "No", "or": "or", "and": "and"
+  },
+  "nav": {
+    "dashboard": "Dashboard", "inventory": "Inventory", "suppliers": "Suppliers",
+    "purchases": "Purchases", "employees": "Employees", "branches": "Branches",
+    "warehouses": "Warehouses", "accounting": "Accounting", "chat": "Chat",
+    "reports": "Reports", "settings": "Settings", "projects": "Projects"
+  },
+  "auth": {
+    "login": "Sign In", "logout": "Sign Out", "register": "Create Account",
+    "email": "Email Address", "password": "Password",
+    "confirmPassword": "Confirm Password", "fullName": "Full Name",
+    "companyName": "Company Name", "signInGoogle": "Sign in with Google",
+    "noAccount": "Don't have an account?", "hasAccount": "Already have an account?",
+    "startFree": "Start for Free", "signIn": "Sign In",
+    "welcomeBack": "Welcome Back", "createAccount": "Create New Account",
+    "chooseLanguage": "Choose your language", "selectLanguage": "Select Language"
+  },
+  "chat": {
+    "title": "Wassel Chat", "newChat": "New Chat", "noChats": "No conversations",
+    "typeMessage": "Type a message...", "send": "Send", "online": "Online",
+    "offline": "Offline", "searching": "Search by name or company...",
+    "videoCall": "Video Call", "voiceCall": "Voice Call", "meeting": "Meeting",
+    "allUsers": "All Users", "otherCompanies": "From Other Companies"
+  },
+  "meet": {
+    "join": "Join Now", "leave": "Leave", "mic": "Microphone", "camera": "Camera",
+    "screen": "Share Screen", "participants": "Participants", "record": "Record",
+    "copyLink": "Copy Link", "prejoin": "Preview Before Joining"
+  },
+  "industry": {
+    "selectType": "Select Business Type",
+    "trade": "Trade", "hospitality": "Hospitality", "health": "Healthcare",
+    "education": "Education", "beauty": "Beauty & Wellness", "construction": "Construction"
+  }
+}

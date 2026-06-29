@@ -9,6 +9,8 @@ import {
   AccountTree, Warehouse, ChevronLeft, ChevronRight
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import LanguageSelector from './LanguageSelector';
 
 const DRAWER_WIDTH = 240;
 const DRAWER_MINI = 64;
