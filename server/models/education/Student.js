@@ -1,33 +1,45 @@
 const mongoose = require('mongoose');
 const studentSchema = new mongoose.Schema({
-  company:          { type:mongoose.Schema.Types.ObjectId, ref:'Company', required:true, index:true },
-  studentId:        { type:String },
-  name:             { type:String, required:true },
-  nameEn:           { type:String },
-  gender:           { type:String, enum:['male','female'], default:'male' },
-  dob:              { type:Date },
-  nationalId:       { type:String },
-  nationality:      { type:String },
-  phone:            { type:String },
-  email:            { type:String },
-  address:          { type:String },
-  level:            { type:String },
-  classroom:        { type:String },
-  section:          { type:String },
-  enrollDate:       { type:Date },
-  tuitionFee:       { type:Number, default:0 },
-  guardianName:     { type:String },
-  guardianPhone:    { type:String },
-  guardianRelation: { type:String },
-  status:           { type:String, enum:['active','inactive','graduated','suspended','transferred'], default:'active' },
-  notes:            { type:String },
-  createdBy:        { type:mongoose.Schema.Types.ObjectId, ref:'User' }
+  company:     { type:mongoose.Schema.Types.ObjectId, ref:'Company', required:true, index:true },
+  studentNo:   { type:String },
+  name:        { type:String, required:true },
+  nameEn:      { type:String },
+  gender:      { type:String, enum:['male','female'] },
+  dateOfBirth: { type:Date },
+  nationalId:  { type:String },
+  phone:       { type:String },
+  email:       { type:String },
+  address:     { type:String },
+  nationality: { type:String },
+  // Academic
+  grade:       { type:String },     // الصف / المستوى
+  section:     { type:String },     // الفصل
+  academicYear:{ type:String },     // السنة الدراسية
+  enrollDate:  { type:Date },
+  status:      { type:String, enum:['enrolled','graduated','transferred','suspended','withdrawn'], default:'enrolled' },
+  // Guardian
+  guardian: {
+    name:      { type:String },
+    phone:     { type:String },
+    relation:  { type:String },
+    email:     { type:String },
+  },
+  // Financial
+  fees:        { type:Number, default:0 },
+  discount:    { type:Number, default:0 },
+  paidAmount:  { type:Number, default:0 },
+  // University-specific
+  faculty:     { type:String },     // الكلية
+  major:       { type:String },     // التخصص
+  gpa:         { type:Number },
+  creditHours: { type:Number },
+  notes:       { type:String },
+  isActive:    { type:Boolean, default:true },
+  createdBy:   { type:mongoose.Schema.Types.ObjectId, ref:'User' }
 }, { timestamps:true });
-studentSchema.pre('save', async function(next) {
-  if (!this.studentId) {
-    const count = await this.constructor.countDocuments({ company: this.company });
-    this.studentId = `STU-${String(count+1).padStart(5,'0')}`;
-  }
-  next();
+studentSchema.pre('save', function(n) {
+  if (!this.studentNo) this.studentNo = 'ST-' + Date.now().toString().slice(-5);
+  n();
 });
+studentSchema.index({ company:1, studentNo:1 }, { unique:true, sparse:true });
 module.exports = mongoose.model('Student', studentSchema);

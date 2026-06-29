@@ -1,116 +1,159 @@
-const express = require('express');
+const express     = require('express');
 const { protect } = require('../middleware/auth');
 const { getCompany } = require('../middleware/auth');
 
 /**
- * Generic CRUD router factory for sector models
+ * Generic CRUD router factory — used for all sector-specific models
+ * POST   /api/sector/:model       → create
+ * GET    /api/sector/:model       → list (filtered by company)
+ * GET    /api/sector/:model/:id   → single
+ * PUT    /api/sector/:model/:id   → update
+ * DELETE /api/sector/:model/:id   → delete
  */
-const makeSectorRouter = (Model, options = {}) => {
-  const router = express.Router();
-  const { autoCode, populate = '', searchFields = ['name'] } = options;
 
-  // GET all
-  router.get('/', protect, async (req, res) => {
-    try {
-      const co = getCompany(req);
-      if (!co) return res.status(400).json({ success:false, message:'الحساب غير مرتبط بشركة' });
-      const filter = { company: co };
-      if (req.query.search) {
-        const q = new RegExp(req.query.search, 'i');
-        filter.$or = searchFields.map(f => ({ [f]: q }));
-      }
-      // Extra filters from query params
-      const reserved = ['search','limit','skip','sort'];
-      Object.entries(req.query).forEach(([k,v]) => {
-        if (!reserved.includes(k)) {
-          filter[k] = v === 'true' ? true : v === 'false' ? false : v;
-        }
-      });
-      const limit = Math.min(parseInt(req.query.limit)||500, 1000);
-      const skip  = parseInt(req.query.skip)||0;
-      const sortQ = req.query.sort ? JSON.parse(req.query.sort) : { createdAt:-1 };
-      let q = Model.find(filter).sort(sortQ).limit(limit).skip(skip);
-      if (populate) q = q.populate(populate);
-      const [docs, count] = await Promise.all([q, Model.countDocuments(filter)]);
-      res.json({ success:true, count, data:docs });
-    } catch (err) { res.status(500).json({ success:false, message:err.message }); }
-  });
-
-  // GET one
-  router.get('/:id', protect, async (req, res) => {
-    try {
-      const co = getCompany(req);
-      let q = Model.findOne({ _id:req.params.id, company:co });
-      if (populate) q = q.populate(populate);
-      const doc = await q;
-      if (!doc) return res.status(404).json({ success:false, message:'السجل غير موجود' });
-      res.json({ success:true, data:doc });
-    } catch (err) { res.status(500).json({ success:false, message:err.message }); }
-  });
-
-  // POST create
-  router.post('/', protect, async (req, res) => {
-    try {
-      const co = getCompany(req);
-      if (!co) return res.status(400).json({ success:false, message:'الحساب غير مرتبط بشركة' });
-      const doc = await Model.create({ ...req.body, company:co, createdBy:req.user._id });
-      res.status(201).json({ success:true, data:doc });
-    } catch (err) { res.status(400).json({ success:false, message:err.message }); }
-  });
-
-  // PUT update
-  router.put('/:id', protect, async (req, res) => {
-    try {
-      const co = getCompany(req);
-      const doc = await Model.findOneAndUpdate(
-        { _id:req.params.id, company:co }, req.body, { new:true, runValidators:true }
-      );
-      if (!doc) return res.status(404).json({ success:false, message:'السجل غير موجود' });
-      res.json({ success:true, data:doc });
-    } catch (err) { res.status(400).json({ success:false, message:err.message }); }
-  });
-
-  // DELETE
-  router.delete('/:id', protect, async (req, res) => {
-    try {
-      const co = getCompany(req);
-      const doc = await Model.findOneAndDelete({ _id:req.params.id, company:co });
-      if (!doc) return res.status(404).json({ success:false, message:'السجل غير موجود' });
-      res.json({ success:true, message:'تم الحذف' });
-    } catch (err) { res.status(500).json({ success:false, message:err.message }); }
-  });
-
-  return router;
+// Model registry — maps API name → Mongoose model
+const MODEL_REGISTRY = {
+  // Hotel / Hospitality
+  'rooms':               () => require('../models/hotel/Room'),
+  'bookings':            () => require('../models/hotel/Booking'),
+  // Clinic / Hospital
+  'patients':            () => require('../models/clinic/Patient'),
+  'appointments':        () => require('../models/clinic/Appointment'),
+  // Education
+  'students':            () => require('../models/education/Student'),
+  'grades':              () => require('../models/education/Grade'),
+  // Restaurant
+  'tables':              () => require('../models/restaurant/Table'),
+  'restaurant-orders':   () => require('../models/restaurant/Order'),
+  // Gym
+  'memberships':         () => require('../models/gym/Membership'),
+  // Real Estate
+  'properties':          () => require('../models/real_estate/Property'),
+  'leases':              () => require('../models/real_estate/Lease'),
+  // Salon
+  'salon-appointments':  () => require('../models/salon/SalonAppointment'),
 };
 
-// ── Register all sector routes ────────────────────────────────────────────────
+// Search fields per model
+const SEARCH_FIELDS = {
+  'rooms':              ['number','type','description'],
+  'bookings':           ['guest.name','guest.phone','bookingNo'],
+  'patients':           ['name','nationalId','phone','patientNo'],
+  'appointments':       ['apptNo','complaint','diagnosis','doctorName'],
+  'students':           ['name','studentNo','grade','faculty'],
+  'grades':             ['subject','grade'],
+  'tables':             ['number','location'],
+  'restaurant-orders':  ['orderNo','customer.name','customer.phone'],
+  'memberships':        ['name','phone','memberNo'],
+  'properties':         ['name','propNo','address','district'],
+  'leases':             ['leaseNo','tenant.name','tenant.phone'],
+  'salon-appointments': ['customer.name','customer.phone','apptNo'],
+};
+
+// Auto-populate per model
+const POPULATE = {
+  'bookings':       'room',
+  'appointments':   'patient doctor',
+  'grades':         'student',
+  'leases':         'property',
+  'restaurant-orders':'table',
+};
+
 const router = express.Router();
 
-// Hotel
-const Room       = require('../models/hotel/Room');
-const Booking    = require('../models/hotel/Booking');
-router.use('/rooms',    makeSectorRouter(Room,    { searchFields:['number','type'] }));
-router.use('/bookings', makeSectorRouter(Booking, { searchFields:['guestName','roomNumber','guestPhone'] }));
+// Middleware: resolve model from params
+router.use('/:model', (req, res, next) => {
+  const loader = MODEL_REGISTRY[req.params.model];
+  if (!loader) {
+    return res.status(404).json({ success:false, message:`Model '${req.params.model}' not found` });
+  }
+  try { req.Model = loader(); } catch(e) {
+    return res.status(500).json({ success:false, message:`Error loading model: ${e.message}` });
+  }
+  next();
+});
 
-// Clinic / Health
-const Patient     = require('../models/clinic/Patient');
-const Appointment = require('../models/clinic/Appointment');
-router.use('/patients',     makeSectorRouter(Patient,     { searchFields:['name','nationalId','phone'] }));
-router.use('/appointments', makeSectorRouter(Appointment, { searchFields:['patientName','doctorName'] }));
+// GET all
+router.get('/:model', protect, async (req, res) => {
+  try {
+    const co = getCompany(req);
+    if (!co) return res.status(400).json({ success:false, message:'الحساب غير مرتبط بشركة' });
 
-// Education
-const Student = require('../models/education/Student');
-router.use('/students', makeSectorRouter(Student, { searchFields:['name','studentId','classroom'] }));
+    const filter = { company: co };
+    const key    = req.params.model;
 
-// Gym
-const Membership = require('../models/gym/Membership');
-router.use('/memberships', makeSectorRouter(Membership, { searchFields:['memberName','memberPhone'] }));
+    // Search
+    if (req.query.search) {
+      const q      = new RegExp(req.query.search, 'i');
+      const fields = SEARCH_FIELDS[key] || ['name'];
+      filter.$or   = fields.map(f => ({ [f]: q }));
+    }
+    // Extra filters
+    const RESERVED = ['search','limit','skip','sort','page'];
+    Object.entries(req.query).forEach(([k,v]) => {
+      if (!RESERVED.includes(k)) {
+        filter[k] = v === 'true' ? true : v === 'false' ? false : v;
+      }
+    });
 
-// Restaurant tables
-const Table = require('../models/restaurant/Table');
-router.use('/tables', makeSectorRouter(Table, { searchFields:['number'] }));
+    const limit = Math.min(parseInt(req.query.limit)||200, 500);
+    const skip  = parseInt(req.query.skip)||0;
+    const sort  = req.query.sort || '-createdAt';
+    const pop   = POPULATE[key] || '';
 
-// Real Estate
-// router.use('/properties', makeSectorRouter(Property, ...));
+    let q2 = req.Model.find(filter).sort(sort).skip(skip).limit(limit);
+    if (pop) q2 = q2.populate(pop);
+    const [docs, total] = await Promise.all([q2, req.Model.countDocuments(filter)]);
+
+    res.json({ success:true, count:docs.length, total, data:docs });
+  } catch (err) { res.status(500).json({ success:false, message:err.message }); }
+});
+
+// GET single
+router.get('/:model/:id', protect, async (req, res) => {
+  try {
+    const co  = getCompany(req);
+    const pop = POPULATE[req.params.model] || '';
+    let q     = req.Model.findOne({ _id:req.params.id, company:co });
+    if (pop) q = q.populate(pop);
+    const doc = await q;
+    if (!doc) return res.status(404).json({ success:false, message:'السجل غير موجود' });
+    res.json({ success:true, data:doc });
+  } catch (err) { res.status(500).json({ success:false, message:err.message }); }
+});
+
+// POST create
+router.post('/:model', protect, async (req, res) => {
+  try {
+    const co = getCompany(req);
+    if (!co) return res.status(400).json({ success:false, message:'الحساب غير مرتبط بشركة' });
+    const doc = await req.Model.create({ ...req.body, company:co, createdBy:req.user._id });
+    res.status(201).json({ success:true, data:doc });
+  } catch (err) { res.status(400).json({ success:false, message:err.message }); }
+});
+
+// PUT update
+router.put('/:model/:id', protect, async (req, res) => {
+  try {
+    const co  = getCompany(req);
+    const doc = await req.Model.findOneAndUpdate(
+      { _id:req.params.id, company:co },
+      req.body,
+      { new:true, runValidators:true }
+    );
+    if (!doc) return res.status(404).json({ success:false, message:'السجل غير موجود' });
+    res.json({ success:true, data:doc });
+  } catch (err) { res.status(400).json({ success:false, message:err.message }); }
+});
+
+// DELETE
+router.delete('/:model/:id', protect, async (req, res) => {
+  try {
+    const co  = getCompany(req);
+    const doc = await req.Model.findOneAndDelete({ _id:req.params.id, company:co });
+    if (!doc) return res.status(404).json({ success:false, message:'السجل غير موجود' });
+    res.json({ success:true, message:'تم الحذف' });
+  } catch (err) { res.status(500).json({ success:false, message:err.message }); }
+});
 
 module.exports = router;
