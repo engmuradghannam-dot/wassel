@@ -1,193 +1,283 @@
-import { useTranslation } from 'react-i18next';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box, Paper, Typography, Button, TextField, Table, TableBody,
   TableCell, TableContainer, TableHead, TableRow, IconButton,
   Dialog, DialogTitle, DialogContent, DialogActions, Grid,
-  Chip, Tooltip, Alert, CircularProgress,
-  Snackbar
+  Chip, Alert, CircularProgress, Snackbar, InputAdornment,
+  Tooltip, Avatar, MenuItem
 } from '@mui/material';
-import { Add, Edit, Delete, Search, Warning, Refresh, TrendingDown } from '@mui/icons-material';
-import axios from 'axios';
+import { Add, Edit, Delete, Search, Refresh, Warning, Inventory2 } from '@mui/icons-material';
+import { useTranslation } from 'react-i18next';
+import api from '../../services/api';
 import Layout from '../../components/Layout';
 
-const emptyItem = { name: '', nameEn: '', sku: '', category: '', unit: 'pcs', costPrice: '', salePrice: '', quantity: '', minQuantity: '', description: '', taxRate: 15 };
+const EMPTY = {
+  name:'', nameEn:'', sku:'', barcode:'', category:'', unit:'',
+  quantity:0, minQuantity:5, costPrice:0, salePrice:0, taxRate:15,
+  description:'', isActive:true
+};
 
 const InventoryPage = () => {
   const { t, i18n } = useTranslation();
-  const [items, setItems] = useState([]);
+  const L = i18n.language;
+  const AR = L === 'ar';
+
+  const [items,   setItems]   = useState([]);
   const [loading, setLoading] = useState(true);
-  const [dialog, setDialog] = useState(false);
-  const [form, setForm] = useState(emptyItem);
-  const [editId, setEditId] = useState(null);
-  const [search, setSearch] = useState('');
-  const [snack, setSnack] = useState({ open: false, msg: '', sev: 'success' });
-  const [delConfirm, setDelConfirm] = useState(null);
+  const [dialog,  setDialog]  = useState(false);
+  const [form,    setForm]    = useState(EMPTY);
+  const [editId,  setEditId]  = useState(null);
+  const [search,  setSearch]  = useState('');
+  const [saving,  setSaving]  = useState(false);
+  const [error,   setError]   = useState('');
+  const [snack,   setSnack]   = useState('');
+  const [delId,   setDelId]   = useState(null);
 
-  const token = localStorage.getItem('token');
-  const headers = { Authorization: `Bearer ${token}` };
-
-  const fetch = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
-      const r = await axios.get('/api/inventory', { headers });
-      if (r.data.success) setItems(r.data.data);
-    } catch { } finally { setLoading(false); }
-  };
+      const r = await api.get('/api/inventory');
+      if (r.data.success) setItems(r.data.data || []);
+    } catch (e) { setError(e.response?.data?.message || t('common.error')); }
+    finally { setLoading(false); }
+  }, [t]);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { fetch(); }, []);
+  useEffect(() => { load(); }, [load]);
 
-  const openAdd = () => { setForm(emptyItem); setEditId(null); setDialog(true); };
-  const openEdit = (item) => { setForm({ ...item }); setEditId(item._id); setDialog(true); };
-  const closeDialog = () => { setDialog(false); setForm(emptyItem); setEditId(null); };
+  const openAdd  = () => { setForm({...EMPTY}); setEditId(null); setError(''); setDialog(true); };
+  const openEdit = (item) => { setForm({...item}); setEditId(item._id); setError(''); setDialog(true); };
+  const close    = () => { setDialog(false); setForm(EMPTY); setEditId(null); setError(''); };
+  const set      = k => e => setForm(p => ({...p, [k]: e.target.value}));
 
   const handleSave = async () => {
+    if (!form.name.trim()) { setError(t('common.required')+': '+t('inventory.itemName')); return; }
+    setSaving(true); setError('');
     try {
-      if (editId) {
-        await axios.put(`/api/inventory/${editId}`, form, { headers });
-        setSnack({ open: true, msg: 'تم تحديث المنتج', sev: 'success' });
-      } else {
-        await axios.post('/api/inventory', form, { headers });
-        setSnack({ open: true, msg: 'تم إضافة المنتج', sev: 'success' });
-      }
-      closeDialog(); fetch();
-    } catch (err) {
-      setSnack({ open: true, msg: err.response?.data?.message || 'خطأ', sev: 'error' });
-    }
+      if (editId) await api.put(`/api/inventory/${editId}`, form);
+      else        await api.post('/api/inventory', form);
+      setSnack(t('common.success'));
+      close(); load();
+    } catch (e) { setError(e.response?.data?.message || t('common.error')); }
+    finally { setSaving(false); }
   };
 
-  const handleDelete = async (id) => {
+  const handleDelete = async () => {
     try {
-      await axios.delete(`/api/inventory/${id}`, { headers });
-      setSnack({ open: true, msg: 'تم الحذف', sev: 'success' });
-      setDelConfirm(null); fetch();
-    } catch { setSnack({ open: true, msg: 'فشل الحذف', sev: 'error' }); }
+      await api.delete(`/api/inventory/${delId}`);
+      setSnack(t('common.success')); setDelId(null); load();
+    } catch (e) { setError(e.response?.data?.message || t('common.error')); setDelId(null); }
   };
 
-  const filtered = items.filter(i =>
-    i.name?.includes(search) || i.sku?.includes(search) || i.category?.includes(search)
-  );
+  const filtered = items.filter(i => {
+    if (!search) return true;
+    const q = search.toLowerCase();
+    return i.name?.toLowerCase().includes(q) || i.nameEn?.toLowerCase().includes(q) ||
+           i.sku?.toLowerCase().includes(q) || i.category?.toLowerCase().includes(q);
+  });
+
+  // ── Labels (language-aware) ────────────────────────────────────
+  const lbl = {
+    title:      t('inventory.title')      || (AR?'المخزون':'Inventory'),
+    newItem:    t('inventory.newItem')    || (AR?'إضافة منتج':'New Item'),
+    itemName:   t('inventory.itemName')   || (AR?'اسم الصنف':'Item Name'),
+    sku:        t('inventory.sku')        || 'SKU',
+    qty:        t('inventory.quantity')   || (AR?'الكمية':'Quantity'),
+    unit:       t('inventory.unit')       || (AR?'الوحدة':'Unit'),
+    minQty:     t('inventory.minQty')     || (AR?'الحد الأدنى':'Min Qty'),
+    cost:       t('inventory.costPrice')  || (AR?'سعر التكلفة':'Cost Price'),
+    sell:       t('inventory.sellingPrice')|| (AR?'سعر البيع':'Selling Price'),
+    category:   t('inventory.category')  || (AR?'الفئة':'Category'),
+    status:     t('common.status')        || (AR?'الحالة':'Status'),
+    actions:    t('common.actions')       || (AR?'إجراءات':'Actions'),
+    search:     t('common.search')        || (AR?'بحث':'Search'),
+    save:       t('common.save')          || (AR?'حفظ':'Save'),
+    cancel:     t('common.cancel')        || (AR?'إلغاء':'Cancel'),
+    edit:       t('common.edit')          || (AR?'تعديل':'Edit'),
+    delete:     t('common.delete')        || (AR?'حذف':'Delete'),
+    loading:    t('common.loading')       || (AR?'جارٍ التحميل...':'Loading...'),
+    noData:     t('common.noData')        || (AR?'لا توجد بيانات':'No data'),
+    lowStock:   t('inventory.lowStock')   || (AR?'مخزون منخفض':'Low Stock'),
+    inStock:    t('inventory.inStock')    || (AR?'متوفر':'In Stock'),
+    active:     t('common.active')        || (AR?'نشط':'Active'),
+    inactive:   t('common.inactive')      || (AR?'غير نشط':'Inactive'),
+    currency:   t('common.currency')      || (AR?'ر.س':'SAR'),
+    description:t('common.notes')         || (AR?'الوصف':'Description'),
+    tax:        AR?'نسبة الضريبة %':'Tax Rate %',
+    barcode:    t('inventory.barcode')    || 'Barcode',
+    nameAr:     AR?'الاسم بالعربي':'Name (Arabic)',
+    nameEn:     AR?'الاسم بالإنجليزي':'Name (English)',
+    warehouse:  t('inventory.warehouse')  || (AR?'المستودع':'Warehouse'),
+    count:      AR?`${filtered.length} ${items.length!==filtered.length?`/ ${items.length}`:''} ${lbl?.unit||''}`:
+                   `${filtered.length}${items.length!==filtered.length?` / ${items.length}`:''} items`,
+  };
 
   return (
     <Layout>
-      <Box sx={{ p: 3 }}>
+      <Box sx={{ p:3 }}>
         {/* Header */}
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
-          <Box>
-            <Typography variant="h5" fontWeight={700}>المخزون</Typography>
-            <Typography variant="body2" color="text.secondary">{items.length} منتج</Typography>
+        <Box sx={{ display:'flex', justifyContent:'space-between', alignItems:'center', mb:3 }}>
+          <Box sx={{ display:'flex', alignItems:'center', gap:1.5 }}>
+            <Inventory2 sx={{ fontSize:32, color:'#1a73e8' }}/>
+            <Box>
+              <Typography variant="h5" fontWeight={800}>{lbl.title}</Typography>
+              <Typography variant="caption" color="text.secondary">
+                {items.length} {AR?'صنف':'items'} · {items.filter(i=>i.isActive).length} {lbl.active}
+              </Typography>
+            </Box>
           </Box>
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <IconButton onClick={fetch}><Refresh /></IconButton>
-            <Button variant="contained" startIcon={<Add />} onClick={openAdd} sx={{ bgcolor: '#1a73e8', borderRadius: 2 }}>
-              إضافة منتج
+          <Box sx={{ display:'flex', gap:1 }}>
+            <IconButton onClick={load} size="small"><Refresh/></IconButton>
+            <Button variant="contained" startIcon={<Add/>} onClick={openAdd}
+              sx={{ borderRadius:2 }}>
+              {lbl.newItem}
             </Button>
           </Box>
         </Box>
 
-        {/* Search */}
-        <Paper sx={{ p: 2, mb: 2, borderRadius: 3 }}>
-          <TextField
-            fullWidth size="small" placeholder="بحث بالاسم أو الكود أو الفئة..."
-            value={search} onChange={e => setSearch(e.target.value)}
-            InputProps={{ startAdornment: <Search sx={{ mr: 1, color: 'text.secondary' }} /> }}
-          />
-        </Paper>
+        {error && <Alert severity="error" sx={{ mb:2, borderRadius:2 }} onClose={()=>setError('')}>{error}</Alert>}
 
-        {/* Low stock alert */}
-        {items.some(i => i.quantity <= i.minQuantity) && (
-          <Alert severity="warning" icon={<TrendingDown />} sx={{ mb: 2, borderRadius: 2 }}>
-            {items.filter(i => i.quantity <= i.minQuantity).length} منتج وصل إلى الحد الأدنى للمخزون
-          </Alert>
-        )}
+        {/* Search */}
+        <TextField size="small" placeholder={`${lbl.search}...`} value={search}
+          onChange={e=>setSearch(e.target.value)} sx={{ mb:2, width:340 }}
+          InputProps={{ startAdornment:<InputAdornment position="start"><Search sx={{ fontSize:18, color:'text.secondary' }}/></InputAdornment> }}/>
 
         {/* Table */}
-        <TableContainer component={Paper} sx={{ borderRadius: 3 }}>
+        <TableContainer component={Paper} sx={{ borderRadius:3 }}>
           <Table>
-            <TableHead sx={{ bgcolor: '#f8f9fa' }}>
-              <TableRow>
-                <TableCell fontWeight={600}>المنتج</TableCell>
-                <TableCell>الكود</TableCell>
-                <TableCell>الفئة</TableCell>
-                <TableCell align="center">الكمية</TableCell>
-                <TableCell align="center">سعر التكلفة</TableCell>
-                <TableCell align="center">سعر البيع</TableCell>
-                <TableCell align="center">الحالة</TableCell>
-                <TableCell align="center">إجراءات</TableCell>
+            <TableHead>
+              <TableRow sx={{ bgcolor:'#f8f9fa' }}>
+                <TableCell sx={{ fontWeight:700 }}>{lbl.itemName}</TableCell>
+                <TableCell sx={{ fontWeight:700 }}>{lbl.sku}</TableCell>
+                <TableCell sx={{ fontWeight:700 }}>{lbl.category}</TableCell>
+                <TableCell sx={{ fontWeight:700 }}>{lbl.qty}</TableCell>
+                <TableCell sx={{ fontWeight:700 }}>{lbl.cost}</TableCell>
+                <TableCell sx={{ fontWeight:700 }}>{lbl.sell}</TableCell>
+                <TableCell sx={{ fontWeight:700 }}>{lbl.status}</TableCell>
+                <TableCell sx={{ fontWeight:700 }} align="center">{lbl.actions}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {loading ? (
-                <TableRow><TableCell colSpan={8} align="center" sx={{ py: 4 }}><CircularProgress /></TableCell></TableRow>
+                <TableRow><TableCell colSpan={8} align="center" sx={{ py:4 }}>
+                  <CircularProgress size={28}/>
+                </TableCell></TableRow>
               ) : filtered.length === 0 ? (
-                <TableRow><TableCell colSpan={8} align="center" sx={{ py: 4, color: 'text.secondary' }}>لا توجد منتجات</TableCell></TableRow>
-              ) : filtered.map(item => (
-                <TableRow key={item._id} hover>
-                  <TableCell>
-                    <Typography fontWeight={500}>{item.name}</Typography>
-                    {item.nameEn && <Typography variant="caption" color="text.secondary">{item.nameEn}</Typography>}
-                  </TableCell>
-                  <TableCell><Chip size="small" label={item.sku || '—'} /></TableCell>
-                  <TableCell>{item.category || '—'}</TableCell>
-                  <TableCell align="center">
-                    <Chip
-                      label={`${item.quantity} ${item.unit}`}
-                      size="small"
-                      color={item.quantity <= item.minQuantity ? 'error' : item.quantity <= item.minQuantity * 2 ? 'warning' : 'success'}
-                    />
-                  </TableCell>
-                  <TableCell align="center">{item.costPrice?.toLocaleString('ar-SA')} ر.س</TableCell>
-                  <TableCell align="center">{item.salePrice?.toLocaleString('ar-SA')} ر.س</TableCell>
-                  <TableCell align="center">
-                    {item.quantity <= item.minQuantity && <Tooltip title="مخزون منخفض"><Warning sx={{ color: 'error.main', fontSize: 18 }} /></Tooltip>}
-                  </TableCell>
-                  <TableCell align="center">
-                    <IconButton size="small" onClick={() => openEdit(item)} sx={{ color: '#1a73e8' }}><Edit fontSize="small" /></IconButton>
-                    <IconButton size="small" onClick={() => setDelConfirm(item._id)} sx={{ color: 'error.main' }}><Delete fontSize="small" /></IconButton>
-                  </TableCell>
-                </TableRow>
-              ))}
+                <TableRow><TableCell colSpan={8} align="center" sx={{ py:4, color:'text.secondary' }}>
+                  {lbl.noData}
+                </TableCell></TableRow>
+              ) : filtered.map(item => {
+                const isLow = item.quantity <= (item.minQuantity || 5);
+                return (
+                  <TableRow key={item._id} hover>
+                    <TableCell>
+                      <Box sx={{ display:'flex', alignItems:'center', gap:1.2 }}>
+                        <Avatar sx={{ width:32, height:32, bgcolor:'#1a73e820', color:'#1a73e8', fontSize:13, fontWeight:700 }}>
+                          {item.name?.[0]}
+                        </Avatar>
+                        <Box>
+                          <Typography variant="body2" fontWeight={600}>{item.name}</Typography>
+                          {item.nameEn && <Typography variant="caption" color="text.secondary">{item.nameEn}</Typography>}
+                        </Box>
+                      </Box>
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="caption" sx={{ fontFamily:'monospace', bgcolor:'#f5f5f5', px:1, py:0.3, borderRadius:1 }}>
+                        {item.sku || '—'}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      {item.category ? <Chip label={item.category} size="small" sx={{ fontSize:'0.7rem' }}/> : '—'}
+                    </TableCell>
+                    <TableCell>
+                      <Box sx={{ display:'flex', alignItems:'center', gap:0.5 }}>
+                        {isLow && <Tooltip title={lbl.lowStock}><Warning sx={{ color:'error.main', fontSize:16 }}/></Tooltip>}
+                        <Typography variant="body2" fontWeight={isLow?700:400} color={isLow?'error.main':'text.primary'}>
+                          {item.quantity ?? 0} {item.unit || ''}
+                        </Typography>
+                      </Box>
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2">{(item.costPrice||0).toLocaleString()} {lbl.currency}</Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2" fontWeight={600}>{(item.salePrice||0).toLocaleString()} {lbl.currency}</Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Chip
+                        label={item.isActive ? lbl.active : lbl.inactive}
+                        color={item.isActive?'success':'default'} size="small" sx={{ fontSize:'0.7rem' }}/>
+                    </TableCell>
+                    <TableCell align="center">
+                      <Tooltip title={lbl.edit}>
+                        <IconButton size="small" onClick={()=>openEdit(item)} sx={{ color:'#1a73e8' }}>
+                          <Edit sx={{ fontSize:16 }}/>
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title={lbl.delete}>
+                        <IconButton size="small" onClick={()=>setDelId(item._id)} sx={{ color:'#e53935' }}>
+                          <Delete sx={{ fontSize:16 }}/>
+                        </IconButton>
+                      </Tooltip>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </TableContainer>
 
-        {/* Add/Edit Dialog */}
-        <Dialog open={dialog} onClose={closeDialog} maxWidth="md" fullWidth>
-          <DialogTitle fontWeight={600}>{editId ? 'تعديل منتج' : 'إضافة منتج جديد'}</DialogTitle>
+        {/* ── ADD/EDIT DIALOG ── */}
+        <Dialog open={dialog} onClose={close} maxWidth="sm" fullWidth PaperProps={{ sx:{ borderRadius:3 } }}>
+          <DialogTitle fontWeight={700}>
+            {editId ? `✏️ ${lbl.edit}` : `+ ${lbl.newItem}`}
+          </DialogTitle>
           <DialogContent>
-            <Grid container spacing={2} sx={{ mt: 0.5 }}>
-              <Grid item xs={12} sm={6}><TextField fullWidth label="الاسم بالعربي" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} required /></Grid>
-              <Grid item xs={12} sm={6}><TextField fullWidth label="الاسم بالإنجليزي" value={form.nameEn} onChange={e => setForm(p => ({ ...p, nameEn: e.target.value }))} /></Grid>
-              <Grid item xs={12} sm={6}><TextField fullWidth label="كود المنتج (SKU)" value={form.sku} onChange={e => setForm(p => ({ ...p, sku: e.target.value }))} /></Grid>
-              <Grid item xs={12} sm={6}><TextField fullWidth label="الفئة" value={form.category} onChange={e => setForm(p => ({ ...p, category: e.target.value }))} /></Grid>
-              <Grid item xs={12} sm={4}><TextField fullWidth label="الوحدة" value={form.unit} onChange={e => setForm(p => ({ ...p, unit: e.target.value }))} /></Grid>
-              <Grid item xs={12} sm={4}><TextField fullWidth label="الكمية" type="number" value={form.quantity} onChange={e => setForm(p => ({ ...p, quantity: e.target.value }))} /></Grid>
-              <Grid item xs={12} sm={4}><TextField fullWidth label="الحد الأدنى" type="number" value={form.minQuantity} onChange={e => setForm(p => ({ ...p, minQuantity: e.target.value }))} /></Grid>
-              <Grid item xs={12} sm={4}><TextField fullWidth label="سعر التكلفة (ر.س)" type="number" value={form.costPrice} onChange={e => setForm(p => ({ ...p, costPrice: e.target.value }))} /></Grid>
-              <Grid item xs={12} sm={4}><TextField fullWidth label="سعر البيع (ر.س)" type="number" value={form.salePrice} onChange={e => setForm(p => ({ ...p, salePrice: e.target.value }))} /></Grid>
-              <Grid item xs={12} sm={4}><TextField fullWidth label="نسبة الضريبة %" type="number" value={form.taxRate} onChange={e => setForm(p => ({ ...p, taxRate: e.target.value }))} /></Grid>
-              <Grid item xs={12}><TextField fullWidth label="الوصف" multiline rows={2} value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} /></Grid>
+            {error && <Alert severity="error" sx={{ mb:2, borderRadius:2 }}>{error}</Alert>}
+            <Grid container spacing={2} sx={{ mt:0.5 }}>
+              <Grid item xs={12} sm={6}><TextField fullWidth label={lbl.nameAr} value={form.name} onChange={set('name')} required/></Grid>
+              <Grid item xs={12} sm={6}><TextField fullWidth label={lbl.nameEn} value={form.nameEn||''} onChange={set('nameEn')}/></Grid>
+              <Grid item xs={12} sm={6}><TextField fullWidth label={lbl.sku} value={form.sku||''} onChange={set('sku')}/></Grid>
+              <Grid item xs={12} sm={6}><TextField fullWidth label={lbl.barcode} value={form.barcode||''} onChange={set('barcode')}/></Grid>
+              <Grid item xs={12} sm={6}><TextField fullWidth label={lbl.category} value={form.category||''} onChange={set('category')}/></Grid>
+              <Grid item xs={12} sm={6}><TextField fullWidth label={lbl.unit} value={form.unit||''} onChange={set('unit')}/></Grid>
+              <Grid item xs={12} sm={4}><TextField fullWidth label={lbl.qty} type="number" value={form.quantity} onChange={set('quantity')}/></Grid>
+              <Grid item xs={12} sm={4}><TextField fullWidth label={lbl.minQty} type="number" value={form.minQuantity} onChange={set('minQuantity')}/></Grid>
+              <Grid item xs={12} sm={4}><TextField fullWidth label={lbl.tax} type="number" value={form.taxRate||15} onChange={set('taxRate')} InputProps={{ endAdornment:<InputAdornment position="end">%</InputAdornment> }}/></Grid>
+              <Grid item xs={12} sm={6}><TextField fullWidth label={`${lbl.cost} (${lbl.currency})`} type="number" value={form.costPrice||0} onChange={set('costPrice')}/></Grid>
+              <Grid item xs={12} sm={6}><TextField fullWidth label={`${lbl.sell} (${lbl.currency})`} type="number" value={form.salePrice||0} onChange={set('salePrice')}/></Grid>
+              <Grid item xs={12}><TextField fullWidth label={lbl.description} multiline rows={2} value={form.description||''} onChange={set('description')}/></Grid>
+              <Grid item xs={12}>
+                <TextField fullWidth label={lbl.status} value={form.isActive?'active':'inactive'} select
+                  onChange={e=>setForm(p=>({...p,isActive:e.target.value==='active'}))}>
+                  <MenuItem value="active">{lbl.active}</MenuItem>
+                  <MenuItem value="inactive">{lbl.inactive}</MenuItem>
+                </TextField>
+              </Grid>
             </Grid>
           </DialogContent>
-          <DialogActions sx={{ px: 3, pb: 2 }}>
-            <Button onClick={closeDialog}>{t('common.cancel')}</Button>
-            <Button variant="contained" onClick={handleSave} sx={{ bgcolor: '#1a73e8' }}>{t('common.save')}</Button>
+          <DialogActions sx={{ px:3 }}>
+            <Button onClick={close}>{lbl.cancel}</Button>
+            <Button variant="contained" onClick={handleSave} disabled={saving}>
+              {saving ? <CircularProgress size={18}/> : lbl.save}
+            </Button>
           </DialogActions>
         </Dialog>
 
-        {/* Delete Confirm */}
-        <Dialog open={!!delConfirm} onClose={() => setDelConfirm(null)}>
-          <DialogTitle>تأكيد الحذف</DialogTitle>
-          <DialogContent><Typography>هل أنت متأكد من حذف هذا المنتج؟</Typography></DialogContent>
+        {/* ── DELETE CONFIRM ── */}
+        <Dialog open={!!delId} onClose={()=>setDelId(null)} maxWidth="xs" PaperProps={{ sx:{ borderRadius:3 } }}>
+          <DialogTitle fontWeight={700}>🗑️ {lbl.delete}</DialogTitle>
+          <DialogContent>
+            <Typography>{AR?'هل أنت متأكد من الحذف؟':'Are you sure you want to delete?'}</Typography>
+          </DialogContent>
           <DialogActions>
-            <Button onClick={() => setDelConfirm(null)}>{t('common.cancel')}</Button>
-            <Button color="error" variant="contained" onClick={() => handleDelete(delConfirm)}>{t('common.delete')}</Button>
+            <Button onClick={()=>setDelId(null)}>{lbl.cancel}</Button>
+            <Button color="error" variant="contained" onClick={handleDelete}>{lbl.delete}</Button>
           </DialogActions>
         </Dialog>
 
-        <Snackbar open={snack.open} autoHideDuration={3000} onClose={() => setSnack(p => ({ ...p, open: false }))} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
-          <Alert severity={snack.sev} onClose={() => setSnack(p => ({ ...p, open: false }))}>{snack.msg}</Alert>
+        <Snackbar open={!!snack} autoHideDuration={3000} onClose={()=>setSnack('')}
+          anchorOrigin={{ vertical:'bottom', horizontal:'center' }}>
+          <Alert severity="success" onClose={()=>setSnack('')} sx={{ borderRadius:2 }}>{snack}</Alert>
         </Snackbar>
       </Box>
     </Layout>

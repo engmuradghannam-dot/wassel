@@ -57,9 +57,9 @@ const PurchaseOrdersPage = () => {
     if (!form.supplier || form.items.length === 0) { setSnack({ open: true, msg: 'يرجى اختيار المورد وإضافة منتج', sev: 'warning' }); return; }
     try {
       await axios.post('/api/purchase-orders', form, { headers });
-      setSnack({ open: true, msg: 'تم إنشاء أمر الشراء', sev: 'success' });
+      setSnack({ open: true, msg: t('common.success')||'تم إنشاء أمر الشراء', sev: 'success' });
       setDialog(false); fetch();
-    } catch (err) { setSnack({ open: true, msg: err.response?.data?.message || 'خطأ', sev: 'error' }); }
+    } catch (err) { setSnack({ open: true, msg: err.response?.data?.message || t('common.error')||'خطأ', sev: 'error' }); }
   };
 
   const { sub, tax, total } = calcTotal(form.items);
@@ -80,7 +80,7 @@ const PurchaseOrdersPage = () => {
         </Box>
 
         <Paper sx={{ p: 2, mb: 2, borderRadius: 3 }}>
-          <TextField fullWidth size="small" placeholder="بحث..." value={search} onChange={e => setSearch(e.target.value)}
+          <TextField fullWidth size="small" placeholder={t('common.search')+'...'||'بحث...'} value={search} onChange={e => setSearch(e.target.value)}
             InputProps={{ startAdornment: <Search sx={{ mr: 1, color: 'text.secondary' }} /> }} />
         </Paper>
 
