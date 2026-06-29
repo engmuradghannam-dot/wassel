@@ -1,3 +1,4 @@
+import api from '../../services/api';
 import { useTranslation } from 'react-i18next';
 import React, { useState, useEffect } from 'react';
 import {
@@ -10,13 +11,9 @@ import {
   Add, AccountBalance, Receipt, Assessment,
   CheckCircle, Cancel, Delete, Visibility, Refresh
 } from '@mui/icons-material';
-import axios from 'axios';
 import Layout from '../../components/Layout';
 
-const api = (url, opts = {}) => {
-  const token = localStorage.getItem('token');
-  return axios({ url: `/api/accounting${url}`, headers: { Authorization: `Bearer ${token}` }, ...opts });
-};
+const call = (url, opts = {}) => api({ url: `/api/accounting${url}`, ...opts });
 
 const fmtAmount = (n) => Number(n || 0).toLocaleString('ar-SA', { minimumFractionDigits: 2 });
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('ar-SA') : '—';

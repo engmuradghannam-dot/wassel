@@ -27,7 +27,7 @@ import {
   Close, Send, FiberManualRecord, GridView, ViewSidebar,
   Refresh
 } from '@mui/icons-material';
-import axios from 'axios';
+import api from '../services/api';
 
 const LIVEKIT_URL = process.env.REACT_APP_LIVEKIT_URL || 'wss://wassel-y6htlkxc.livekit.cloud';
 
