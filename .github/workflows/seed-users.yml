@@ -5,57 +5,39 @@ jobs:
   seed:
     runs-on: ubuntu-latest
     steps:
-      - name: Seed demo users via API
+      - name: Seed demo users
         run: |
           BASE="https://wassel-cyj5.onrender.com"
           
-          echo "=== Creating Demo Company 2 ==="
-          RES=$(curl -s -X POST "$BASE/api/users/register" \
-            -H "Content-Type: application/json" \
-            -d '{
-              "name": "أحمد الشريف",
-              "email": "ahmed.sharif@demo-company.com",
-              "password": "Demo2026@",
-              "companyName": "شركة النهضة للتجارة",
-              "companyNameEn": "Al Nahdah Trading Co"
-            }')
-          echo "User 1: $RES" | python3 -c "import sys,json,re; t=sys.stdin.read(); m=re.search(r'\{.*\}', t, re.S); print(json.loads(m.group()).get('message','')) if m else print(t[:100])"
+          seed_user() {
+            NAME=$1; EMAIL=$2; COMPANY=$3
+            RES=$(curl -s -X POST "$BASE/api/users/register" \
+              -H "Content-Type: application/json" \
+              -d "{\"name\":\"$NAME\",\"email\":\"$EMAIL\",\"password\":\"Demo2026@\",\"companyName\":\"$COMPANY\"}")
+            MSG=$(echo "$RES" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('message','?'))" 2>/dev/null || echo "parse error")
+            echo "$NAME => $MSG"
+          }
           
-          echo "=== Creating Demo User 2 ==="
-          RES2=$(curl -s -X POST "$BASE/api/users/register" \
-            -H "Content-Type: application/json" \
-            -d '{
-              "name": "سارة المطيري",
-              "email": "sara.mutairi@gulf-trading.com",
-              "password": "Demo2026@",
-              "companyName": "مجموعة الخليج للتجارة",
-              "companyNameEn": "Gulf Trading Group"
-            }')
-          echo "User 2: $RES2" | python3 -c "import sys,json,re; t=sys.stdin.read(); m=re.search(r'\{.*\}', t, re.S); print(json.loads(m.group()).get('message','')) if m else print(t[:100])"
+          seed_user "أحمد الشريف" "ahmed.sharif@demo.com" "شركة النهضة للتجارة"
+          seed_user "سارة المطيري" "sara.mutairi@demo.com" "مجموعة الخليج للتجارة"
+          seed_user "محمد الزهراني" "m.zahrani@demo.com" "حلول التقنية السعودية"
+          seed_user "فاطمة العتيبي" "fatima.otaibi@demo.com" "شركة العتيبي للاستيراد"
           
-          echo "=== Creating Demo User 3 ==="
-          RES3=$(curl -s -X POST "$BASE/api/users/register" \
-            -H "Content-Type: application/json" \
-            -d '{
-              "name": "محمد الزهراني",
-              "email": "m.zahrani@tech-solutions.sa",
-              "password": "Demo2026@",
-              "companyName": "حلول التقنية السعودية",
-              "companyNameEn": "Saudi Tech Solutions"
-            }')
-          echo "User 3: $RES3" | python3 -c "import sys,json,re; t=sys.stdin.read(); m=re.search(r'\{.*\}', t, re.S); print(json.loads(m.group()).get('message','')) if m else print(t[:100])"
-          
-          echo "=== Verify contacts ==="
+          echo ""
+          echo "=== Verify ==="
           LOGIN=$(curl -s -X POST "$BASE/api/users/login" \
             -H "Content-Type: application/json" \
             -d '{"email":"eng.murad.ghannam@gmail.com","password":"Admin2026@"}')
           TOKEN=$(echo "$LOGIN" | python3 -c "import sys,json; print(json.load(sys.stdin).get('token',''))")
           
-          CONTACTS=$(curl -s "$BASE/api/users/chat-contacts" \
-            -H "Authorization: Bearer $TOKEN")
-          echo "$CONTACTS" | python3 -c "
+          curl -s "$BASE/api/users/chat-contacts" \
+            -H "Authorization: Bearer $TOKEN" | \
+            python3 -c "
 import sys,json
 d=json.load(sys.stdin)
-print('Contacts count:', d.get('count',0))
+print('Total contacts:', d.get('count',0))
 for u in d.get('data',[]):
-    print(f\"  - {u['name']} ({u.get('company',{}).get('name','no company') if isinstance(u.get('company'),dict) else 'no company'})\")"
+    co = u.get('company') or {}
+    coname = co.get('name','—') if isinstance(co,dict) else '—'
+    print(f'  ✓ {u[\"name\"]} | {coname}')
+"
