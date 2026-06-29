@@ -194,3 +194,14 @@ mongoose.connect(process.env.MONGODB_URI, {
   console.error('❌ MongoDB error:', err.message);
   process.exit(1);
 });
+
+// ─── New Modules (Phase 2) ────────────────────────────────────────────────
+const customerRoutes    = require('./routes/customerRoutes');
+const salesOrderRoutes  = require('./routes/salesOrderRoutes');
+const shipmentRoutes    = require('./routes/shipmentRoutes');
+const projectRoutes     = require('./routes/projectRoutes');
+
+app.use('/api/customers',    customerRoutes);
+app.use('/api/sales-orders', salesOrderRoutes);
+app.use('/api/shipments',    shipmentRoutes);
+app.use('/api/projects',     projectRoutes);
