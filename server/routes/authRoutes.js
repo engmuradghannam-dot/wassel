@@ -4,6 +4,8 @@ const passport = require('passport');
 const authController = require('../controllers/authController');
 const { protect } = require('../middleware/auth');
 
+const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:3000';
+
 // @route   GET /api/auth/google
 // @desc    Google OAuth login
 // @access  Public
@@ -16,7 +18,10 @@ router.get('/google', passport.authenticate('google', {
 // @desc    Google OAuth callback — passport sets req.user via session
 // @access  Public
 router.get('/google/callback',
-  passport.authenticate('google', { failureRedirect: '/login', session: true }),
+  passport.authenticate('google', { 
+    failureRedirect: `${CLIENT_URL}/login?error=google_auth_failed`, 
+    session: true 
+  }),
   authController.googleCallback
 );
 
