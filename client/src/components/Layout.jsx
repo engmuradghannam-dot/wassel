@@ -6,128 +6,169 @@ import {
 import {
   Dashboard, Inventory2, People, LocalShipping, ShoppingCart,
   Chat, Business, Assessment, Logout, AccountBalance,
-  AccountTree, Warehouse, ChevronLeft, ChevronRight
+  Warehouse, ChevronLeft, ChevronRight,
+  FolderOpen, AdminPanelSettings, Settings, AccountTree
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import LanguageSelector from './LanguageSelector';
 
-const DRAWER_WIDTH = 240;
-const DRAWER_MINI = 64;
+const DRAWER_W  = 240;
+const DRAWER_M  = 64;
 
-const navItems = [
-  { path: '/dashboard',       icon: <Dashboard />,       label: 'الرئيسية' },
-  { path: '/inventory',       icon: <Inventory2 />,      label: 'المخزون' },
-  { path: '/suppliers',       icon: <LocalShipping />,   label: 'الموردون' },
-  { path: '/purchase-orders', icon: <ShoppingCart />,    label: 'أوامر الشراء' },
-  { path: '/employees',       icon: <People />,          label: 'الموظفون' },
-  { path: '/branches',        icon: <AccountTree />,     label: 'الفروع' },
-  { path: '/warehouses',      icon: <Warehouse />,       label: 'المستودعات' },
-  { path: '/roles',           icon: <AccountTree />,     label: 'الأدوار والصلاحيات' },
-  { path: '/projects',        icon: <AccountTree />,     label: 'المشاريع' },
+// Nav items — labels use t() at render time
+const getNavItems = (t) => [
+  { path:'/dashboard',       icon:<Dashboard/>,           label: t('nav.dashboard')     || 'Dashboard' },
+  { path:'/inventory',       icon:<Inventory2/>,          label: t('nav.inventory')     || 'Inventory' },
+  { path:'/suppliers',       icon:<LocalShipping/>,       label: t('nav.suppliers')     || 'Suppliers' },
+  { path:'/purchase-orders', icon:<ShoppingCart/>,        label: t('nav.purchaseOrders')|| 'Purchases' },
+  { path:'/employees',       icon:<People/>,              label: t('nav.employees')     || 'Employees' },
+  { path:'/branches',        icon:<AccountTree/>,         label: t('nav.branches')      || 'Branches' },
+  { path:'/warehouses',      icon:<Warehouse/>,           label: t('nav.warehouses')    || 'Warehouses' },
+  { path:'/projects',        icon:<FolderOpen/>,          label: t('nav.projects')      || 'Projects' },
   { divider: true },
-  { path: '/accounting',      icon: <AccountBalance />,  label: 'المحاسبة' }, // NEW
-  { path: '/chat',            icon: <Chat />,            label: 'المحادثات' },
+  { path:'/accounting',      icon:<AccountBalance/>,      label: t('nav.accounting')    || 'Accounting' },
+  { path:'/chat',            icon:<Chat/>,                label: t('nav.chat')          || 'Chat' },
   { divider: true },
-  { path: '/reports',         icon: <Assessment />,      label: 'التقارير' },
-  { path: '/company-settings',icon: <Business />,        label: 'الشركة' },
+  { path:'/roles',           icon:<AdminPanelSettings/>,  label: t('nav.roles')         || 'Roles' },
+  { path:'/company-settings',icon:<Business/>,            label: t('nav.company')       || 'Company' },
+  { path:'/settings',        icon:<Settings/>,            label: t('settings.title')    || 'Settings' },
 ];
 
 const Layout = ({ children }) => {
-  const [mini, setMini] = useState(false);
-  const navigate = useNavigate();
-  const location = useLocation();
+  const { t, i18n } = useTranslation();
+  const [mini, setMini]  = useState(false);
+  const navigate         = useNavigate();
+  const location         = useLocation();
+  const navItems         = getNavItems(t);
+  const isRTL            = ['ar','ur'].includes(i18n.language);
 
-  const userName = localStorage.getItem('userName') || 'مستخدم';
-  const userRole = localStorage.getItem('userRole') || 'user';
+  const userName    = localStorage.getItem('userName')    || 'User';
+  const userRole    = localStorage.getItem('userRole')    || 'user';
+  const userCompany = localStorage.getItem('userCompany') || '';
+  const industry    = localStorage.getItem('userIndustry') || '';
 
   const logout = () => {
-    localStorage.clear();
+    ['token','userId','userName','userRole','userIndustry','userCompany'].forEach(k => localStorage.removeItem(k));
     navigate('/login');
   };
 
-  const width = mini ? DRAWER_MINI : DRAWER_WIDTH;
+  const drawerW = mini ? DRAWER_M : DRAWER_W;
 
   return (
-    <Box sx={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
-      {/* Sidebar */}
+    <Box sx={{ display:'flex', minHeight:'100vh', bgcolor:'background.default' }}>
+
+      {/* ── SIDEBAR ── */}
       <Box sx={{
-        width, flexShrink: 0,
-        bgcolor: '#1a1a2e', color: 'white',
-        display: 'flex', flexDirection: 'column',
-        transition: 'width 0.2s', overflow: 'hidden'
+        width: drawerW, flexShrink: 0, height:'100vh',
+        position:'fixed', top:0, [isRTL?'right':'left']:0,
+        display:'flex', flexDirection:'column',
+        background:'linear-gradient(180deg, #0d1b2a 0%, #1a2e42 100%)',
+        transition:'width 0.25s ease', overflow:'hidden', zIndex: 1200,
+        boxShadow:'2px 0 12px rgba(0,0,0,0.3)'
       }}>
-        {/* Header */}
-        <Box sx={{ p: 1.5, display: 'flex', alignItems: 'center', justifyContent: mini ? 'center' : 'space-between', minHeight: 64 }}>
+
+        {/* Logo */}
+        <Box sx={{ display:'flex', alignItems:'center', gap:1.5, px:mini?1.5:2.5, py:2,
+          borderBottom:'1px solid rgba(255,255,255,0.08)', minHeight:64 }}>
+          <Box sx={{ width:36, height:36, borderRadius:'10px', flexShrink:0,
+            background:'linear-gradient(135deg,#1a73e8,#4fc3f7)',
+            display:'flex', alignItems:'center', justifyContent:'center',
+            boxShadow:'0 0 16px rgba(26,115,232,0.4)' }}>
+            <Typography sx={{ fontSize:18, fontWeight:900, color:'#fff', fontFamily:'Georgia,serif' }}>W</Typography>
+          </Box>
           {!mini && (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Box sx={{ width: 32, height: 32, borderRadius: 1, bgcolor: '#1a73e8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Typography sx={{ color: 'white', fontWeight: 700, fontSize: 18 }}>و</Typography>
-              </Box>
-              <Typography fontWeight={700} sx={{ color: 'white', fontSize: 16 }}>Wassel ERP</Typography>
+            <Box sx={{ flex:1, minWidth:0 }}>
+              <Typography sx={{ color:'#fff', fontWeight:800, fontSize:15, letterSpacing:'-0.3px' }}>
+                Wassel ERP
+              </Typography>
+              {userCompany && (
+                <Typography sx={{ color:'rgba(255,255,255,0.4)', fontSize:10 }} noWrap>
+                  {userCompany}
+                </Typography>
+              )}
             </Box>
           )}
-          <IconButton onClick={() => setMini(v => !v)} sx={{ color: 'rgba(255,255,255,0.7)' }}>
-            {mini ? <ChevronRight /> : <ChevronLeft />}
+          <IconButton size="small" onClick={() => setMini(v=>!v)}
+            sx={{ color:'rgba(255,255,255,0.4)', p:0.5, '&:hover':{ color:'white' } }}>
+            {(mini ? !isRTL : isRTL) ? <ChevronRight sx={{ fontSize:18 }}/> : <ChevronLeft sx={{ fontSize:18 }}/>}
           </IconButton>
         </Box>
 
-        <Divider sx={{ borderColor: 'rgba(255,255,255,0.1)' }} />
-
-        {/* Nav */}
-        <List sx={{ flex: 1, overflow: 'auto', py: 1, px: mini ? 0.5 : 1 }}>
+        {/* Nav items */}
+        <Box sx={{ flex:1, overflow:'auto', py:1,
+          '&::-webkit-scrollbar':{ width:4 },
+          '&::-webkit-scrollbar-thumb':{ bgcolor:'rgba(255,255,255,0.1)', borderRadius:2 } }}>
           {navItems.map((item, i) => {
-            if (item.divider) return <Divider key={i} sx={{ my: 1, borderColor: 'rgba(255,255,255,0.1)' }} />;
-            const active = location.pathname === item.path;
+            if (item.divider) return (
+              <Divider key={i} sx={{ my:0.5, borderColor:'rgba(255,255,255,0.08)' }}/>
+            );
+            const isActive = location.pathname === item.path;
             return (
-              <Tooltip key={item.path} title={mini ? item.label : ''} placement="right">
-                <ListItemButton
-                  onClick={() => navigate(item.path)}
+              <Tooltip key={item.path} title={mini ? item.label : ''} placement={isRTL?'left':'right'}>
+                <ListItemButton onClick={() => navigate(item.path)}
                   sx={{
-                    borderRadius: 2, mb: 0.5,
-                    bgcolor: active ? '#1a73e8' : 'transparent',
-                    color: active ? 'white' : 'rgba(255,255,255,0.7)',
-                    minHeight: 44,
-                    justifyContent: mini ? 'center' : 'flex-start',
-                    px: mini ? 1 : 1.5,
-                    '&:hover': { bgcolor: active ? '#1a73e8' : 'rgba(255,255,255,0.08)' }
-                  }}
-                >
-                  <ListItemIcon sx={{ color: 'inherit', minWidth: mini ? 0 : 36 }}>
+                    mx:1, mb:0.3, borderRadius:2, px:1.5, py:1,
+                    bgcolor: isActive ? 'rgba(26,115,232,0.25)' : 'transparent',
+                    border: isActive ? '1px solid rgba(26,115,232,0.4)' : '1px solid transparent',
+                    '&:hover':{ bgcolor:'rgba(255,255,255,0.08)' },
+                    transition:'all 0.15s'
+                  }}>
+                  <ListItemIcon sx={{
+                    minWidth:mini?0:36, mr:mini?0:1.2,
+                    color: isActive ? '#4fc3f7' : 'rgba(255,255,255,0.55)',
+                    '& .MuiSvgIcon-root':{ fontSize:20 }
+                  }}>
                     {item.icon}
                   </ListItemIcon>
-                  {!mini && <ListItemText primary={item.label} primaryTypographyProps={{ fontSize: 14, fontWeight: active ? 600 : 400 }} />}
+                  {!mini && (
+                    <ListItemText primary={
+                      <Typography variant="body2" fontWeight={isActive?700:400} noWrap
+                        sx={{ color: isActive ? '#fff' : 'rgba(255,255,255,0.7)', fontSize:'0.85rem' }}>
+                        {item.label}
+                      </Typography>
+                    }/>
+                  )}
                 </ListItemButton>
               </Tooltip>
             );
           })}
-        </List>
+        </Box>
 
-        <Divider sx={{ borderColor: 'rgba(255,255,255,0.1)' }} />
-
-        {/* User */}
-        <Box sx={{ p: 1.5, display: 'flex', alignItems: 'center', gap: 1.5, justifyContent: mini ? 'center' : 'flex-start' }}>
-          <Avatar sx={{ width: 36, height: 36, bgcolor: '#1a73e8', fontSize: 15 }}>
-            {userName?.[0]}
-          </Avatar>
+        {/* Bottom: user info + lang + logout */}
+        <Box sx={{ borderTop:'1px solid rgba(255,255,255,0.08)', p:1.5 }}>
           {!mini && (
-            <Box sx={{ flex: 1, minWidth: 0 }}>
-              <Typography sx={{ color: 'white', fontSize: 13, fontWeight: 600 }} noWrap>{userName}</Typography>
-              <Chip size="small" label={userRole === 'admin' ? 'مشرف' : 'مستخدم'} sx={{ height: 16, fontSize: 10, bgcolor: 'rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.8)' }} />
+            <Box sx={{ display:'flex', alignItems:'center', gap:1, mb:1.2,
+              bgcolor:'rgba(255,255,255,0.06)', borderRadius:2, px:1.2, py:1 }}>
+              <Avatar sx={{ width:28, height:28, bgcolor:'#1a73e8', fontSize:12 }}>
+                {userName[0]}
+              </Avatar>
+              <Box sx={{ flex:1, minWidth:0 }}>
+                <Typography sx={{ color:'#fff', fontSize:12, fontWeight:600 }} noWrap>{userName}</Typography>
+                <Typography sx={{ color:'rgba(255,255,255,0.4)', fontSize:10 }} noWrap>{userRole}</Typography>
+              </Box>
             </Box>
           )}
-          {!mini && (
-            <Tooltip title="تسجيل الخروج">
-              <IconButton onClick={logout} sx={{ color: 'rgba(255,255,255,0.5)', p: 0.5 }}>
-                <Logout fontSize="small" />
+          <Box sx={{ display:'flex', alignItems:'center', justifyContent: mini?'center':'space-between' }}>
+            {!mini && <LanguageSelector variant="icon" onDark/>}
+            <Tooltip title={t('auth.logout')||'Logout'}>
+              <IconButton onClick={logout} size="small"
+                sx={{ color:'rgba(255,255,255,0.45)', '&:hover':{ color:'#e53935' } }}>
+                <Logout sx={{ fontSize:18 }}/>
               </IconButton>
             </Tooltip>
-          )}
+          </Box>
         </Box>
       </Box>
 
-      {/* Main */}
-      <Box sx={{ flex: 1, overflow: 'auto', bgcolor: '#f8f9fa' }}>
+      {/* ── MAIN CONTENT ── */}
+      <Box sx={{
+        flex:1,
+        [isRTL?'mr':'ml']: `${drawerW}px`,
+        transition:'margin 0.25s ease',
+        minHeight:'100vh',
+        overflow:'auto'
+      }}>
         {children}
       </Box>
     </Box>

@@ -86,5 +86,21 @@
     "education": "教育",
     "beauty": "美容",
     "construction": "建筑"
+  },
+  "settings": {
+    "title": "语言",
+    "language": "语言",
+    "changeLanguage": "更改语言",
+    "chooseLang": "选择您喜欢的语言",
+    "langNote": "语言将立即应用于整个系统",
+    "languageChanged": "语言更改成功",
+    "theme": "Theme",
+    "notifications": "Notifications",
+    "sounds": "Sounds",
+    "profile": "Profile",
+    "company": "Company",
+    "security": "Security",
+    "changePassword": "Password",
+    "saveChanges": "Save"
   }
 }

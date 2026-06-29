@@ -86,5 +86,21 @@
     "education": "Pendidikan",
     "beauty": "Kecantikan",
     "construction": "Konstruksi"
+  },
+  "settings": {
+    "title": "Bahasa",
+    "language": "Bahasa",
+    "changeLanguage": "Ganti Bahasa",
+    "chooseLang": "Pilih bahasa pilihan Anda",
+    "langNote": "Bahasa akan diterapkan segera di seluruh sistem",
+    "languageChanged": "Bahasa berhasil diubah",
+    "theme": "Theme",
+    "notifications": "Notifications",
+    "sounds": "Sounds",
+    "profile": "Profile",
+    "company": "Company",
+    "security": "Security",
+    "changePassword": "Password",
+    "saveChanges": "Save"
   }
 }

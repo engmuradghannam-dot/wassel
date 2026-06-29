@@ -86,5 +86,21 @@
     "education": "Eğitim",
     "beauty": "Güzellik",
     "construction": "İnşaat"
+  },
+  "settings": {
+    "title": "Dil",
+    "language": "Dil",
+    "changeLanguage": "Dili Değiştir",
+    "chooseLang": "Tercih ettiğiniz dili seçin",
+    "langNote": "Dil anında tüm sistemde uygulanacak",
+    "languageChanged": "Dil başarıyla değiştirildi",
+    "theme": "Theme",
+    "notifications": "Notifications",
+    "sounds": "Sounds",
+    "profile": "Profile",
+    "company": "Company",
+    "security": "Security",
+    "changePassword": "Password",
+    "saveChanges": "Save"
   }
 }

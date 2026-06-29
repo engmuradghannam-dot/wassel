@@ -5,13 +5,25 @@
     "save": "حفظ", "cancel": "إلغاء", "confirm": "تأكيد", "delete": "حذف",
     "edit": "تعديل", "add": "إضافة", "search": "بحث", "loading": "جارٍ التحميل...",
     "close": "إغلاق", "back": "رجوع", "next": "التالي", "previous": "السابق",
-    "yes": "نعم", "no": "لا", "or": "أو", "and": "و"
+    "yes": "نعم", "no": "لا", "or": "أو", "and": "و", "all": "الكل",
+    "active": "نشط", "inactive": "غير نشط", "status": "الحالة",
+    "name": "الاسم", "email": "البريد", "phone": "الهاتف",
+    "date": "التاريخ", "amount": "المبلغ", "notes": "ملاحظات",
+    "actions": "إجراءات", "filter": "تصفية", "export": "تصدير",
+    "import": "استيراد", "print": "طباعة", "refresh": "تحديث",
+    "success": "تم بنجاح", "error": "حدث خطأ", "warning": "تحذير",
+    "noData": "لا توجد بيانات", "required": "مطلوب", "optional": "اختياري",
+    "create": "إنشاء", "update": "تحديث", "view": "عرض",
+    "language": "اللغة", "changeLanguage": "تغيير اللغة"
   },
   "nav": {
     "dashboard": "الرئيسية", "inventory": "المخزون", "suppliers": "الموردون",
-    "purchases": "المشتريات", "employees": "الموظفون", "branches": "الفروع",
-    "warehouses": "المستودعات", "accounting": "المحاسبة", "chat": "المحادثات",
-    "reports": "التقارير", "settings": "الإعدادات", "projects": "المشاريع"
+    "purchases": "المشتريات", "purchaseOrders": "أوامر الشراء",
+    "employees": "الموظفون", "branches": "الفروع", "warehouses": "المستودعات",
+    "accounting": "المحاسبة", "chat": "المحادثات", "reports": "التقارير",
+    "settings": "الإعدادات", "projects": "المشاريع", "roles": "الأدوار والصلاحيات",
+    "company": "الشركة", "logout": "تسجيل الخروج", "profile": "الملف الشخصي",
+    "customers": "العملاء", "salesOrders": "طلبات البيع"
   },
   "auth": {
     "login": "تسجيل الدخول", "logout": "تسجيل الخروج", "register": "إنشاء حساب",
@@ -21,23 +33,76 @@
     "noAccount": "ليس لديك حساب؟", "hasAccount": "لديك حساب؟",
     "startFree": "ابدأ تجربتك المجانية", "signIn": "دخول إلى النظام",
     "welcomeBack": "أهلاً بعودتك", "createAccount": "إنشاء حساب جديد",
-    "chooseLanguage": "اختر لغتك", "selectLanguage": "اختر اللغة"
+    "chooseLanguage": "اختر لغتك", "selectLanguage": "اختر اللغة",
+    "commercialReg": "الرقم الموحد للسجل التجاري", "vatNumber": "الرقم الضريبي (VAT)",
+    "industry": "القطاع الاقتصادي", "plan": "خطة الاشتراك",
+    "city": "المدينة", "country": "الدولة"
+  },
+  "dashboard": {
+    "title": "لوحة التحكم", "welcome": "مرحباً", "goodMorning": "صباح الخير",
+    "goodAfternoon": "مساء الخير", "goodEvening": "مساء النور",
+    "inventory": "المخزون", "lowStock": "مخزون منخفض",
+    "pendingPO": "مشتريات معلقة", "activeProjects": "مشاريع نشطة",
+    "employees": "الموظفون", "suppliers": "الموردون",
+    "quickActions": "الإجراءات السريعة", "recentActivity": "النشاط الأخير",
+    "totalValue": "إجمالي القيمة", "lastUpdate": "آخر تحديث"
+  },
+  "inventory": {
+    "title": "المخزون", "newItem": "صنف جديد", "itemName": "اسم الصنف",
+    "sku": "رمز الصنف", "quantity": "الكمية", "unit": "الوحدة",
+    "minQty": "الحد الأدنى", "costPrice": "سعر التكلفة", "sellingPrice": "سعر البيع",
+    "category": "الفئة", "warehouse": "المستودع", "lowStock": "مخزون منخفض",
+    "outOfStock": "نفد المخزون", "inStock": "متوفر"
+  },
+  "suppliers": {
+    "title": "الموردون", "newSupplier": "مورد جديد", "supplierName": "اسم المورد",
+    "contactPerson": "شخص التواصل", "paymentTerms": "شروط الدفع"
+  },
+  "purchases": {
+    "title": "أوامر الشراء", "newOrder": "أمر شراء جديد", "orderNumber": "رقم الأمر",
+    "supplier": "المورد", "orderDate": "تاريخ الأمر", "deliveryDate": "تاريخ التسليم",
+    "status": "الحالة", "total": "الإجمالي",
+    "draft": "مسودة", "pending": "معلق", "approved": "معتمد",
+    "received": "مستلم", "cancelled": "ملغى"
+  },
+  "employees": {
+    "title": "الموظفون", "newEmployee": "موظف جديد", "employeeId": "رقم الموظف",
+    "position": "المسمى الوظيفي", "department": "القسم", "salary": "الراتب",
+    "hireDate": "تاريخ التوظيف", "nationality": "الجنسية",
+    "active": "نشط", "inactive": "غير نشط", "terminated": "منهي"
+  },
+  "accounting": {
+    "title": "المحاسبة", "accounts": "الحسابات", "journal": "قيود يومية",
+    "balance": "الرصيد", "debit": "مدين", "credit": "دائن",
+    "revenue": "إيرادات", "expenses": "مصروفات", "profit": "الربح",
+    "vatReturn": "الإقرار الضريبي"
+  },
+  "settings": {
+    "title": "الإعدادات", "language": "اللغة", "theme": "المظهر",
+    "notifications": "الإشعارات", "sounds": "الأصوات",
+    "profile": "الملف الشخصي", "company": "إعدادات الشركة",
+    "security": "الأمان", "changePassword": "تغيير كلمة المرور",
+    "saveChanges": "حفظ التغييرات", "languageChanged": "تم تغيير اللغة بنجاح",
+    "chooseLang": "اختر اللغة المناسبة",
+    "langNote": "سيتم تطبيق اللغة فوراً على جميع أجزاء النظام"
   },
   "chat": {
-    "title": "Wassel Chat", "newChat": "محادثة جديدة", "noChats": "لا توجد محادثات",
+    "title": "المحادثات", "newChat": "محادثة جديدة", "noChats": "لا توجد محادثات",
     "typeMessage": "اكتب رسالة...", "send": "إرسال", "online": "متصل الآن",
     "offline": "غير متصل", "searching": "ابحث بالاسم أو الشركة...",
     "videoCall": "مكالمة فيديو", "voiceCall": "مكالمة صوتية", "meeting": "اجتماع",
-    "allUsers": "جميع المستخدمين", "otherCompanies": "من شركات أخرى"
+    "allUsers": "جميع المستخدمين", "otherCompanies": "من شركات أخرى",
+    "reply": "رد", "translate": "ترجمة", "copy": "نسخ", "delete": "حذف"
   },
   "meet": {
     "join": "انضم الآن", "leave": "مغادرة", "mic": "المايك", "camera": "الكاميرا",
     "screen": "مشاركة الشاشة", "participants": "المشاركون", "record": "تسجيل",
-    "copyLink": "نسخ الرابط", "prejoin": "معاينة قبل الدخول"
+    "copyLink": "نسخ الرابط", "prejoin": "معاينة قبل الدخول",
+    "incomingCall": "مكالمة واردة", "accept": "قبول", "reject": "رفض"
   },
-  "industry": {
-    "selectType": "اختر نوع النشاط التجاري",
-    "trade": "التجارة", "hospitality": "الضيافة", "health": "الصحة",
-    "education": "التعليم", "beauty": "التجميل", "construction": "المقاولات"
+  "roles": {
+    "title": "الأدوار والصلاحيات", "newRole": "دور جديد", "roleName": "اسم الدور",
+    "permissions": "الصلاحيات", "assign": "تعيين", "seedDefaults": "إنشاء الأدوار الافتراضية",
+    "level": "المستوى", "modules": "الوحدات"
   }
 }

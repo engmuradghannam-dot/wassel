@@ -86,5 +86,21 @@
     "education": "शिक्षा",
     "beauty": "सौंदर्य",
     "construction": "निर्माण"
+  },
+  "settings": {
+    "title": "भाषा",
+    "language": "भाषा",
+    "changeLanguage": "भाषा बदलें",
+    "chooseLang": "अपनी पसंदीदा भाषा चुनें",
+    "langNote": "भाषा तुरंत पूरे सिस्टम में लागू होगी",
+    "languageChanged": "भाषा सफलतापूर्वक बदल गई",
+    "theme": "Theme",
+    "notifications": "Notifications",
+    "sounds": "Sounds",
+    "profile": "Profile",
+    "company": "Company",
+    "security": "Security",
+    "changePassword": "Password",
+    "saveChanges": "Save"
   }
 }

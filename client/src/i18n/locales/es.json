@@ -86,5 +86,21 @@
     "education": "Educación",
     "beauty": "Belleza",
     "construction": "Construcción"
+  },
+  "settings": {
+    "title": "Idioma",
+    "language": "Idioma",
+    "changeLanguage": "Cambiar idioma",
+    "chooseLang": "Elige tu idioma preferido",
+    "langNote": "El idioma se aplicará inmediatamente en todo el sistema",
+    "languageChanged": "Idioma cambiado exitosamente",
+    "theme": "Theme",
+    "notifications": "Notifications",
+    "sounds": "Sounds",
+    "profile": "Profile",
+    "company": "Company",
+    "security": "Security",
+    "changePassword": "Password",
+    "saveChanges": "Save"
   }
 }
