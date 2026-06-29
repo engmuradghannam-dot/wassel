@@ -8,71 +8,74 @@ import rtlPlugin from 'stylis-plugin-rtl';
 import CssBaseline from '@mui/material/CssBaseline';
 import { Box, CircularProgress, Typography } from '@mui/material';
 import { useTranslation } from 'react-i18next';
-
 import WasselAI from './components/AI/WasselAI';
 
-const RTL_LANGS = ['ar', 'ur'];
+const RTL_LANGS = ['ar','ur'];
 
 const PrivateRoute = ({ children }) => {
   const token = localStorage.getItem('token');
   return token ? children : <Navigate to="/login" replace />;
 };
 
-// Lazy page imports
+// ── Public pages ────────────────────────────────────────────────────────────
 const LoginPage           = React.lazy(() => import('./pages/Login/LoginPage'));
 const RegisterPage        = React.lazy(() => import('./pages/Register/RegisterPage'));
 const AuthCallback        = React.lazy(() => import('./pages/AuthCallback/AuthCallback'));
 const CompleteProfilePage = React.lazy(() => import('./pages/CompleteProfile/CompleteProfilePage'));
+
+// ── Core pages (all sectors) ────────────────────────────────────────────────
 const Dashboard           = React.lazy(() => import('./pages/Dashboard/Dashboard'));
 const ChatPage            = React.lazy(() => import('./pages/Chat/ChatPage'));
 const CompanySettings     = React.lazy(() => import('./pages/CompanySettings/CompanySettings'));
+const SettingsPage        = React.lazy(() => import('./pages/Settings/SettingsPage'));
+const RolesPage           = React.lazy(() => import('./pages/Roles/RolesPage'));
+const AccountingPage      = React.lazy(() => import('./pages/Accounting/AccountingPage'));
+const EmployeesPage       = React.lazy(() => import('./pages/Employees/EmployeesPage'));
+const BranchesPage        = React.lazy(() => import('./pages/Branches/BranchesPage'));
+
+// ── Trade pages ─────────────────────────────────────────────────────────────
 const InventoryPage       = React.lazy(() => import('./pages/Inventory/InventoryPage'));
 const SuppliersPage       = React.lazy(() => import('./pages/Suppliers/SuppliersPage'));
-const EmployeesPage       = React.lazy(() => import('./pages/Employees/EmployeesPage'));
 const PurchaseOrdersPage  = React.lazy(() => import('./pages/PurchaseOrders/PurchaseOrdersPage'));
-const AccountingPage      = React.lazy(() => import('./pages/Accounting/AccountingPage'));
-const BranchesPage        = React.lazy(() => import('./pages/Branches/BranchesPage'));
 const WarehousesPage      = React.lazy(() => import('./pages/Warehouses/WarehousesPage'));
 const ProjectsPage        = React.lazy(() => import('./pages/Projects/ProjectsPage'));
-const RolesPage           = React.lazy(() => import('./pages/Roles/RolesPage'));
-const SettingsPage        = React.lazy(() => import('./pages/Settings/SettingsPage'));
+
+// ── Sector pages ─────────────────────────────────────────────────────────────
+const RoomsPage           = React.lazy(() => import('./pages/Sector/RoomsPage'));
+const BookingsPage        = React.lazy(() => import('./pages/Sector/BookingsPage'));
+const PatientsPage        = React.lazy(() => import('./pages/Sector/PatientsPage'));
+const AppointmentsPage    = React.lazy(() => import('./pages/Sector/AppointmentsPage'));
+const StudentsPage        = React.lazy(() => import('./pages/Sector/StudentsPage'));
+const GradesPage          = React.lazy(() => import('./pages/Sector/GradesPage'));
+const MembershipsPage     = React.lazy(() => import('./pages/Sector/MembershipsPage'));
+const TablesPage          = React.lazy(() => import('./pages/Sector/TablesPage'));
+const RestaurantOrdersPage= React.lazy(() => import('./pages/Sector/RestaurantOrdersPage'));
+const PropertiesPage      = React.lazy(() => import('./pages/Sector/PropertiesPage'));
 
 const PageLoader = () => (
   <Box sx={{ display:'flex', justifyContent:'center', alignItems:'center', height:'100vh', flexDirection:'column', gap:2 }}>
     <CircularProgress sx={{ color:'#1a73e8' }}/>
-    <Typography color="text.secondary" variant="body2">Loading...</Typography>
+    <Typography color="text.secondary" variant="body2">Wassel ERP</Typography>
   </Box>
 );
 
-// Emotion caches — one for RTL, one for LTR
 const rtlCache = createCache({ key:'muirtl', stylisPlugins:[prefixer, rtlPlugin] });
 const ltrCache = createCache({ key:'muiltr', stylisPlugins:[prefixer] });
 
-// Build MUI theme based on direction
 const buildTheme = (dir) => createTheme({
   direction: dir,
-  palette: {
-    mode: 'light',
-    primary:    { main: '#1a73e8' },
-    secondary:  { main: '#34a853' },
-    background: { default: '#f5f7fa', paper: '#ffffff' }
-  },
-  typography: {
-    fontFamily: RTL_LANGS.includes(dir === 'rtl' ? 'ar' : 'en')
-      ? '"Segoe UI", "Tahoma", "Arial", sans-serif'
-      : '"Segoe UI", "Helvetica Neue", "Arial", sans-serif',
-    h4: { fontWeight: 800 }, h5: { fontWeight: 700 }, h6: { fontWeight: 600 }
-  },
-  shape: { borderRadius: 10 },
+  palette: { mode:'light', primary:{ main:'#1a73e8' }, secondary:{ main:'#34a853' }, background:{ default:'#f5f7fa', paper:'#ffffff' } },
+  typography: { fontFamily: dir==='rtl' ? '"Segoe UI","Tahoma","Arial",sans-serif' : '"Segoe UI","Helvetica Neue","Arial",sans-serif',
+    h4:{fontWeight:800}, h5:{fontWeight:700}, h6:{fontWeight:600} },
+  shape: { borderRadius:10 },
   components: {
-    MuiButton:    { styleOverrides: { root: { textTransform:'none', borderRadius:8, fontWeight:600 } } },
-    MuiPaper:     { styleOverrides: { root: { boxShadow:'0 1px 4px rgba(0,0,0,0.08)' } } },
-    MuiCard:      { styleOverrides: { root: { boxShadow:'0 2px 8px rgba(0,0,0,0.08)' } } },
-    MuiTextField: { defaultProps: { size:'small' } },
+    MuiButton:    { styleOverrides:{ root:{ textTransform:'none', borderRadius:8, fontWeight:600 } } },
+    MuiPaper:     { styleOverrides:{ root:{ boxShadow:'0 1px 4px rgba(0,0,0,0.08)' } } },
+    MuiCard:      { styleOverrides:{ root:{ boxShadow:'0 2px 8px rgba(0,0,0,0.08)' } } },
+    MuiTextField: { defaultProps:{ size:'small' } },
   }
 });
 
-// AI floating button — only shown on private pages
 const AIWrapper = () => {
   const token    = localStorage.getItem('token');
   const location = useLocation();
@@ -81,12 +84,9 @@ const AIWrapper = () => {
   return <WasselAI />;
 };
 
-// Inner app — watches language changes and rebuilds theme + cache
 function AppInner() {
   const { i18n } = useTranslation();
-
-  // derive direction from current language
-  const getDir = (lng) => RTL_LANGS.includes(lng) ? 'rtl' : 'ltr';
+  const getDir   = (lng) => RTL_LANGS.includes(lng) ? 'rtl' : 'ltr';
   const [dir, setDir] = useState(() => getDir(i18n.language));
 
   useEffect(() => {
@@ -97,13 +97,12 @@ function AppInner() {
       document.documentElement.lang = lng;
     };
     i18n.on('languageChanged', handler);
-    // Apply immediately for current language
     handler(i18n.language);
     return () => i18n.off('languageChanged', handler);
   }, [i18n]);
 
+  const cache = dir==='rtl' ? rtlCache : ltrCache;
   const theme = buildTheme(dir);
-  const cache = dir === 'rtl' ? rtlCache : ltrCache;
 
   return (
     <CacheProvider value={cache}>
@@ -116,23 +115,40 @@ function AppInner() {
           <Route path="/auth/callback"    element={<AuthCallback />} />
           <Route path="/complete-profile" element={<CompleteProfilePage />} />
 
-          {/* Private */}
+          {/* Core — all sectors */}
           <Route path="/dashboard"        element={<PrivateRoute><Dashboard /></PrivateRoute>} />
           <Route path="/chat"             element={<PrivateRoute><ChatPage /></PrivateRoute>} />
           <Route path="/company-settings" element={<PrivateRoute><CompanySettings /></PrivateRoute>} />
+          <Route path="/settings"         element={<PrivateRoute><SettingsPage /></PrivateRoute>} />
+          <Route path="/roles"            element={<PrivateRoute><RolesPage /></PrivateRoute>} />
+          <Route path="/accounting"       element={<PrivateRoute><AccountingPage /></PrivateRoute>} />
+          <Route path="/employees"        element={<PrivateRoute><EmployeesPage /></PrivateRoute>} />
+          <Route path="/branches"         element={<PrivateRoute><BranchesPage /></PrivateRoute>} />
+
+          {/* Trade sector */}
           <Route path="/inventory"        element={<PrivateRoute><InventoryPage /></PrivateRoute>} />
           <Route path="/suppliers"        element={<PrivateRoute><SuppliersPage /></PrivateRoute>} />
-          <Route path="/employees"        element={<PrivateRoute><EmployeesPage /></PrivateRoute>} />
           <Route path="/purchase-orders"  element={<PrivateRoute><PurchaseOrdersPage /></PrivateRoute>} />
-          <Route path="/accounting"       element={<PrivateRoute><AccountingPage /></PrivateRoute>} />
-          <Route path="/branches"         element={<PrivateRoute><BranchesPage /></PrivateRoute>} />
           <Route path="/warehouses"       element={<PrivateRoute><WarehousesPage /></PrivateRoute>} />
           <Route path="/projects"         element={<PrivateRoute><ProjectsPage /></PrivateRoute>} />
-          <Route path="/roles"            element={<PrivateRoute><RolesPage /></PrivateRoute>} />
-          <Route path="/settings"         element={<PrivateRoute><SettingsPage /></PrivateRoute>} />
 
-          <Route path="/"  element={<Navigate to="/login" replace />} />
-          <Route path="*"  element={<Navigate to="/login" replace />} />
+          {/* Sector pages */}
+          <Route path="/rooms"                 element={<PrivateRoute><RoomsPage /></PrivateRoute>} />
+          <Route path="/bookings"              element={<PrivateRoute><BookingsPage /></PrivateRoute>} />
+          <Route path="/patients"              element={<PrivateRoute><PatientsPage /></PrivateRoute>} />
+          <Route path="/appointments"          element={<PrivateRoute><AppointmentsPage /></PrivateRoute>} />
+          <Route path="/students"              element={<PrivateRoute><StudentsPage /></PrivateRoute>} />
+          <Route path="/grades"                element={<PrivateRoute><GradesPage /></PrivateRoute>} />
+          <Route path="/memberships"           element={<PrivateRoute><MembershipsPage /></PrivateRoute>} />
+          <Route path="/tables"                element={<PrivateRoute><TablesPage /></PrivateRoute>} />
+          <Route path="/restaurant-orders"     element={<PrivateRoute><RestaurantOrdersPage /></PrivateRoute>} />
+          <Route path="/properties"            element={<PrivateRoute><PropertiesPage /></PrivateRoute>} />
+          <Route path="/leases"                element={<PrivateRoute><PropertiesPage /></PrivateRoute>} />
+          <Route path="/salon-appointments"    element={<PrivateRoute><AppointmentsPage /></PrivateRoute>} />
+          <Route path="/customers"             element={<PrivateRoute><PatientsPage /></PrivateRoute>} />
+
+          <Route path="/"   element={<Navigate to="/login" replace />} />
+          <Route path="*"   element={<Navigate to="/login" replace />} />
         </Routes>
         <AIWrapper />
       </ThemeProvider>

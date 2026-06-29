@@ -199,6 +199,49 @@ app.get('/api/health', (req, res) => res.json({
 }));
 
 // ─── Error Handler ────────────────────────────────────────────────────────
+
+// ── Sector-specific routes ─────────────────────────────────────────────────
+const { makeSectorRouter } = require('./routes/sectorRoutes');
+
+// Hotel
+const Room    = require('./models/hotel/Room');
+const Booking = require('./models/hotel/Booking');
+app.use('/api/rooms',    makeSectorRouter(Room,    { field:'number', prefix:'RM-' }));
+app.use('/api/bookings', makeSectorRouter(Booking, { field:'bookingNumber', prefix:'BK-' }));
+
+// Clinic / Hospital
+const Patient     = require('./models/clinic/Patient');
+const Appointment = require('./models/clinic/Appointment');
+app.use('/api/patients',     makeSectorRouter(Patient,     { field:'patientNumber', prefix:'PT-' }));
+app.use('/api/appointments', makeSectorRouter(Appointment, { field:'appointmentNo', prefix:'AP-' }));
+
+// Education
+const Student = require('./models/education/Student');
+const Grade   = require('./models/education/Grade');
+app.use('/api/students', makeSectorRouter(Student, { field:'studentNumber', prefix:'ST-' }));
+app.use('/api/grades',   makeSectorRouter(Grade));
+
+// Restaurant
+const Table          = require('./models/restaurant/Table');
+const RestaurantOrder= require('./models/restaurant/Order');
+app.use('/api/tables',      makeSectorRouter(Table, { field:'number', prefix:'T-' }));
+app.use('/api/restaurant-orders', makeSectorRouter(RestaurantOrder, { field:'orderNumber', prefix:'ORD-' }));
+
+// Salon / Spa
+const SalonAppointment = require('./models/salon/SalonAppointment');
+app.use('/api/salon-appointments', makeSectorRouter(SalonAppointment, { field:'appointmentNo', prefix:'SA-' }));
+
+// Gym
+const GymMembership = require('./models/gym/Membership');
+app.use('/api/memberships', makeSectorRouter(GymMembership, { field:'memberNumber', prefix:'MB-' }));
+
+// Real Estate
+const Property = require('./models/real_estate/Property');
+const Lease    = require('./models/real_estate/Lease');
+app.use('/api/properties', makeSectorRouter(Property, { field:'code', prefix:'PR-' }));
+app.use('/api/leases',     makeSectorRouter(Lease,    { field:'leaseNumber', prefix:'LS-' }));
+// ──────────────────────────────────────────────────────────────────────────
+
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(err.statusCode || 500).json({ success: false, message: err.message || 'Server Error' });

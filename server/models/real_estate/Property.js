@@ -1,0 +1,31 @@
+const mongoose = require('mongoose');
+const propertySchema = new mongoose.Schema({
+  company:     { type: mongoose.Schema.Types.ObjectId, ref:'Company', required:true, index:true },
+  code:        { type: String },
+  title:       { type: String, required:true },
+  titleEn:     { type: String },
+  type:        { type: String, enum:['apartment','villa','office','shop','land','warehouse','building','compound'], required:true },
+  purpose:     { type: String, enum:['sale','rent','both'], default:'rent' },
+  address:     { type: String },
+  district:    { type: String },
+  city:        { type: String, default:'الرياض' },
+  area:        { type: Number },
+  rooms:       { type: Number },
+  bathrooms:   { type: Number },
+  floors:      { type: Number },
+  yearBuilt:   { type: Number },
+  amenities:   [{ type: String }],
+  images:      [{ type: String }],
+  price:       { type: Number },
+  rentPerMonth:{ type: Number },
+  currency:    { type: String, default:'SAR' },
+  status:      { type: String, enum:['available','rented','sold','maintenance','reserved'], default:'available' },
+  ownerName:   { type: String },
+  ownerPhone:  { type: String },
+  ownerNationalId:{ type: String },
+  commissionPct:{ type: Number, default:2.5 },
+  notes:       { type: String },
+  isActive:    { type: Boolean, default:true },
+  createdBy:   { type: mongoose.Schema.Types.ObjectId, ref:'User' }
+}, { timestamps:true });
+module.exports = mongoose.model('Property', propertySchema);
