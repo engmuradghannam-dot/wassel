@@ -288,3 +288,4 @@ app.use('/api/ai', aiRoutes);
 
 const budgetRoutes  = require('./routes/budgetRoutes');
 app.use('/api/budgets', budgetRoutes);
+
