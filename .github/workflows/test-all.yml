@@ -9,38 +9,49 @@ jobs:
     steps:
       - name: Test Backend
         run: |
-          echo "=== Health ==="
-          curl -s https://wassel-cyj5.onrender.com/api/health | python3 -c "
+          echo "## Backend Test Results" >> $GITHUB_STEP_SUMMARY
+
+          echo "### Health" >> $GITHUB_STEP_SUMMARY
+          HEALTH=$(curl -s --max-time 30 https://wassel-cyj5.onrender.com/api/health)
+          echo "$HEALTH" | python3 -c "
           import sys,json
           try:
               d=json.load(sys.stdin)
-              print('✅ Backend:', d.get('status'))
-          except: print('❌ Backend down')"
+              print('✅ Backend:', d.get('status'), '| DB:', d.get('db','?'))
+          except Exception as e:
+              print('❌ Backend error:', e)
+          " | tee -a $GITHUB_STEP_SUMMARY
 
-          echo "=== Login Test ==="
-          curl -s -X POST https://wassel-cyj5.onrender.com/api/users/login \
+          echo "### Login" >> $GITHUB_STEP_SUMMARY
+          LOGIN=$(curl -s --max-time 30 -X POST https://wassel-cyj5.onrender.com/api/users/login \
             -H "Content-Type: application/json" \
-            -d '{"email":"eng.murad.ghannam@gmail.com","password":"Admin2026@"}' | python3 -c "
+            -d '{"email":"eng.murad.ghannam@gmail.com","password":"Admin2026@"}')
+          echo "Raw: $LOGIN"
+          echo "$LOGIN" | python3 -c "
           import sys,json
           try:
               d=json.load(sys.stdin)
               if d.get('success'):
                   print('✅ Login OK - Role:', d['data']['user']['role'])
               else:
-                  print('❌ Login failed:', d.get('message'))
+                  print('❌ Login failed:', d.get('message','?'))
           except Exception as e:
-              print('❌ Error:', e, sys.stdin.read()[:200])"
+              print('❌ Parse error:', e)
+          " | tee -a $GITHUB_STEP_SUMMARY
 
-          echo "=== Register Test ==="
-          curl -s -X POST https://wassel-cyj5.onrender.com/api/users/register \
+          echo "### Register" >> $GITHUB_STEP_SUMMARY
+          REG=$(curl -s --max-time 30 -X POST https://wassel-cyj5.onrender.com/api/users/register \
             -H "Content-Type: application/json" \
-            -d '{"name":"Test User","email":"test999@test.com","password":"Test1234","companyName":"Test Co"}' | python3 -c "
+            -d '{"name":"Test","email":"newtest123@test.com","password":"Test1234","companyName":"TestCo"}')
+          echo "Raw: $REG"
+          echo "$REG" | python3 -c "
           import sys,json
           try:
               d=json.load(sys.stdin)
               if d.get('success'):
                   print('✅ Register OK')
               else:
-                  print('❌ Register failed:', d.get('message'))
+                  print('❌ Register failed:', d.get('message','?'))
           except Exception as e:
-              print('❌ Error:', e)"
+              print('❌ Parse error:', e)
+          " | tee -a $GITHUB_STEP_SUMMARY
