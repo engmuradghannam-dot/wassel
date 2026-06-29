@@ -5,22 +5,39 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - name: Test chat-contacts
+      - name: Seed users and test
         run: |
-          LOGIN=$(curl -s -X POST https://wassel-cyj5.onrender.com/api/users/login \
+          BASE="https://wassel-cyj5.onrender.com"
+          
+          echo "=== Seeding Demo Users ==="
+          for pair in "أحمد الشريف:ahmed.sharif2@demo.com:شركة النهضة" \
+                      "سارة المطيري:sara.m2@demo.com:مجموعة الخليج" \
+                      "محمد الزهراني:m.zahrani2@demo.com:حلول التقنية" \
+                      "فاطمة العتيبي:fatima2@demo.com:العتيبي للاستيراد"; do
+            NAME=$(echo $pair | cut -d: -f1)
+            EMAIL=$(echo $pair | cut -d: -f2)
+            COMPANY=$(echo $pair | cut -d: -f3)
+            RES=$(curl -s -X POST "$BASE/api/users/register" \
+              -H "Content-Type: application/json" \
+              -d "{\"name\":\"$NAME\",\"email\":\"$EMAIL\",\"password\":\"Demo2026@\",\"companyName\":\"$COMPANY\"}")
+            echo "$NAME: $(echo $RES | python3 -c 'import sys,json;d=json.load(sys.stdin);print(d.get("message","?"))' 2>/dev/null)"
+          done
+          
+          echo ""
+          echo "=== Testing Login ==="
+          LOGIN=$(curl -s -X POST "$BASE/api/users/login" \
             -H "Content-Type: application/json" \
             -d '{"email":"eng.murad.ghannam@gmail.com","password":"Admin2026@"}')
           TOKEN=$(echo "$LOGIN" | python3 -c "import sys,json; print(json.load(sys.stdin).get('token',''))")
-          echo "Token: ${TOKEN:0:20}..."
-
-          echo "=== chat-contacts ==="
-          curl -s "https://wassel-cyj5.onrender.com/api/users/chat-contacts" \
-            -H "Authorization: Bearer $TOKEN"
-
+          echo "Logged in: ${TOKEN:0:15}..."
+          
           echo ""
-          echo "=== all users ==="
-          curl -s "https://wassel-cyj5.onrender.com/api/users" \
-            -H "Authorization: Bearer $TOKEN" | python3 -c "
-          import sys,json
-          d=json.load(sys.stdin)
-          print('Count:', d.get('count', len(d.get('data',[]))))"
+          echo "=== Chat Contacts ==="
+          curl -s "$BASE/api/users/chat-contacts" -H "Authorization: Bearer $TOKEN" | \
+            python3 -c "
+import sys,json
+d=json.load(sys.stdin)
+print('Count:', d.get('count',0))
+for u in d.get('data',[]):
+    co = u.get('company') or {}
+    print(f'  - {u[\"name\"]} | {co.get(\"name\",\"-\") if isinstance(co,dict) else \"-\"}')"
