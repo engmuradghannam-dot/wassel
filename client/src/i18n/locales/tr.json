@@ -44,7 +44,10 @@
     "optional": "İsteğe bağlı",
     "update": "Güncelle",
     "view": "Görüntüle",
-    "changeLanguage": "Dil değiştir"
+    "changeLanguage": "Dil değiştir",
+    "currency": "TRY",
+    "days": "gün",
+    "percent": "%"
   },
   "nav": {
     "dashboard": "Panel",
@@ -65,7 +68,8 @@
     "profile": "Profil",
     "customers": "Müşteriler",
     "salesOrders": "Satışlar",
-    "purchases": "Satın Alma"
+    "purchases": "Satın Alma",
+    "users": "Kullanıcılar"
   },
   "auth": {
     "login": "Giriş Yap",
@@ -178,5 +182,13 @@
       "finance": "Finansal",
       "bank": "Banka"
     }
+  },
+  "employees": {
+    "iqama": "Iqama No.",
+    "passport": "Passport No.",
+    "insurance": "Health Insurance"
+  },
+  "inventory": {
+    "barcode": "Barcode"
   }
 }

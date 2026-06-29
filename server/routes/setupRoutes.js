@@ -45,3 +45,30 @@ router.post('/setup-admin', async (req, res) => {
 });
 
 module.exports = router;
+
+// ── Fix superadmin users who have a company → they should be 'owner' ────────
+router.post('/fix-owner-role', async (req, res) => {
+  try {
+    const User = require('../models/User');
+    // Find superadmin users who HAVE a company — they are company owners, not system admins
+    const users = await User.find({
+      role: 'superadmin',
+      company: { $exists: true, $ne: null }
+    });
+
+    const fixed = [];
+    for (const u of users) {
+      u.role = 'owner';
+      await u.save();
+      fixed.push({ email: u.email, company: u.company });
+    }
+
+    res.json({
+      success: true,
+      message: `تم تحديث ${fixed.length} مستخدم`,
+      fixed
+    });
+  } catch (e) {
+    res.status(500).json({ success: false, message: e.message });
+  }
+});

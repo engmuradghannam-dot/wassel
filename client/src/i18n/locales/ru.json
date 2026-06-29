@@ -44,7 +44,10 @@
     "optional": "Необязательно",
     "update": "Обновить",
     "view": "Просмотр",
-    "changeLanguage": "Сменить язык"
+    "changeLanguage": "Сменить язык",
+    "currency": "RUB",
+    "days": "дней",
+    "percent": "%"
   },
   "nav": {
     "dashboard": "Панель",
@@ -65,7 +68,8 @@
     "profile": "Профиль",
     "customers": "Клиенты",
     "salesOrders": "Продажи",
-    "purchases": "Закупки"
+    "purchases": "Закупки",
+    "users": "Пользователи"
   },
   "auth": {
     "login": "Войти",
@@ -178,5 +182,13 @@
       "finance": "Финансы",
       "bank": "Банк"
     }
+  },
+  "employees": {
+    "iqama": "Iqama No.",
+    "passport": "Passport No.",
+    "insurance": "Health Insurance"
+  },
+  "inventory": {
+    "barcode": "Barcode"
   }
 }

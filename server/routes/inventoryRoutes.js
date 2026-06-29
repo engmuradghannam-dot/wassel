@@ -8,13 +8,13 @@ router.get('/low-stock', protect, getLowStock);
 
 router.route('/')
   .get( protect, getItems)
-  .post(protect, authorize('admin','manager'), createItem);
+  .post(protect, authorize('owner','admin','manager'), createItem);
 
 router.route('/:id')
   .get(   protect, getItem)
-  .put(   protect, authorize('admin','manager'), updateItem)
-  .delete(protect, authorize('admin'), deleteItem);
+  .put(   protect, authorize('owner','admin','manager'), updateItem)
+  .delete(protect, authorize('owner','admin'), deleteItem);
 
-router.put('/:id/adjust', protect, authorize('admin','manager'), adjustStock);
+router.put('/:id/adjust', protect, authorize('owner','admin','manager'), adjustStock);
 
 module.exports = router;

@@ -18,7 +18,7 @@ const userSchema = new mongoose.Schema({
   // ─── System Role (coarse-grained) ─────────────────────────────
   role: {
     type: String,
-    enum: ['superadmin','admin','manager','user','employee','readonly'],
+    enum: ['superadmin','owner','admin','manager','user','employee','readonly'],
     default: 'user'
   },
 

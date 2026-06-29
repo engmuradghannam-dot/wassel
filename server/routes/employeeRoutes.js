@@ -8,11 +8,11 @@ router.get('/departments', protect, getDepartments);
 
 router.route('/')
   .get( protect, getEmployees)
-  .post(protect, authorize('admin','manager'), createEmployee);
+  .post(protect, authorize('owner','admin','manager'), createEmployee);
 
 router.route('/:id')
   .get(   protect, getEmployee)
-  .put(   protect, authorize('admin','manager'), updateEmployee)
-  .delete(protect, authorize('admin'), deleteEmployee);
+  .put(   protect, authorize('owner','admin','manager'), updateEmployee)
+  .delete(protect, authorize('owner','admin'), deleteEmployee);
 
 module.exports = router;

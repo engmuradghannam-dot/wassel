@@ -29,7 +29,7 @@
     "and": "und",
     "active": "Aktiv",
     "inactive": "Inaktiv",
-    "email": "E-Mail",
+    "email": "Email",
     "phone": "Telefon",
     "date": "Datum",
     "amount": "Betrag",
@@ -44,7 +44,10 @@
     "optional": "Optional",
     "update": "Aktualisieren",
     "view": "Ansehen",
-    "changeLanguage": "Sprache ändern"
+    "changeLanguage": "Sprache ändern",
+    "currency": "EUR",
+    "days": "Tage",
+    "percent": "%"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -65,7 +68,8 @@
     "profile": "Profil",
     "customers": "Kunden",
     "salesOrders": "Verkäufe",
-    "purchases": "Einkäufe"
+    "purchases": "Einkäufe",
+    "users": "Benutzer"
   },
   "auth": {
     "login": "Anmelden",
@@ -178,5 +182,13 @@
       "finance": "Finanzen",
       "bank": "Bank"
     }
+  },
+  "employees": {
+    "iqama": "Iqama No.",
+    "passport": "Passport No.",
+    "insurance": "Health Insurance"
+  },
+  "inventory": {
+    "barcode": "Barcode"
   }
 }

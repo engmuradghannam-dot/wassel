@@ -44,7 +44,10 @@
     "optional": "Opcional",
     "update": "Actualizar",
     "view": "Ver",
-    "changeLanguage": "Cambiar idioma"
+    "changeLanguage": "Cambiar idioma",
+    "currency": "USD",
+    "days": "días",
+    "percent": "%"
   },
   "nav": {
     "dashboard": "Panel",
@@ -65,7 +68,8 @@
     "profile": "Perfil",
     "customers": "Clientes",
     "salesOrders": "Ventas",
-    "purchases": "Compras"
+    "purchases": "Compras",
+    "users": "Usuarios"
   },
   "auth": {
     "login": "Iniciar sesión",
@@ -178,5 +182,13 @@
       "finance": "Finanzas",
       "bank": "Banco"
     }
+  },
+  "employees": {
+    "iqama": "Iqama No.",
+    "passport": "Passport No.",
+    "insurance": "Health Insurance"
+  },
+  "inventory": {
+    "barcode": "Barcode"
   }
 }

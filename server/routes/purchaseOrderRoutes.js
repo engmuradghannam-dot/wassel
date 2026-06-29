@@ -6,13 +6,13 @@ const { getPurchaseOrders, getPurchaseOrder, createPurchaseOrder, updatePurchase
 
 router.route('/')
   .get( protect, getPurchaseOrders)
-  .post(protect, authorize('admin','manager'), createPurchaseOrder);
+  .post(protect, authorize('owner','admin','manager'), createPurchaseOrder);
 
 router.route('/:id')
   .get(   protect, getPurchaseOrder)
-  .put(   protect, authorize('admin','manager'), updatePurchaseOrder)
-  .delete(protect, authorize('admin'), deletePurchaseOrder);
+  .put(   protect, authorize('owner','admin','manager'), updatePurchaseOrder)
+  .delete(protect, authorize('owner','admin'), deletePurchaseOrder);
 
-router.put('/:id/receive', protect, authorize('admin','manager'), receivePurchaseOrder);
+router.put('/:id/receive', protect, authorize('owner','admin','manager'), receivePurchaseOrder);
 
 module.exports = router;

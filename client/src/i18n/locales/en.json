@@ -28,7 +28,26 @@
     "language": "Language",
     "currency": "SAR",
     "days": "days",
-    "percent": "%"
+    "percent": "%",
+    "active": "Active",
+    "inactive": "Inactive",
+    "actions": "Actions",
+    "filter": "Filter",
+    "error": "An error occurred",
+    "warning": "Warning",
+    "success": "Success",
+    "print": "Print",
+    "import": "Import",
+    "view": "View",
+    "update": "Update",
+    "optional": "Optional",
+    "notes": "Notes",
+    "date": "Date",
+    "amount": "Amount",
+    "phone": "Phone",
+    "email": "Email",
+    "and": "and",
+    "changeLanguage": "Change Language"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -49,7 +68,8 @@
     "profile": "Profile",
     "customers": "Customers",
     "salesOrders": "Sales Orders",
-    "purchases": "Purchases"
+    "purchases": "Purchases",
+    "users": "Users"
   },
   "auth": {
     "login": "Sign In",
@@ -121,7 +141,8 @@
     "warehouse": "Warehouse",
     "lowStock": "Low Stock",
     "outOfStock": "Out of Stock",
-    "inStock": "In Stock"
+    "inStock": "In Stock",
+    "barcode": "Barcode"
   },
   "suppliers": {
     "title": "Suppliers",
@@ -186,7 +207,10 @@
     "nationality": "Nationality",
     "active": "Active",
     "inactive": "Inactive",
-    "terminated": "Terminated"
+    "terminated": "Terminated",
+    "iqama": "Iqama No.",
+    "passport": "Passport No.",
+    "insurance": "Health Insurance"
   },
   "accounting": {
     "title": "Accounting",

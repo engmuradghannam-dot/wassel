@@ -11,27 +11,27 @@ const {
 
 router.route('/accounts')
   .get( protect, tenantGuard, getAccounts)
-  .post(protect, tenantGuard, authorize('admin','manager'), createAccount);
+  .post(protect, tenantGuard, authorize('owner','admin','manager'), createAccount);
 
-router.post('/accounts/seed', protect, tenantGuard, authorize('admin'), seedAccounts);
+router.post('/accounts/seed', protect, tenantGuard, authorize('owner','admin'), seedAccounts);
 
 router.route('/accounts/:id')
   .get(   protect, tenantGuard, getAccount)
-  .put(   protect, tenantGuard, authorize('admin','manager'), updateAccount)
-  .delete(protect, tenantGuard, authorize('admin'), deleteAccount);
+  .put(   protect, tenantGuard, authorize('owner','admin','manager'), updateAccount)
+  .delete(protect, tenantGuard, authorize('owner','admin'), deleteAccount);
 
 router.get('/accounts/:accountId/ledger', protect, tenantGuard, getAccountLedger);
 
 router.route('/journal')
   .get( protect, tenantGuard, getJournalEntries)
-  .post(protect, tenantGuard, authorize('admin','manager'), createJournalEntry);
+  .post(protect, tenantGuard, authorize('owner','admin','manager'), createJournalEntry);
 
 router.route('/journal/:id')
   .get(   protect, tenantGuard, getJournalEntry)
-  .delete(protect, tenantGuard, authorize('admin'), deleteJournalEntry);
+  .delete(protect, tenantGuard, authorize('owner','admin'), deleteJournalEntry);
 
-router.put('/journal/:id/post', protect, tenantGuard, authorize('admin','manager'), postJournalEntry);
-router.put('/journal/:id/void', protect, tenantGuard, authorize('admin'), voidJournalEntry);
+router.put('/journal/:id/post', protect, tenantGuard, authorize('owner','admin','manager'), postJournalEntry);
+router.put('/journal/:id/void', protect, tenantGuard, authorize('owner','admin'), voidJournalEntry);
 
 router.route('/transactions')
   .get( protect, tenantGuard, getTransactions)

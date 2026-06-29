@@ -3,7 +3,7 @@ const User    = require('../models/User');
 
 // Helper: get company ID for current user
 const getCompanyId = async (req) => {
-  if (req.user.role === 'superadmin') {
+  if (['superadmin'].includes(req.user.role)) {
     // superadmin: use their company or query param
     return req.user.company || req.query.companyId || null;
   }

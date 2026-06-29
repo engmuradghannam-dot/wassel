@@ -39,12 +39,15 @@
     "import": "Impor",
     "print": "Cetak",
     "success": "Berhasil",
-    "error": "Kesalahan",
+    "error": "Terjadi kesalahan",
     "warning": "Peringatan",
     "optional": "Opsional",
     "update": "Perbarui",
     "view": "Lihat",
-    "changeLanguage": "Ganti bahasa"
+    "changeLanguage": "Ganti bahasa",
+    "currency": "IDR",
+    "days": "hari",
+    "percent": "%"
   },
   "nav": {
     "dashboard": "Dasbor",
@@ -65,7 +68,8 @@
     "profile": "Profil",
     "customers": "Pelanggan",
     "salesOrders": "Penjualan",
-    "purchases": "Pembelian"
+    "purchases": "Pembelian",
+    "users": "Pengguna"
   },
   "auth": {
     "login": "Masuk",
@@ -178,5 +182,13 @@
       "finance": "Keuangan",
       "bank": "Bank"
     }
+  },
+  "employees": {
+    "iqama": "Iqama No.",
+    "passport": "Passport No.",
+    "insurance": "Health Insurance"
+  },
+  "inventory": {
+    "barcode": "Barcode"
   }
 }

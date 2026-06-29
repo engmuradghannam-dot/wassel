@@ -36,6 +36,7 @@ const Layout = ({ children }) => {
     null, // divider
     { path:'/accounting',      icon:<AccountBalance/>,     key:'nav.accounting'     },
     { path:'/chat',            icon:<Chat/>,               key:'nav.chat'           },
+    { path:'/users',           icon:<People/>,             key:'nav.users'          },
     null, // divider
     { path:'/roles',           icon:<AdminPanelSettings/>, key:'nav.roles'          },
     { path:'/company-settings',icon:<Business/>,           key:'nav.company'        },

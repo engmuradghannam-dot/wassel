@@ -44,7 +44,10 @@
     "optional": "वैकल्पिक",
     "update": "अपडेट",
     "view": "देखें",
-    "changeLanguage": "भाषा बदलें"
+    "changeLanguage": "भाषा बदलें",
+    "currency": "INR",
+    "days": "दिन",
+    "percent": "%"
   },
   "nav": {
     "dashboard": "डैशबोर्ड",
@@ -65,7 +68,8 @@
     "profile": "प्रोफ़ाइल",
     "customers": "ग्राहक",
     "salesOrders": "बिक्री",
-    "purchases": "खरीद"
+    "purchases": "खरीद",
+    "users": "उपयोगकर्ता"
   },
   "auth": {
     "login": "साइन इन करें",
@@ -178,5 +182,13 @@
       "finance": "वित्त",
       "bank": "बैंक"
     }
+  },
+  "employees": {
+    "iqama": "Iqama No.",
+    "passport": "Passport No.",
+    "insurance": "Health Insurance"
+  },
+  "inventory": {
+    "barcode": "Barcode"
   }
 }

@@ -172,7 +172,7 @@ const SuppliersPage = () => {
               <Typography variant="h5" fontWeight={800}>{tx.title}</Typography>
               <Typography variant="caption" color="text.secondary">
                 {items.length} {i18n.language==='ar'?'مورد':'suppliers'} ·{' '}
-                {items.filter(s=>s.isActive).length} {tx.active}
+                {items.filter(s=>s.isActive).length} {i18n.language==='ar'?'نشط': i18n.language==='en'?'active':t('common.active')||'active'}
               </Typography>
             </Box>
           </Box>
@@ -203,7 +203,7 @@ const SuppliersPage = () => {
                 <TableCell sx={{ fontWeight:700 }}>{tx.phone}</TableCell>
                 <TableCell sx={{ fontWeight:700 }}>{i18n.language==='ar'?'شروط الدفع':'Payment Terms'}</TableCell>
                 <TableCell sx={{ fontWeight:700 }}>{i18n.language==='ar'?'الحالة':'Status'}</TableCell>
-                <TableCell sx={{ fontWeight:700 }} align="center">{tx.actions}</TableCell>
+                <TableCell sx={{ fontWeight:700 }} align="center">{i18n.language==="ar"?"إجراءات":"Actions"}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>

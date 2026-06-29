@@ -39,12 +39,15 @@
     "import": "درآمد",
     "print": "پرنٹ",
     "success": "کامیاب",
-    "error": "خطا",
+    "error": "خطا ہوئی",
     "warning": "انتباہ",
     "optional": "اختیاری",
     "update": "اپ ڈیٹ",
     "view": "دیکھیں",
-    "changeLanguage": "زبان بدلیں"
+    "changeLanguage": "زبان بدلیں",
+    "currency": "PKR",
+    "days": "دن",
+    "percent": "%"
   },
   "nav": {
     "dashboard": "ڈیش بورڈ",
@@ -65,7 +68,8 @@
     "profile": "پروفائل",
     "customers": "گاہک",
     "salesOrders": "فروخت",
-    "purchases": "خریداری"
+    "purchases": "خریداری",
+    "users": "صارفین"
   },
   "auth": {
     "login": "لاگ ان",
@@ -181,5 +185,13 @@
       "finance": "مالیات",
       "bank": "بینک"
     }
+  },
+  "employees": {
+    "iqama": "Iqama No.",
+    "passport": "Passport No.",
+    "insurance": "Health Insurance"
+  },
+  "inventory": {
+    "barcode": "Barcode"
   }
 }

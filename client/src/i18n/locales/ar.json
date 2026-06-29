@@ -28,7 +28,26 @@
     "language": "اللغة",
     "currency": "ر.س",
     "days": "يوم",
-    "percent": "%"
+    "percent": "%",
+    "active": "نشط",
+    "inactive": "غير نشط",
+    "actions": "إجراءات",
+    "filter": "تصفية",
+    "error": "حدث خطأ",
+    "warning": "تحذير",
+    "success": "تم بنجاح",
+    "print": "طباعة",
+    "import": "استيراد",
+    "view": "عرض",
+    "update": "تحديث",
+    "optional": "اختياري",
+    "notes": "ملاحظات",
+    "date": "التاريخ",
+    "amount": "المبلغ",
+    "phone": "الهاتف",
+    "email": "البريد الإلكتروني",
+    "and": "و",
+    "changeLanguage": "تغيير اللغة"
   },
   "nav": {
     "dashboard": "الرئيسية",
@@ -49,7 +68,8 @@
     "profile": "الملف الشخصي",
     "customers": "العملاء",
     "salesOrders": "طلبات البيع",
-    "purchases": "المشتريات"
+    "purchases": "المشتريات",
+    "users": "المستخدمون"
   },
   "auth": {
     "login": "تسجيل الدخول",

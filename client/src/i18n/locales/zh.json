@@ -39,12 +39,15 @@
     "import": "导入",
     "print": "打印",
     "success": "成功",
-    "error": "错误",
+    "error": "发生错误",
     "warning": "警告",
-    "optional": "选填",
+    "optional": "可选",
     "update": "更新",
     "view": "查看",
-    "changeLanguage": "切换语言"
+    "changeLanguage": "切换语言",
+    "currency": "CNY",
+    "days": "天",
+    "percent": "%"
   },
   "nav": {
     "dashboard": "仪表板",
@@ -65,7 +68,8 @@
     "profile": "个人资料",
     "customers": "客户",
     "salesOrders": "销售",
-    "purchases": "采购"
+    "purchases": "采购",
+    "users": "用户"
   },
   "auth": {
     "login": "登录",
@@ -178,5 +182,13 @@
       "finance": "财务",
       "bank": "银行"
     }
+  },
+  "employees": {
+    "iqama": "Iqama No.",
+    "passport": "Passport No.",
+    "insurance": "Health Insurance"
+  },
+  "inventory": {
+    "barcode": "Barcode"
   }
 }

@@ -44,7 +44,7 @@ router.get('/:id', protect, async (req, res) => {
 });
 
 // ── CREATE role ───────────────────────────────────────────────────────────
-router.post('/', protect, authorize('admin','superadmin'), async (req, res) => {
+router.post('/', protect, authorize('owner','admin','superadmin'), async (req, res) => {
   try {
     const role = await Role.create({
       ...req.body,
@@ -56,7 +56,7 @@ router.post('/', protect, authorize('admin','superadmin'), async (req, res) => {
 });
 
 // ── UPDATE role ───────────────────────────────────────────────────────────
-router.put('/:id', protect, authorize('admin','superadmin'), async (req, res) => {
+router.put('/:id', protect, authorize('owner','admin','superadmin'), async (req, res) => {
   try {
     const role = await Role.findOne({ _id: req.params.id, company: req.user.company });
     if (!role) return res.status(404).json({ success: false, message: 'الدور غير موجود' });
@@ -68,7 +68,7 @@ router.put('/:id', protect, authorize('admin','superadmin'), async (req, res) =>
 });
 
 // ── DELETE role ───────────────────────────────────────────────────────────
-router.delete('/:id', protect, authorize('admin','superadmin'), async (req, res) => {
+router.delete('/:id', protect, authorize('owner','admin','superadmin'), async (req, res) => {
   try {
     const role = await Role.findOne({ _id: req.params.id, company: req.user.company });
     if (!role) return res.status(404).json({ success: false, message: 'الدور غير موجود' });
@@ -81,7 +81,7 @@ router.delete('/:id', protect, authorize('admin','superadmin'), async (req, res)
 });
 
 // ── Seed default roles for company's industry ─────────────────────────────
-router.post('/seed-defaults', protect, authorize('admin','superadmin'), async (req, res) => {
+router.post('/seed-defaults', protect, authorize('owner','admin','superadmin'), async (req, res) => {
   try {
     const Company = require('../models/Company');
     const company = await Company.findById(req.user.company);
@@ -119,7 +119,7 @@ router.post('/seed-defaults', protect, authorize('admin','superadmin'), async (r
 });
 
 // ── Assign role to user ────────────────────────────────────────────────────
-router.post('/assign', protect, authorize('admin','superadmin'), async (req, res) => {
+router.post('/assign', protect, authorize('owner','admin','superadmin'), async (req, res) => {
   try {
     const { userId, roleId, permissionOverrides } = req.body;
     const user = await User.findOne({ _id: userId, company: req.user.company });

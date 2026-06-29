@@ -6,11 +6,11 @@ const { getSuppliers, getSupplier, createSupplier, updateSupplier, deleteSupplie
 
 router.route('/')
   .get( protect, getSuppliers)
-  .post(protect, authorize('admin','manager'), createSupplier);
+  .post(protect, authorize('owner','admin','manager'), createSupplier);
 
 router.route('/:id')
   .get(   protect, getSupplier)
-  .put(   protect, authorize('admin','manager'), updateSupplier)
-  .delete(protect, authorize('admin'), deleteSupplier);
+  .put(   protect, authorize('owner','admin','manager'), updateSupplier)
+  .delete(protect, authorize('owner','admin'), deleteSupplier);
 
 module.exports = router;

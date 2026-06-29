@@ -86,13 +86,15 @@ exports.register = async (req, res) => {
     });
 
     // ── 2. Create User ─────────────────────────────────────────────────────
-    const isFirstUser = (await User.countDocuments()) === 0;
+    // First user in the WHOLE system → superadmin (Anthropic-level)
+    // First user of a COMPANY → owner (full rights within that company only)
+    const isSystemFirstUser = (await User.countDocuments()) === 0;
     const hashed = await bcrypt.hash(password, 12);
     const user = await User.create({
       name:      name.trim(),
       email:     email.toLowerCase().trim(),
       password:  hashed,
-      role:      isFirstUser ? 'superadmin' : 'admin',
+      role:      isSystemFirstUser ? 'superadmin' : 'owner',
       company:   company._id,
       language:  'ar',
       isActive:  true,
@@ -108,7 +110,7 @@ exports.register = async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: isFirstUser ? 'تم إنشاء حساب المشرف العام بنجاح' : 'تم إنشاء الشركة والحساب بنجاح',
+      message: isSystemFirstUser ? 'تم إنشاء حساب المشرف العام بنجاح' : 'تم إنشاء حساب المالك وإنشاء الشركة بنجاح',
       token,
       data: { user: userData, company: { _id:company._id, name:company.name, industry:company.industry, plan:company.plan, commercialReg:company.commercialReg, vatNumber:company.vatNumber } },
       user: userData
@@ -135,7 +137,7 @@ exports.login = async (req, res) => {
     if (!user.isActive) return res.status(401).json({ success:false, message:'الحساب موقوف. تواصل مع المسؤول.' });
 
     // ── Company checks ─────────────────────────────────────────────────────
-    if (user.role !== 'superadmin' && user.company) {
+    if (!['superadmin'].includes(user.role) && user.company) {
       if (user.company.isSuspended) return res.status(403).json({ success:false, message:'الشركة موقوفة. تواصل مع الدعم.' });
       if (!user.company.isActive)   return res.status(403).json({ success:false, message:'حساب الشركة غير نشط.' });
     }
@@ -150,7 +152,7 @@ exports.login = async (req, res) => {
 
     // ── Profile completeness check → returns flag to frontend ──────────────
     let profileIncomplete = null;
-    if (user.company && user.role !== 'superadmin') {
+    if (user.company && user.role !== 'superadmin') {  // owner included
       const co = user.company;
       if (!co.commercialReg) profileIncomplete = 'commercialReg';
       else if (!co.vatNumber) profileIncomplete = 'vatNumber';
@@ -206,7 +208,7 @@ exports.updateOnlineStatus = async (req, res) => {
 // ── Get all users ─────────────────────────────────────────────────────────────
 exports.getUsers = async (req, res) => {
   try {
-    const filter = req.user.role === 'superadmin'
+    const filter = ['superadmin'].includes(req.user.role)
       ? (req.query.companyId ? { company: req.query.companyId } : {})
       : { company: req.user.company };
     const users = await User.find(filter).select('-password')
