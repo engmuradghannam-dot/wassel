@@ -28,7 +28,7 @@ const CompanySettings = () => {
     phone: '',
     website: '',
     taxNumber: '',
-    commercialRegistration: '',
+    commercialReg: '',
     crIssueDate: '',
     crExpiryDate: '',
     crAuthority: '',
@@ -109,10 +109,10 @@ const CompanySettings = () => {
       case 'email':
         if (value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) error = t('validation.invalidEmail');
         break;
-      case 'commercialRegistration':
+      case 'commercialReg':
         if (value && !/^\d{10}$/.test(value.replace(/\D/g, ''))) error = t('validation.invalidCR');
         break;
-      case 'taxNumber':
+      case 'vatNumber':
         if (value && !/^3\d{13}$/.test(value.replace(/\D/g, ''))) error = t('validation.invalidTax');
         break;
       case 'phone':
@@ -174,7 +174,7 @@ const CompanySettings = () => {
   };
 
   const validateAll = () => {
-    const fields = ['name', 'email', 'commercialRegistration', 'taxNumber', 'phone'];
+    const fields = ['name', 'email', 'commercialReg', 'vatNumber', 'phone'];
     let isValid = true;
     fields.forEach(field => {
       if (!validateField(field, company[field])) isValid = false;
@@ -430,16 +430,16 @@ const CompanySettings = () => {
                   <CardContent>
                     <Typography variant="subtitle1" fontWeight="bold" gutterBottom color="primary.main">
                       <Assignment sx={{ mr: 1, verticalAlign: 'middle' }} />
-                      {t('company.commercialRegistration')}
+                      {t('company.commercialReg')}
                     </Typography>
                     <TextField
                       fullWidth
                       label={t('company.crNumber')}
-                      value={company.commercialRegistration}
-                      onChange={(e) => handleChange('commercialRegistration', e.target.value)}
-                      onBlur={() => handleBlur('commercialRegistration')}
-                      error={!!fieldErrors.commercialRegistration && touched.commercialRegistration}
-                      helperText={(touched.commercialRegistration && fieldErrors.commercialRegistration) || t('company.crFormat')}
+                      value={company.commercialReg}
+                      onChange={(e) => handleChange('commercialReg', e.target.value)}
+                      onBlur={() => handleBlur('commercialReg')}
+                      error={!!fieldErrors.commercialReg && touched.commercialReg}
+                      helperText={(touched.commercialReg && fieldErrors.commercialReg) || t('company.crFormat')}
                       placeholder="1010123456"
                       InputProps={{ 
                         startAdornment: <Numbers sx={{ mr: 1, color: 'primary.main' }} /> 
@@ -490,12 +490,12 @@ const CompanySettings = () => {
                     </Typography>
                     <TextField
                       fullWidth
-                      label={t('company.taxNumber')}
-                      value={company.taxNumber}
-                      onChange={(e) => handleChange('taxNumber', e.target.value)}
-                      onBlur={() => handleBlur('taxNumber')}
-                      error={!!fieldErrors.taxNumber && touched.taxNumber}
-                      helperText={(touched.taxNumber && fieldErrors.taxNumber) || t('company.taxFormat')}
+                      label={t('company.vatNumber')}
+                      value={company.vatNumber}
+                      onChange={(e) => handleChange('vatNumber', e.target.value)}
+                      onBlur={() => handleBlur('vatNumber')}
+                      error={!!fieldErrors.vatNumber && touched.vatNumber}
+                      helperText={(touched.vatNumber && fieldErrors.vatNumber) || t('company.taxFormat')}
                       placeholder="300123456700003"
                       InputProps={{ 
                         startAdornment: <Receipt sx={{ mr: 1, color: 'success.main' }} /> 

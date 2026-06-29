@@ -171,6 +171,7 @@ export default function RegisterPage() {
   const [search,setSearch] = useState('');
   const [form,setForm]   = useState({
     industry:'', companyName:'', companyNameEn:'', phone:'', city:'الرياض', country:'SA',
+    commercialReg:'', vatNumber:'',
     name:'', email:'', adminPhone:'', password:'', confirmPw:'', plan:'trial'
   });
 
@@ -194,7 +195,15 @@ export default function RegisterPage() {
 
   const validate = () => {
     if(step===0 && !form.industry) return 'يرجى اختيار نوع النشاط التجاري';
-    if(step===1 && !form.companyName.trim()) return 'اسم الشركة مطلوب';
+    if(step===1){
+      if(!form.companyName.trim()) return 'اسم الشركة مطلوب';
+      const crClean = form.commercialReg.replace(/[\s-]/g,'');
+      if(!crClean) return 'الرقم الموحد للسجل التجاري مطلوب';
+      if(!/^\d{10}$/.test(crClean)) return 'رقم السجل التجاري يجب أن يكون 10 أرقام';
+      const vatClean = form.vatNumber.replace(/\s/g,'');
+      if(!vatClean) return 'الرقم الضريبي (VAT) مطلوب';
+      if(!/^3\d{14}$/.test(vatClean)) return 'الرقم الضريبي يجب أن يبدأ بـ 3 ويكون 15 رقماً';
+    }
     if(step===2){
       if(!form.name.trim()) return 'الاسم الكامل مطلوب';
       if(!form.email.trim()||!/\S+@\S+\.\S+/.test(form.email)) return 'بريد إلكتروني غير صالح';
@@ -212,7 +221,9 @@ export default function RegisterPage() {
       const res = await api.post('/api/users/register',{
         name:form.name, email:form.email.trim().toLowerCase(), password:form.password,
         companyName:form.companyName, companyNameEn:form.companyNameEn||form.companyName,
-        industry:form.industry, plan:form.plan, phone:form.adminPhone, city:form.city
+        industry:form.industry, plan:form.plan, phone:form.adminPhone, city:form.city,
+        commercialReg:form.commercialReg.replace(/[\s-]/g,''),
+        vatNumber:form.vatNumber.replace(/\s/g,'')
       });
       if(res.data.success){
         const u=res.data.data?.user||{};
@@ -373,6 +384,46 @@ export default function RegisterPage() {
                   InputProps={{startAdornment:<InputAdornment position="start">🏢</InputAdornment>}}/>
                 <TextField label="Company Name (English)" value={form.companyNameEn} onChange={set('companyNameEn')} fullWidth
                   InputProps={{startAdornment:<InputAdornment position="start">🌐</InputAdornment>}}/>
+                
+                {/* CR Number */}
+                <Box>
+                  <TextField
+                    label="الرقم الموحد للسجل التجاري *"
+                    value={form.commercialReg}
+                    onChange={e=>setForm(p=>({...p,commercialReg:e.target.value.replace(/[^\d]/g,'').slice(0,10)}))}
+                    placeholder="1234567890"
+                    fullWidth required
+                    error={form.commercialReg.length>0 && !/^\d{10}$/.test(form.commercialReg)}
+                    helperText={
+                      form.commercialReg.length>0 && !/^\d{10}$/.test(form.commercialReg)
+                        ? `⚠ 10 أرقام مطلوبة (${form.commercialReg.length}/10)`
+                        : form.commercialReg.length===10 ? '✓ صحيح' : '10 أرقام — من السجل التجاري أو Maroof'
+                    }
+                    inputProps={{maxLength:10,inputMode:'numeric',dir:'ltr'}}
+                    InputProps={{startAdornment:<InputAdornment position="start">🏢</InputAdornment>,
+                      sx:{fontFamily:'monospace',fontSize:'1rem',letterSpacing:2}}}
+                  />
+                </Box>
+
+                {/* VAT Number */}
+                <Box>
+                  <TextField
+                    label="الرقم الضريبي (VAT) *"
+                    value={form.vatNumber}
+                    onChange={e=>setForm(p=>({...p,vatNumber:e.target.value.replace(/[^\d]/g,'').slice(0,15)}))}
+                    placeholder="300000000000003"
+                    fullWidth required
+                    error={form.vatNumber.length>0 && !/^3\d{14}$/.test(form.vatNumber)}
+                    helperText={
+                      form.vatNumber.length>0 && !/^3\d{14}$/.test(form.vatNumber)
+                        ? `⚠ يبدأ بـ 3 ويكون 15 رقماً (${form.vatNumber.length}/15)`
+                        : form.vatNumber.length===15 ? '✓ صحيح' : '15 رقماً يبدأ بـ 3 — من بوابة ZATCA'
+                    }
+                    inputProps={{maxLength:15,inputMode:'numeric',dir:'ltr'}}
+                    InputProps={{startAdornment:<InputAdornment position="start">🧾</InputAdornment>,
+                      sx:{fontFamily:'monospace',fontSize:'0.95rem',letterSpacing:1.5}}}
+                  />
+                </Box>
                 <TextField label="رقم الهاتف" value={form.phone} onChange={set('phone')} fullWidth
                   InputProps={{startAdornment:<InputAdornment position="start">📞</InputAdornment>}}/>
                 <TextField label="المدينة" value={form.city} onChange={set('city')} fullWidth select>

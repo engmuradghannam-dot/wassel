@@ -66,7 +66,12 @@ export default function LoginPage() {
         localStorage.setItem('userRole', u.role || '');
         localStorage.setItem('userIndustry', u.company?.industry || u.industry || 'trading_general');
         localStorage.setItem('userCompany', u.company?.name || '');
-        navigate('/dashboard');
+        // Check if company profile is incomplete (CR/VAT/industry missing)
+        if (res.data.requiresCompletion && u.role !== 'superadmin') {
+          navigate('/complete-profile', { state:{ missing: res.data.profileIncomplete } });
+        } else {
+          navigate('/dashboard');
+        }
       }
     } catch (err) {
       setError(err.response?.data?.message || 'بيانات الدخول غير صحيحة');
