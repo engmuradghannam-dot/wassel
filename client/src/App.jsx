@@ -8,7 +8,7 @@ import rtlPlugin from 'stylis-plugin-rtl';
 import CssBaseline from '@mui/material/CssBaseline';
 import { Box, CircularProgress, Typography } from '@mui/material';
 import { useTranslation } from 'react-i18next';
-import './i18n/index';
+
 import WasselAI from './components/AI/WasselAI';
 
 const RTL_LANGS = ['ar', 'ur'];
