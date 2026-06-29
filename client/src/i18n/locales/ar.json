@@ -69,7 +69,12 @@
     "customers": "العملاء",
     "salesOrders": "طلبات البيع",
     "purchases": "المشتريات",
-    "users": "المستخدمون"
+    "users": "المستخدمون",
+    "pr": "طلبات الشراء (PR)",
+    "contracts": "العقود",
+    "legal": "القضايا والليجال",
+    "purchaseRequests": "طلبات الشراء",
+    "orgChart": "الهيكل التنظيمي"
   },
   "auth": {
     "login": "تسجيل الدخول",

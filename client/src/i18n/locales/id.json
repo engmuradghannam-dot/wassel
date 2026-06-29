@@ -69,7 +69,12 @@
     "customers": "Pelanggan",
     "salesOrders": "Penjualan",
     "purchases": "Pembelian",
-    "users": "Pengguna"
+    "users": "Pengguna",
+    "pr": "Purchase Requests",
+    "contracts": "Contracts",
+    "legal": "Legal & Cases",
+    "purchaseRequests": "Purchase Requests",
+    "orgChart": "Org Chart"
   },
   "auth": {
     "login": "Masuk",

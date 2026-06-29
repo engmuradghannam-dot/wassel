@@ -69,7 +69,12 @@
     "customers": "客户",
     "salesOrders": "销售",
     "purchases": "采购",
-    "users": "用户"
+    "users": "用户",
+    "pr": "Purchase Requests",
+    "contracts": "Contracts",
+    "legal": "Legal & Cases",
+    "purchaseRequests": "Purchase Requests",
+    "orgChart": "Org Chart"
   },
   "auth": {
     "login": "登录",

@@ -69,7 +69,12 @@
     "customers": "Clientes",
     "salesOrders": "Ventas",
     "purchases": "Compras",
-    "users": "Usuarios"
+    "users": "Usuarios",
+    "pr": "Purchase Requests",
+    "contracts": "Contracts",
+    "legal": "Legal & Cases",
+    "purchaseRequests": "Purchase Requests",
+    "orgChart": "Org Chart"
   },
   "auth": {
     "login": "Iniciar sesión",

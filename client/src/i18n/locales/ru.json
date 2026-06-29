@@ -69,7 +69,12 @@
     "customers": "Клиенты",
     "salesOrders": "Продажи",
     "purchases": "Закупки",
-    "users": "Пользователи"
+    "users": "Пользователи",
+    "pr": "Purchase Requests",
+    "contracts": "Contracts",
+    "legal": "Legal & Cases",
+    "purchaseRequests": "Purchase Requests",
+    "orgChart": "Org Chart"
   },
   "auth": {
     "login": "Войти",

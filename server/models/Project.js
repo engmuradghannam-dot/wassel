@@ -100,6 +100,28 @@ const projectSchema = new mongoose.Schema({
   notes:     { type: String },
   tags:      [{ type: String }],
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
+
+  // ─── Attachments (BOQ, specs, docs) ──────────────────────────
+  attachments: [{
+    name:      { type: String },
+    url:       { type: String },
+    type:      { type: String, enum:['boq','quotation','spec','drawing','contract','report','other'] },
+    uploadedBy:{ type: mongoose.Schema.Types.ObjectId, ref:'User' },
+    uploadedAt:{ type: Date, default: Date.now },
+    size:      { type: Number },
+  }],
+
+  // ─── Purchase Requests from project ──────────────────────────
+  purchaseRequests: [{ type: mongoose.Schema.Types.ObjectId, ref:'PurchaseRequest' }],
+
+  // ─── Approval Workflow config per project ────────────────────
+  approvalWorkflow: [{
+    step:      { type: Number },
+    role:      { type: String, enum:['manager','director','procurement','finance','ceo'] },
+    approver:  { type: mongoose.Schema.Types.ObjectId, ref:'Employee' },
+    required:  { type: Boolean, default: true },
+  }],
+
 }, { timestamps: true });
 
 projectSchema.index({ company: 1, status: 1 });

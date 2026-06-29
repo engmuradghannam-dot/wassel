@@ -69,7 +69,12 @@
     "customers": "گاہک",
     "salesOrders": "فروخت",
     "purchases": "خریداری",
-    "users": "صارفین"
+    "users": "صارفین",
+    "pr": "Purchase Requests",
+    "contracts": "Contracts",
+    "legal": "Legal & Cases",
+    "purchaseRequests": "Purchase Requests",
+    "orgChart": "Org Chart"
   },
   "auth": {
     "login": "لاگ ان",

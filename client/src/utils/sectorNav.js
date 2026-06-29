@@ -6,13 +6,16 @@
 // ── Shared bottom links (always visible) ─────────────────────────
 const SHARED_BOTTOM = [
   null,
-  { path:'/accounting',      icon:'💰', key:'nav.accounting'     },
-  { path:'/employees',       icon:'👤', key:'nav.employees'       },
-  { path:'/chat',            icon:'💬', key:'nav.chat'            },
+  { path:'/accounting',       icon:'💰', key:'nav.accounting'      },
+  { path:'/employees',        icon:'👤', key:'nav.employees'        },
+  { path:'/purchase-requests',icon:'📝', key:'nav.pr'              },
+  { path:'/contracts',        icon:'📄', key:'nav.contracts'        },
+  { path:'/legal',            icon:'⚖️', key:'nav.legal'           },
+  { path:'/chat',             icon:'💬', key:'nav.chat'             },
   null,
-  { path:'/roles',           icon:'🔐', key:'nav.roles'           },
-  { path:'/company-settings',icon:'🏢', key:'nav.company'         },
-  { path:'/settings',        icon:'⚙️', key:'settings.title'      },
+  { path:'/roles',            icon:'🔐', key:'nav.roles'            },
+  { path:'/company-settings', icon:'🏢', key:'nav.company'          },
+  { path:'/settings',         icon:'⚙️', key:'settings.title'       },
 ];
 
 const SECTOR_NAV = {

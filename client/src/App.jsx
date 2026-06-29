@@ -55,6 +55,9 @@ const RestaurantOrdersPage = React.lazy(() => import('./pages/Sector/RestaurantO
 const PropertiesPage       = React.lazy(() => import('./pages/Sector/PropertiesPage'));
 const LeasesPage           = React.lazy(() => import('./pages/Sector/LeasesPage'));
 const SalonAppointmentsPage= React.lazy(() => import('./pages/Sector/SalonAppointmentsPage'));
+const PurchaseRequestsPage  = React.lazy(() => import('./pages/PurchaseRequests/PurchaseRequestsPage'));
+const LegalPage             = React.lazy(() => import('./pages/Legal/LegalPage'));
+const ContractsPage         = React.lazy(() => import('./pages/Contracts/ContractsPage'));
 
 const Loader = () => (
   <Box sx={{ display:'flex', justifyContent:'center', alignItems:'center', height:'100vh', flexDirection:'column', gap:2 }}>
@@ -169,8 +172,17 @@ function AppInner() {
           <Route path="/properties"        element={<PrivateRoute><PropertiesPage/></PrivateRoute>}/>
           <Route path="/leases"            element={<PrivateRoute><LeasesPage/></PrivateRoute>}/>
 
+const PurchaseRequestsPage = React.lazy(() => import('./pages/PurchaseRequests/PurchaseRequestsPage'));
+const LegalPage            = React.lazy(() => import('./pages/Legal/LegalPage'));
+const ContractsPage        = React.lazy(() => import('./pages/Contracts/ContractsPage'));
+
           {/* Salon */}
           <Route path="/salon-appointments" element={<PrivateRoute><SalonAppointmentsPage/></PrivateRoute>}/>
+
+          {/* PR + Legal + Contracts */}
+          <Route path="/purchase-requests"  element={<PrivateRoute><PurchaseRequestsPage/></PrivateRoute>}/>
+          <Route path="/legal"              element={<PrivateRoute><LegalPage/></PrivateRoute>}/>
+          <Route path="/contracts"          element={<PrivateRoute><ContractsPage/></PrivateRoute>}/>
 
           <Route path="/"  element={<Navigate to="/login" replace/>}/>
           <Route path="*"  element={<Navigate to="/login" replace/>}/>

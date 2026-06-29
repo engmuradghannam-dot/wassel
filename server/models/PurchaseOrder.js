@@ -22,6 +22,24 @@ const purchaseOrderSchema = new mongoose.Schema({
   taxAmount:  { type: Number, default: 0 },
   total:      { type: Number, default: 0 },
   notes:      { type: String },
+  attachments: [{
+    name:      { type: String },
+    url:       { type: String },
+    type:      { type: String, enum:['quotation','tax_invoice','pro_forma','boq','contract','other'], default:'other' },
+    uploadedBy:{ type: mongoose.Schema.Types.ObjectId, ref:'User' },
+    uploadedAt:{ type: Date, default: Date.now },
+  }],
+  paymentRequest: {
+    requested:    { type: Boolean, default: false },
+    requestedAt:  { type: Date },
+    requestedBy:  { type: mongoose.Schema.Types.ObjectId, ref:'User' },
+    taxInvoiceUrl:{ type: String },
+    taxInvoiceNo: { type: String },
+    paymentStatus:{ type: String, enum:['not_requested','pending','approved','paid'], default:'not_requested' },
+    paidAt:       { type: Date },
+  },
+  purchaseRequest: { type: mongoose.Schema.Types.ObjectId, ref:'PurchaseRequest' },
+  legalCase:       { type: mongoose.Schema.Types.ObjectId, ref:'LegalCase' },
   createdBy:  { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
 }, { timestamps: true });
 purchaseOrderSchema.index({ company: 1, orderNumber: 1 }, { unique: true, sparse: true });

@@ -174,6 +174,7 @@ const PermMatrix = ({ permissions, onChange }) => {
 const RolesPage = () => {
   const [roles, setRoles]       = useState([]);
   const [users, setUsers]       = useState([]);
+  const [employees, setEmployees] = useState([]);
   const [loading, setLoading]   = useState(true);
   const [dialog, setDialog]     = useState(null); // null | 'create' | 'edit' | 'assign'
   const [selected, setSelected] = useState(null);
@@ -194,12 +195,14 @@ const RolesPage = () => {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [rolesRes, usersRes] = await Promise.all([
+      const [rolesRes, usersRes, empRes] = await Promise.all([
         api.get('/api/roles'),
-        api.get('/api/users')
+        api.get('/api/users'),
+        api.get('/api/employees').catch(()=>({data:{data:[]}})),
       ]);
       if (rolesRes.data.success) setRoles(rolesRes.data.data || []);
       if (usersRes.data.success) setUsers(usersRes.data.data || []);
+      if (empRes.data.success)   setEmployees(empRes.data.data || []);
     } catch (e) { setError('فشل تحميل البيانات'); }
     setLoading(false);
   }, []);
@@ -378,6 +381,15 @@ const RolesPage = () => {
                         <People sx={{ fontSize: 14, color:'text.secondary' }} />
                         <Typography variant="caption" color="text.secondary">
                           {role.userCount || 0} مستخدم
+                          {employees.filter(e=>e.customRole===role._id||e.customRole?._id===role._id).length > 0 && (
+                            <Box sx={{mt:0.5}}>
+                              {employees.filter(e=>e.customRole===role._id||e.customRole?._id===role._id).slice(0,3).map(e=>(
+                                <Chip key={e._id} label={e.name} size="small" avatar={<Avatar sx={{fontSize:'0.6rem!important'}}>{e.name?.[0]}</Avatar>} sx={{fontSize:'0.65rem',mr:0.3,mb:0.3}}/>
+                              ))}
+                              {employees.filter(e=>e.customRole===role._id||e.customRole?._id===role._id).length > 3 &&
+                                <Chip label={`+${employees.filter(e=>e.customRole===role._id||e.customRole?._id===role._id).length-3}`} size="small" sx={{fontSize:'0.65rem'}}/>}
+                            </Box>
+                          )}
                         </Typography>
                       </Box>
                       <Chip label={`مستوى ${role.level || 5}`} size="small" variant="outlined"
@@ -485,15 +497,24 @@ const RolesPage = () => {
           <DialogTitle fontWeight={800}>تعيين دور لمستخدم</DialogTitle>
           <DialogContent>
             <Box sx={{ display:'flex', flexDirection:'column', gap: 2, mt: 1 }}>
-              <TextField label="المستخدم" value={assignUserId} onChange={e => setAssignUserId(e.target.value)} fullWidth select>
-                {users.map(u => (
-                  <MenuItem key={u._id} value={u._id}>
-                    <Box sx={{ display:'flex', alignItems:'center', gap: 1 }}>
-                      <Avatar sx={{ width:24, height:24, fontSize:12, bgcolor:'#1a73e8' }}>{u.name?.[0]}</Avatar>
-                      {u.name} — {u.role}
-                    </Box>
-                  </MenuItem>
-                ))}
+              <TextField label="الموظف / المستخدم" value={assignUserId} onChange={e => setAssignUserId(e.target.value)} fullWidth select helperText="اختر الموظف أو المستخدم الذي تريد تعيين الدور له">
+                {users.map(u => {
+                  const emp = employees.find(e=>e.user===u._id||e.user?._id===u._id);
+                  return (
+                    <MenuItem key={u._id} value={u._id}>
+                      <Box sx={{ display:'flex', alignItems:'center', gap: 1, width:'100%' }}>
+                        <Avatar sx={{ width:28, height:28, fontSize:12, bgcolor:'#1a73e8' }}>{u.name?.[0]}</Avatar>
+                        <Box sx={{flex:1}}>
+                          <Typography variant="body2" fontWeight={600}>{u.name}</Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {emp ? `${emp.position||''} · ${emp.department||''}` : u.role}
+                          </Typography>
+                        </Box>
+                        {u.customRole && <Chip label="له دور" size="small" color="primary" sx={{fontSize:'0.6rem'}}/>}
+                      </Box>
+                    </MenuItem>
+                  );
+                })}
               </TextField>
               <TextField label="الدور" value={assignRoleId} onChange={e => setAssignRoleId(e.target.value)} fullWidth select>
                 {roles.map(r => (

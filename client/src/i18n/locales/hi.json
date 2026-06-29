@@ -69,7 +69,12 @@
     "customers": "ग्राहक",
     "salesOrders": "बिक्री",
     "purchases": "खरीद",
-    "users": "उपयोगकर्ता"
+    "users": "उपयोगकर्ता",
+    "pr": "Purchase Requests",
+    "contracts": "Contracts",
+    "legal": "Legal & Cases",
+    "purchaseRequests": "Purchase Requests",
+    "orgChart": "Org Chart"
   },
   "auth": {
     "login": "साइन इन करें",

@@ -69,7 +69,12 @@
     "customers": "Müşteriler",
     "salesOrders": "Satışlar",
     "purchases": "Satın Alma",
-    "users": "Kullanıcılar"
+    "users": "Kullanıcılar",
+    "pr": "Purchase Requests",
+    "contracts": "Contracts",
+    "legal": "Legal & Cases",
+    "purchaseRequests": "Purchase Requests",
+    "orgChart": "Org Chart"
   },
   "auth": {
     "login": "Giriş Yap",
