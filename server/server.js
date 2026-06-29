@@ -209,3 +209,6 @@ app.use('/api/projects',     projectRoutes);
 // ─── AI Module ───────────────────────────────────────────────────────────
 const aiRoutes = require('./routes/aiRoutes');
 app.use('/api/ai', aiRoutes);
+
+const budgetRoutes  = require('./routes/budgetRoutes');
+app.use('/api/budgets', budgetRoutes);

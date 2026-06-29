@@ -21,6 +21,7 @@ const navItems = [
   { path: '/employees',       icon: <People />,          label: 'الموظفون' },
   { path: '/branches',        icon: <AccountTree />,     label: 'الفروع' },
   { path: '/warehouses',      icon: <Warehouse />,       label: 'المستودعات' },
+  { path: '/projects',        icon: <AccountTree />,     label: 'المشاريع' },
   { divider: true },
   { path: '/accounting',      icon: <AccountBalance />,  label: 'المحاسبة' }, // NEW
   { path: '/chat',            icon: <Chat />,            label: 'المحادثات' },
@@ -60,7 +61,7 @@ const Layout = ({ children }) => {
               <Box sx={{ width: 32, height: 32, borderRadius: 1, bgcolor: '#1a73e8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Typography sx={{ color: 'white', fontWeight: 700, fontSize: 18 }}>و</Typography>
               </Box>
-              <Typography fontWeight={700} sx={{ color: 'white', fontSize: 16 }}>وصّل ERP</Typography>
+              <Typography fontWeight={700} sx={{ color: 'white', fontSize: 16 }}>Wassel ERP</Typography>
             </Box>
           )}
           <IconButton onClick={() => setMini(v => !v)} sx={{ color: 'rgba(255,255,255,0.7)' }}>

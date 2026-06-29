@@ -25,10 +25,12 @@ const PurchaseOrdersPage = React.lazy(() => import('./pages/PurchaseOrders/Purch
 const AccountingPage     = React.lazy(() => import('./pages/Accounting/AccountingPage'));
 const BranchesPage       = React.lazy(() => import('./pages/Branches/BranchesPage'));
 const WarehousesPage     = React.lazy(() => import('./pages/Warehouses/WarehousesPage'));
+const ProjectsPage       = React.lazy(() => import('./pages/Projects/ProjectsPage'));
 
 const PageLoader = () => (
-  <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-    <CircularProgress /><Typography sx={{ ml: 2 }}>جارٍ التحميل...</Typography>
+  <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', flexDirection: 'column', gap: 2 }}>
+    <CircularProgress />
+    <Typography color="text.secondary">جارٍ التحميل...</Typography>
   </Box>
 );
 
@@ -38,21 +40,21 @@ const theme = createTheme({
     mode: 'light',
     primary:    { main: '#1a73e8' },
     secondary:  { main: '#34a853' },
-    background: { default: '#f8f9fa', paper: '#ffffff' }
+    background: { default: '#f5f7fa', paper: '#ffffff' }
   },
   typography: {
-    fontFamily: '"Segoe UI", "Arial", sans-serif',
-    h5: { fontWeight: 700 }, h6: { fontWeight: 600 }
+    fontFamily: '"Segoe UI", "Helvetica Neue", "Arial", sans-serif',
+    h4: { fontWeight: 800 }, h5: { fontWeight: 700 }, h6: { fontWeight: 600 }
   },
-  shape: { borderRadius: 8 },
+  shape: { borderRadius: 10 },
   components: {
-    MuiButton:    { styleOverrides: { root: { textTransform: 'none', borderRadius: 8 } } },
-    MuiPaper:     { styleOverrides: { root: { boxShadow: '0 1px 3px rgba(0,0,0,0.08)' } } },
-    MuiTableCell: { styleOverrides: { head: { fontWeight: 600 } } }
+    MuiButton: { styleOverrides: { root: { textTransform: 'none', borderRadius: 8, fontWeight: 600 } } },
+    MuiPaper:  { styleOverrides: { root: { boxShadow: '0 1px 4px rgba(0,0,0,0.08)' } } },
+    MuiCard:   { styleOverrides: { root: { boxShadow: '0 2px 8px rgba(0,0,0,0.08)' } } },
+    MuiTableCell: { styleOverrides: { head: { fontWeight: 700, bgcolor: '#f8f9fa' } } }
   }
 }, arSD);
 
-// Show AI only on private pages
 const AIWrapper = () => {
   const token = localStorage.getItem('token');
   const loc   = useLocation();
@@ -81,6 +83,7 @@ function App() {
             <Route path="/accounting"       element={<PrivateRoute><AccountingPage /></PrivateRoute>} />
             <Route path="/branches"         element={<PrivateRoute><BranchesPage /></PrivateRoute>} />
             <Route path="/warehouses"       element={<PrivateRoute><WarehousesPage /></PrivateRoute>} />
+            <Route path="/projects"         element={<PrivateRoute><ProjectsPage /></PrivateRoute>} />
             <Route path="/"  element={<Navigate to="/login" replace />} />
             <Route path="*"  element={<Navigate to="/login" replace />} />
           </Routes>
