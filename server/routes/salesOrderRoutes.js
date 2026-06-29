@@ -36,7 +36,7 @@ router.post('/', protect, authorize('admin','manager','superadmin'), async (req,
   try {
     const { items, ...rest } = req.body;
     const totals = calcTotals(items);
-    const count  = await SalesOrder.countDocuments({ company: req.user.company }) + 1;
+    const count  = await SalesOrder.countDocuments({ company: getCompany(req) }) + 1;
     const order  = await SalesOrder.create({
       ...rest, ...totals,
       company: require("../middleware/auth").getCompany(req),

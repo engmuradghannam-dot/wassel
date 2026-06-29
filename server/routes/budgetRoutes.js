@@ -1,6 +1,6 @@
 const express = require('express');
 const router  = express.Router();
-const { protect, authorize } = require('../middleware/auth');
+const { protect, authorize, getCompany} = require('../middleware/auth');
 const Budget  = require('../models/Budget');
 const { buildFilter } = require('../middleware/tenant');
 
@@ -31,7 +31,7 @@ router.post('/', protect, authorize('admin','superadmin'), async (req, res) => {
 
     const budget = await Budget.create({
       ...req.body,
-      company: req.user.company,
+      company: getCompany(req),
       totalRevenueBudget,
       totalExpenseBudget,
       netIncomeBudget: totalRevenueBudget - totalExpenseBudget,

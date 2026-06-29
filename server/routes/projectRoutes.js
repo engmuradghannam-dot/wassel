@@ -1,6 +1,6 @@
 const express  = require('express');
 const router   = express.Router();
-const { protect, authorize } = require('../middleware/auth');
+const { protect, authorize, getCompany} = require('../middleware/auth');
 const Project  = require('../models/Project');
 const Budget   = require('../models/Budget');
 const { buildFilter } = require('../middleware/tenant');
@@ -35,10 +35,10 @@ router.get('/', protect, async (req, res) => {
 // ─── CREATE project ───────────────────────────────────────────────────────
 router.post('/', protect, authorize('admin','manager','superadmin'), async (req, res) => {
   try {
-    const count = await Project.countDocuments({ company: req.user.company }) + 1;
+    const count = await Project.countDocuments({ company: getCompany(req) }) + 1;
     const project = await Project.create({
       ...req.body,
-      company: req.user.company,
+      company: getCompany(req),
       code: `PRJ-${new Date().getFullYear()}-${String(count).padStart(4,'0')}`,
       createdBy: req.user.id
     });
@@ -46,7 +46,7 @@ router.post('/', protect, authorize('admin','manager','superadmin'), async (req,
     // Auto-create project budget if budgetCost provided
     if (req.body.budgetCost > 0) {
       const budget = await Budget.create({
-        company: req.user.company,
+        company: getCompany(req),
         name: `ميزانية ${project.name}`,
         year: new Date().getFullYear(),
         type: 'project',

@@ -212,7 +212,7 @@ exports.getUsers = async (req, res) => {
   try {
     const filter = ['superadmin'].includes(req.user.role)
       ? (req.query.companyId ? { company: req.query.companyId } : {})
-      : { company: req.user.company };
+      : { company: getCompany(req) };
     const users = await User.find(filter).select('-password')
       .populate('company','name industry').populate('customRole','name color icon')
       .sort({ createdAt:-1 });

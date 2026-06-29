@@ -1,6 +1,6 @@
 const express  = require('express');
 const router   = express.Router();
-const { protect, authorize } = require('../middleware/auth');
+const { protect, authorize, getCompany} = require('../middleware/auth');
 const Shipment = require('../models/Shipment');
 const { buildFilter } = require('../middleware/tenant');
 
@@ -18,10 +18,10 @@ router.get('/', protect, async (req, res) => {
 
 router.post('/', protect, authorize('admin','manager','superadmin'), async (req, res) => {
   try {
-    const count = await Shipment.countDocuments({ company: req.user.company }) + 1;
+    const count = await Shipment.countDocuments({ company: getCompany(req) }) + 1;
     const shipment = await Shipment.create({
       ...req.body,
-      company: req.user.company,
+      company: getCompany(req),
       shipmentNumber: `SHP-${new Date().getFullYear()}-${String(count).padStart(5,'0')}`,
       createdBy: req.user.id
     });

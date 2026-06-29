@@ -1,6 +1,6 @@
 const express = require('express');
 const router  = express.Router();
-const { protect, authorize } = require('../middleware/auth');
+const { protect, authorize, getCompany} = require('../middleware/auth');
 const Role    = require('../models/Role');
 const User    = require('../models/User');
 
@@ -9,13 +9,13 @@ const { DEFAULT_ROLES_BY_INDUSTRY, ALL_MODULES, ALL_ACTIONS } = require('../mode
 // ── GET all roles for company ─────────────────────────────────────────────
 router.get('/', protect, async (req, res) => {
   try {
-    const roles = await Role.find({ company: req.user.company, isActive: true })
+    const roles = await Role.find({ company: getCompany(req), isActive: true })
       .populate('createdBy', 'name')
       .sort({ level: 1, createdAt: 1 });
 
     // Also get user counts per role
     const roleCounts = await User.aggregate([
-      { $match: { company: req.user.company } },
+      { $match: { company: getCompany(req) } },
       { $group: { _id: '$customRole', count: { $sum: 1 } } }
     ]);
     const countMap = Object.fromEntries(roleCounts.map(r => [r._id?.toString(), r.count]));
@@ -37,7 +37,7 @@ router.get('/modules', protect, (req, res) => {
 // ── GET single role ───────────────────────────────────────────────────────
 router.get('/:id', protect, async (req, res) => {
   try {
-    const role = await Role.findOne({ _id: req.params.id, company: req.user.company });
+    const role = await Role.findOne({ _id: req.params.id, company: getCompany(req) });
     if (!role) return res.status(404).json({ success: false, message: 'الدور غير موجود' });
     res.json({ success: true, data: role });
   } catch (e) { res.status(500).json({ success: false, message: e.message }); }
@@ -48,7 +48,7 @@ router.post('/', protect, authorize('owner','admin','superadmin'), async (req, r
   try {
     const role = await Role.create({
       ...req.body,
-      company:   req.user.company,
+      company:   getCompany(req),
       createdBy: req.user.id
     });
     res.status(201).json({ success: true, data: role });
@@ -58,7 +58,7 @@ router.post('/', protect, authorize('owner','admin','superadmin'), async (req, r
 // ── UPDATE role ───────────────────────────────────────────────────────────
 router.put('/:id', protect, authorize('owner','admin','superadmin'), async (req, res) => {
   try {
-    const role = await Role.findOne({ _id: req.params.id, company: req.user.company });
+    const role = await Role.findOne({ _id: req.params.id, company: getCompany(req) });
     if (!role) return res.status(404).json({ success: false, message: 'الدور غير موجود' });
     if (role.isSystem) return res.status(403).json({ success: false, message: 'لا يمكن تعديل الأدوار النظامية' });
     Object.assign(role, req.body);
@@ -70,7 +70,7 @@ router.put('/:id', protect, authorize('owner','admin','superadmin'), async (req,
 // ── DELETE role ───────────────────────────────────────────────────────────
 router.delete('/:id', protect, authorize('owner','admin','superadmin'), async (req, res) => {
   try {
-    const role = await Role.findOne({ _id: req.params.id, company: req.user.company });
+    const role = await Role.findOne({ _id: req.params.id, company: getCompany(req) });
     if (!role) return res.status(404).json({ success: false, message: 'الدور غير موجود' });
     if (role.isSystem) return res.status(403).json({ success: false, message: 'لا يمكن حذف الأدوار النظامية' });
     const users = await User.countDocuments({ customRole: role._id });
@@ -84,7 +84,7 @@ router.delete('/:id', protect, authorize('owner','admin','superadmin'), async (r
 router.post('/seed-defaults', protect, authorize('owner','admin','superadmin'), async (req, res) => {
   try {
     const Company = require('../models/Company');
-    const company = await Company.findById(req.user.company);
+    const company = await Company.findById(getCompany(req));
     if (!company) return res.status(404).json({ success: false, message: 'الشركة غير موجودة' });
 
     const industryRoles = DEFAULT_ROLES_BY_INDUSTRY[company.industry]
@@ -101,11 +101,11 @@ router.post('/seed-defaults', protect, authorize('owner','admin','superadmin'), 
 
     const created = [];
     for (const roleDef of allRoles) {
-      const existing = await Role.findOne({ company: req.user.company, name: roleDef.name });
+      const existing = await Role.findOne({ company: getCompany(req), name: roleDef.name });
       if (!existing) {
         const newRole = await Role.create({
           ...roleDef,
-          company: req.user.company,
+          company: getCompany(req),
           industry: company.industry,
           isDefault: true,
           createdBy: req.user.id
@@ -122,7 +122,7 @@ router.post('/seed-defaults', protect, authorize('owner','admin','superadmin'), 
 router.post('/assign', protect, authorize('owner','admin','superadmin'), async (req, res) => {
   try {
     const { userId, roleId, permissionOverrides } = req.body;
-    const user = await User.findOne({ _id: userId, company: req.user.company });
+    const user = await User.findOne({ _id: userId, company: getCompany(req) });
     if (!user) return res.status(404).json({ success: false, message: 'المستخدم غير موجود' });
 
     user.customRole = roleId;
