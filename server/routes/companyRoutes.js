@@ -1,41 +1,22 @@
 const express = require('express');
-const router = express.Router();
-const { body } = require('express-validator');
+const router  = express.Router();
 const companyController = require('../controllers/companyController');
 const { protect, authorize } = require('../middleware/auth');
 const upload = require('../middleware/upload');
 
-// @route   GET /api/company
-// @desc    Get company settings
-// @access  Private
+// GET /api/company — get company settings
 router.get('/', protect, companyController.getCompany);
 
-// @route   PUT /api/company
-// @desc    Update company settings
-// @access  Private (Admin)
-router.put(
-  '/',
-  protect,
-  authorize('admin'),
-  [
-    body('name').optional().trim().notEmpty().withMessage('Company name is required'),
-    body('email').optional().isEmail().withMessage('Valid email is required'),
-    body('taxNumber').optional().trim(),
-    body('commercialRegistration').optional().trim(),
-    body('location.lat').optional().isFloat().withMessage('Invalid latitude'),
-    body('location.lng').optional().isFloat().withMessage('Invalid longitude')
-  ],
-  companyController.updateCompany
-);
+// PUT /api/company — update company settings (admin or superadmin)
+router.put('/', protect, authorize('admin', 'superadmin'), companyController.updateCompany);
 
-// @route   PUT /api/company/location
-// @desc    Update company location
-// @access  Private (Admin)
-router.put('/location', protect, authorize('admin'), companyController.updateLocation);
+// PUT /api/company/location — update location
+router.put('/location', protect, authorize('admin', 'superadmin'), companyController.updateLocation);
 
-// @route   POST /api/company/logo
-// @desc    Upload company logo
-// @access  Private (Admin)
-router.post('/logo', protect, authorize('admin'), upload.single('logo'), companyController.uploadLogo);
+// POST /api/company/logo — upload logo
+router.post('/logo', protect, authorize('admin', 'superadmin'), upload.single('logo'), companyController.uploadLogo);
+
+// GET /api/company/all — all companies (superadmin only)
+router.get('/all', protect, authorize('superadmin'), companyController.getAllCompanies);
 
 module.exports = router;

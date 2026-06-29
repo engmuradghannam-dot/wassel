@@ -6,11 +6,11 @@ const { getBranches, getBranch, createBranch, updateBranch, deleteBranch } = req
 
 router.route('/')
   .get( protect, getBranches)
-  .post(protect, authorize('admin','manager'), createBranch);
+  .post(protect, authorize('admin','manager','superadmin'), createBranch);
 
 router.route('/:id')
   .get(   protect, getBranch)
-  .put(   protect, authorize('admin','manager'), updateBranch)
-  .delete(protect, authorize('admin'), deleteBranch);
+  .put(   protect, authorize('admin','manager','superadmin'), updateBranch)
+  .delete(protect, authorize('admin','superadmin'), deleteBranch);
 
 module.exports = router;

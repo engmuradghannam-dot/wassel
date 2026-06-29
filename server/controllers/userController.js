@@ -30,18 +30,21 @@ exports.register = async (req, res) => {
       timezone: 'Asia/Riyadh',
       plan: 'trial',
       planExpiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30-day trial
-      maxUsers: 5,
+      maxUsers: 10,
       maxEmployees: 50,
-      maxBranches: 1
+      maxBranches: 3
     });
 
-    // 2. Create owner/admin user
+    // 2. First user ever = superadmin, otherwise admin
+    const isFirstUser = (await User.countDocuments()) === 0;
     const hashed = await bcrypt.hash(password, 10);
     const user = await User.create({
       name, email, password: hashed,
-      role: 'admin',
+      role: isFirstUser ? 'superadmin' : 'admin',
       company: company._id,
-      isActive: true, isOnline: true, lastSeen: new Date()
+      language: 'ar',
+      isActive: true, isOnline: true, lastSeen: new Date(),
+      permissions: []
     });
 
     // 3. Link owner to company
@@ -51,7 +54,7 @@ exports.register = async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: 'تم إنشاء الشركة والحساب بنجاح',
+      message: isFirstUser ? 'تم إنشاء الحساب كمشرف عام بنجاح' : 'تم إنشاء الشركة والحساب بنجاح',
       token,
       data: {
         user:    { ...user.toObject(), password: undefined },
