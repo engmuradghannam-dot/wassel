@@ -1,0 +1,46 @@
+name: Test All Endpoints
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Test Backend
+        run: |
+          echo "=== Health ==="
+          curl -s https://wassel-cyj5.onrender.com/api/health | python3 -c "
+          import sys,json
+          try:
+              d=json.load(sys.stdin)
+              print('✅ Backend:', d.get('status'))
+          except: print('❌ Backend down')"
+
+          echo "=== Login Test ==="
+          curl -s -X POST https://wassel-cyj5.onrender.com/api/users/login \
+            -H "Content-Type: application/json" \
+            -d '{"email":"eng.murad.ghannam@gmail.com","password":"Admin2026@"}' | python3 -c "
+          import sys,json
+          try:
+              d=json.load(sys.stdin)
+              if d.get('success'):
+                  print('✅ Login OK - Role:', d['data']['user']['role'])
+              else:
+                  print('❌ Login failed:', d.get('message'))
+          except Exception as e:
+              print('❌ Error:', e, sys.stdin.read()[:200])"
+
+          echo "=== Register Test ==="
+          curl -s -X POST https://wassel-cyj5.onrender.com/api/users/register \
+            -H "Content-Type: application/json" \
+            -d '{"name":"Test User","email":"test999@test.com","password":"Test1234","companyName":"Test Co"}' | python3 -c "
+          import sys,json
+          try:
+              d=json.load(sys.stdin)
+              if d.get('success'):
+                  print('✅ Register OK')
+              else:
+                  print('❌ Register failed:', d.get('message'))
+          except Exception as e:
+              print('❌ Error:', e)"
