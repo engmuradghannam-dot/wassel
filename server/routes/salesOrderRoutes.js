@@ -68,3 +68,43 @@ router.put('/:id', protect, authorize('admin','manager','superadmin'), async (re
 });
 
 module.exports = router;
+
+// ── Convert quotation to invoice ──────────────────────────────────────────
+router.put('/:id/convert-to-invoice', protect, authorize('admin','manager','superadmin'), async (req, res) => {
+  try {
+    const order = await SalesOrder.findOne(buildFilter(req, { _id: req.params.id }));
+    if (!order) return res.status(404).json({ success: false, message: 'عرض السعر غير موجود' });
+    if (order.type !== 'quotation') return res.status(400).json({ success: false, message: 'هذا ليس عرض سعر' });
+
+    const invCount   = await SalesOrder.countDocuments({ company: order.company, type: 'invoice' }) + 1;
+    const invoiceNum = `INV-${new Date().getFullYear()}-${String(invCount).padStart(5,'0')}`;
+
+    order.type          = 'invoice';
+    order.status        = 'confirmed';
+    order.invoiceNumber = invoiceNum;
+    order.orderDate     = new Date();
+    if (req.body.dueDate) order.dueDate = req.body.dueDate;
+    await order.save();
+
+    res.json({ success: true, data: order, message: `تم تحويل عرض السعر إلى فاتورة رقم ${invoiceNum}` });
+  } catch (e) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+// ── Search customers (for autocomplete) ───────────────────────────────────
+router.get('/search/customers', protect, async (req, res) => {
+  try {
+    const Customer = require('../models/Customer');
+    const { buildFilter } = require('../middleware/tenant');
+    const q = req.query.q || '';
+    const filter = buildFilter(req, {});
+    if (q) filter.$or = [
+      { name:  { $regex: q, $options: 'i' } },
+      { phone: { $regex: q, $options: 'i' } },
+      { commercialReg: { $regex: q, $options: 'i' } },
+      { vatNumber:     { $regex: q, $options: 'i' } },
+      { code:          { $regex: q, $options: 'i' } },
+    ];
+    const customers = await Customer.find(filter).limit(30).sort({ name: 1 });
+    res.json({ success: true, data: customers });
+  } catch (e) { res.status(500).json({ success: false, message: e.message }); }
+});
