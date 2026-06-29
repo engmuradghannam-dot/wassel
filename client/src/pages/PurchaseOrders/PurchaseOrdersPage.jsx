@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState, useEffect } from 'react';
 import {
   Box, Paper, Typography, Button, Table, TableBody,
@@ -13,6 +14,7 @@ const statusColor = { draft: 'default', pending: 'warning', approved: 'info', re
 const statusLabel = { draft: 'مسودة', pending: 'معلق', approved: 'معتمد', received: 'مستلم', partial: 'جزئي', cancelled: 'ملغي' };
 
 const PurchaseOrdersPage = () => {
+  const { t, i18n } = useTranslation();
   const [items, setItems] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -159,7 +161,7 @@ const PurchaseOrdersPage = () => {
             </Box>
           </DialogContent>
           <DialogActions sx={{ px: 3, pb: 2 }}>
-            <Button onClick={() => setDialog(false)}>إلغاء</Button>
+            <Button onClick={() => setDialog(false)}>{t('common.cancel')}</Button>
             <Button variant="contained" onClick={handleSave} sx={{ bgcolor: '#1a73e8' }}>إنشاء الأمر</Button>
           </DialogActions>
         </Dialog>
@@ -189,7 +191,7 @@ const PurchaseOrdersPage = () => {
               <Typography variant="h6" fontWeight={700} color="primary">{viewDialog?.total?.toLocaleString('ar-SA')} ر.س</Typography>
             </Box>
           </DialogContent>
-          <DialogActions><Button onClick={() => setViewDialog(null)}>إغلاق</Button></DialogActions>
+          <DialogActions><Button onClick={() => setViewDialog(null)}>{t('common.close')}</Button></DialogActions>
         </Dialog>
 
         <Snackbar open={snack.open} autoHideDuration={3000} onClose={() => setSnack(p => ({ ...p, open: false }))} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>

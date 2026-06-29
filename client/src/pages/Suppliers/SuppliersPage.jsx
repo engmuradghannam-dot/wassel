@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState, useEffect } from 'react';
 import {
   Box, Paper, Typography, Button, TextField, Table, TableBody,
@@ -12,6 +13,7 @@ import Layout from '../../components/Layout';
 const empty = { name: '', nameEn: '', email: '', phone: '', address: '', country: 'SA', taxNumber: '', contactPerson: '', paymentTerms: 30, notes: '' };
 
 const SuppliersPage = () => {
+  const { t, i18n } = useTranslation();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [dialog, setDialog] = useState(false);
@@ -135,8 +137,8 @@ const SuppliersPage = () => {
             </Grid>
           </DialogContent>
           <DialogActions sx={{ px: 3, pb: 2 }}>
-            <Button onClick={closeDialog}>إلغاء</Button>
-            <Button variant="contained" onClick={handleSave} sx={{ bgcolor: '#1a73e8' }}>حفظ</Button>
+            <Button onClick={closeDialog}>{t('common.cancel')}</Button>
+            <Button variant="contained" onClick={handleSave} sx={{ bgcolor: '#1a73e8' }}>{t('common.save')}</Button>
           </DialogActions>
         </Dialog>
 
@@ -144,8 +146,8 @@ const SuppliersPage = () => {
           <DialogTitle>تأكيد الحذف</DialogTitle>
           <DialogContent><Typography>هل أنت متأكد من حذف هذا المورد؟</Typography></DialogContent>
           <DialogActions>
-            <Button onClick={() => setDelConfirm(null)}>إلغاء</Button>
-            <Button color="error" variant="contained" onClick={() => handleDelete(delConfirm)}>حذف</Button>
+            <Button onClick={() => setDelConfirm(null)}>{t('common.cancel')}</Button>
+            <Button color="error" variant="contained" onClick={() => handleDelete(delConfirm)}>{t('common.delete')}</Button>
           </DialogActions>
         </Dialog>
 

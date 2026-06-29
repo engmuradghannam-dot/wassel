@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState, useEffect } from 'react';
 import {
   Box, Typography, Paper, Tabs, Tab, Table, TableBody, TableCell,
@@ -25,6 +26,7 @@ const TYPE_COLORS = { asset: 'primary', liability: 'error', equity: 'secondary',
 
 // ─── Tab 1: Chart of Accounts ─────────────────────────────────────────────
 const AccountsTab = () => {
+  const { t, i18n } = useTranslation();
   const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [seeding, setSeeding] = useState(false);
@@ -127,7 +129,7 @@ const AccountsTab = () => {
           </Grid>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpen(false)}>إلغاء</Button>
+          <Button onClick={() => setOpen(false)}>{t('common.cancel')}</Button>
           <Button variant="contained" onClick={save} disabled={saving}>{saving ? 'جاري الحفظ...' : 'حفظ'}</Button>
         </DialogActions>
       </Dialog>
@@ -137,6 +139,7 @@ const AccountsTab = () => {
 
 // ─── Tab 2: Journal Entries ───────────────────────────────────────────────
 const JournalTab = () => {
+  const { t } = useTranslation();
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
@@ -287,7 +290,7 @@ const JournalTab = () => {
           <Button size="small" onClick={addLine} sx={{ mt: 1 }}>+ إضافة سطر</Button>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpen(false)}>إلغاء</Button>
+          <Button onClick={() => setOpen(false)}>{t('common.cancel')}</Button>
           <Button variant="contained" onClick={save} disabled={saving || !isBalanced}>{saving ? 'جاري الحفظ...' : 'حفظ القيد'}</Button>
         </DialogActions>
       </Dialog>
@@ -317,7 +320,7 @@ const JournalTab = () => {
             </Table>
           )}
         </DialogContent>
-        <DialogActions><Button onClick={() => setViewEntry(null)}>إغلاق</Button></DialogActions>
+        <DialogActions><Button onClick={() => setViewEntry(null)}>{t('common.close')}</Button></DialogActions>
       </Dialog>
     </Box>
   );

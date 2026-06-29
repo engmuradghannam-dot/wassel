@@ -7,6 +7,7 @@ import {
 } from '@mui/material';
 import { Business, Receipt, Category, CheckCircle, Info, Lock } from '@mui/icons-material';
 import api from '../../services/api';
+import LanguageSelector from '../../components/LanguageSelector';
 
 const INDUSTRY_LABELS = {
   trading_general:'تجارة عامة', retail:'تجزئة', wholesale:'جملة', ecommerce:'تجارة إلكترونية',
@@ -110,6 +111,11 @@ export default function CompleteProfilePage() {
       background:'linear-gradient(135deg, #060d1a 0%, #1a3a5c 100%)',
       position:'relative', overflow:'hidden', p:2
     }}>
+      {/* Language selector */}
+      <Box sx={{ position:'absolute', top:16, right:16, zIndex:10 }}>
+        <LanguageSelector onDark />
+      </Box>
+
       {/* Orbs */}
       {[{s:400,x:-100,y:-80,c:'rgba(26,115,232,0.12)'},{s:350,x:'70%',y:'60%',c:'rgba(108,71,255,0.09)'}].map((o,i)=>(
         <Box key={i} sx={{ position:'absolute',width:o.s,height:o.s,left:o.x,top:o.y,borderRadius:'50%',

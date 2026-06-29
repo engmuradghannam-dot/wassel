@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState, useEffect } from 'react';
 import {
   Box, Paper, Typography, Button, TextField, Table, TableBody,
@@ -20,6 +21,7 @@ const TYPES = [
 ];
 
 const WarehousesPage = () => {
+  const { t, i18n } = useTranslation();
   const [warehouses, setWarehouses] = useState([]);
   const [loading, setLoading]       = useState(true);
   const [error, setError]           = useState('');
@@ -88,7 +90,7 @@ const WarehousesPage = () => {
             <Chip label={warehouses.length} color="primary" size="small" />
           </Box>
           <Box sx={{ display: 'flex', gap: 1 }}>
-            <Button startIcon={<Refresh />} onClick={load} variant="outlined" size="small">تحديث</Button>
+            <Button startIcon={<Refresh />} onClick={load} variant="outlined" size="small">{t('common.refresh')}</Button>
             <Button startIcon={<Add />} onClick={() => openDialog()} variant="contained">مستودع جديد</Button>
           </Box>
         </Box>
@@ -169,7 +171,7 @@ const WarehousesPage = () => {
             </Grid>
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => setDialog(false)}>إلغاء</Button>
+            <Button onClick={() => setDialog(false)}>{t('common.cancel')}</Button>
             <Button onClick={handleSave} variant="contained" disabled={saving}>
               {saving ? <CircularProgress size={20} /> : 'حفظ'}
             </Button>

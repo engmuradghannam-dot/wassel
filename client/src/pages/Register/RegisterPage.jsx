@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
@@ -7,6 +8,7 @@ import {
 } from '@mui/material';
 import { Check, Visibility, VisibilityOff, Search, Info } from '@mui/icons-material';
 import api from '../../services/api';
+import LanguageSelector from '../../components/LanguageSelector';
 
 // ─── All 69 industry types (matching server config) ─────────────────────────
 const GROUPS = [

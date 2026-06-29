@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState, useEffect } from 'react';
 import {
   Box, Paper, Typography, Button, TextField, Table, TableBody,
@@ -12,6 +13,7 @@ import api from '../../services/api';
 const empty = { name: '', nameEn: '', code: '', address: '', phone: '', email: '', isMain: false, isActive: true };
 
 const BranchesPage = () => {
+  const { t, i18n } = useTranslation();
   const [branches, setBranches] = useState([]);
   const [loading, setLoading]   = useState(true);
   const [error, setError]       = useState('');
@@ -78,7 +80,7 @@ const BranchesPage = () => {
             <Chip label={branches.length} color="primary" size="small" />
           </Box>
           <Box sx={{ display: 'flex', gap: 1 }}>
-            <Button startIcon={<Refresh />} onClick={load} variant="outlined" size="small">تحديث</Button>
+            <Button startIcon={<Refresh />} onClick={load} variant="outlined" size="small">{t('common.refresh')}</Button>
             <Button startIcon={<Add />} onClick={() => openDialog()} variant="contained">فرع جديد</Button>
           </Box>
         </Box>
@@ -160,7 +162,7 @@ const BranchesPage = () => {
             </Grid>
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => setDialog(false)}>إلغاء</Button>
+            <Button onClick={() => setDialog(false)}>{t('common.cancel')}</Button>
             <Button onClick={handleSave} variant="contained" disabled={saving}>
               {saving ? <CircularProgress size={20} /> : 'حفظ'}
             </Button>

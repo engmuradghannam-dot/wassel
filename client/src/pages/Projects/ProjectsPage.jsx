@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState, useEffect } from 'react';
 import {
   Box, Paper, Typography, Button, Grid, Card, CardContent,
@@ -35,6 +36,7 @@ const empty = {
 };
 
 const ProjectsPage = () => {
+  const { t, i18n } = useTranslation();
   const [projects, setProjects] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading]   = useState(true);
@@ -289,7 +291,7 @@ const ProjectsPage = () => {
             </Grid>
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => setDialog(false)}>إلغاء</Button>
+            <Button onClick={() => setDialog(false)}>{t('common.cancel')}</Button>
             <Button onClick={handleSave} variant="contained" disabled={saving}>
               {saving ? <CircularProgress size={20} /> : 'إنشاء المشروع'}
             </Button>
