@@ -9,39 +9,43 @@ jobs:
     steps:
       - name: Set Render Environment Variables
         env:
-          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          RENDER_API_KEY:       ${{ secrets.RENDER_API_KEY }}
+          MONGODB_URI:          ${{ secrets.MONGODB_URI }}
+          JWT_SECRET:           ${{ secrets.JWT_SECRET }}
+          REFRESH_TOKEN_SECRET: ${{ secrets.REFRESH_TOKEN_SECRET }}
+          GOOGLE_CLIENT_ID:     ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          LIVEKIT_API_KEY:      ${{ secrets.LIVEKIT_API_KEY }}
+          LIVEKIT_API_SECRET:   ${{ secrets.LIVEKIT_API_SECRET }}
+          GOOGLE_MAPS_API_KEY:  ${{ secrets.GOOGLE_MAPS_API_KEY }}
         run: |
           SERVICE_ID="srv-d8u2t9beo5us73c1m8g0"
-          
           curl -s -X PUT "https://api.render.com/v1/services/$SERVICE_ID/env-vars" \
             -H "Authorization: Bearer $RENDER_API_KEY" \
             -H "Content-Type: application/json" \
-            -d '{
-              "envVars": [
-                {"key": "NODE_ENV",             "value": "production"},
-                {"key": "PORT",                 "value": "10000"},
-                {"key": "MONGODB_URI",          "value": "${{ secrets.MONGODB_URI }}"},
-                {"key": "JWT_SECRET",           "value": "${{ secrets.JWT_SECRET }}"},
-                {"key": "REFRESH_TOKEN_SECRET", "value": "${{ secrets.REFRESH_TOKEN_SECRET }}"},
-                {"key": "CLIENT_URL",           "value": "https://wassel-seven.vercel.app"},
-                {"key": "FRONTEND_URL",         "value": "https://wassel-seven.vercel.app"},
-                {"key": "GOOGLE_CLIENT_ID",     "value": "${{ secrets.GOOGLE_CLIENT_ID }}"},
-                {"key": "GOOGLE_CLIENT_SECRET", "value": "${{ secrets.GOOGLE_CLIENT_SECRET }}"},
-                {"key": "GOOGLE_CALLBACK_URL",  "value": "https://wassel-cyj5.onrender.com/api/auth/google/callback"},
-                {"key": "LIVEKIT_URL",          "value": "wss://wassel-y6htlkxc.livekit.cloud"},
-                {"key": "LIVEKIT_API_KEY",      "value": "${{ secrets.LIVEKIT_API_KEY }}"},
-                {"key": "LIVEKIT_API_SECRET",   "value": "${{ secrets.LIVEKIT_API_SECRET }}"},
-                {"key": "GOOGLE_MAPS_API_KEY",  "value": "${{ secrets.GOOGLE_MAPS_API_KEY }}"},
-                {"key": "SENDGRID_FROM_EMAIL",  "value": "noreply@wassel.app"}
+            --data "{
+              \"envVars\": [
+                {\"key\": \"NODE_ENV\",             \"value\": \"production\"},
+                {\"key\": \"PORT\",                 \"value\": \"10000\"},
+                {\"key\": \"MONGODB_URI\",          \"value\": \"${MONGODB_URI}\"},
+                {\"key\": \"JWT_SECRET\",           \"value\": \"${JWT_SECRET}\"},
+                {\"key\": \"REFRESH_TOKEN_SECRET\", \"value\": \"${REFRESH_TOKEN_SECRET}\"},
+                {\"key\": \"CLIENT_URL\",           \"value\": \"https://wassel-seven.vercel.app\"},
+                {\"key\": \"FRONTEND_URL\",         \"value\": \"https://wassel-seven.vercel.app\"},
+                {\"key\": \"GOOGLE_CLIENT_ID\",     \"value\": \"${GOOGLE_CLIENT_ID}\"},
+                {\"key\": \"GOOGLE_CLIENT_SECRET\", \"value\": \"${GOOGLE_CLIENT_SECRET}\"},
+                {\"key\": \"GOOGLE_CALLBACK_URL\",  \"value\": \"https://wassel-cyj5.onrender.com/api/auth/google/callback\"},
+                {\"key\": \"LIVEKIT_URL\",          \"value\": \"wss://wassel-y6htlkxc.livekit.cloud\"},
+                {\"key\": \"LIVEKIT_API_KEY\",      \"value\": \"${LIVEKIT_API_KEY}\"},
+                {\"key\": \"LIVEKIT_API_SECRET\",   \"value\": \"${LIVEKIT_API_SECRET}\"},
+                {\"key\": \"GOOGLE_MAPS_API_KEY\",  \"value\": \"${GOOGLE_MAPS_API_KEY}\"},
+                {\"key\": \"SENDGRID_FROM_EMAIL\",  \"value\": \"noreply@wassel.app\"}
               ]
-            }' | python3 -c "
+            }" | python3 -c "
           import sys,json
           d=json.load(sys.stdin)
-          if isinstance(d, list):
-              print(f'✅ Set {len(d)} environment variables on Render')
-              for v in d: print(f'   {v[\"envVar\"][\"key\"]}')
-          else:
-              print('Response:', json.dumps(d, indent=2))
+          if isinstance(d, list): print(f'✅ Set {len(d)} vars on Render')
+          else: print('Response:', d)
           "
 
       - name: Trigger Render Deploy
@@ -52,19 +56,14 @@ jobs:
             -H "Authorization: Bearer $RENDER_API_KEY" \
             -H "Content-Type: application/json" \
             -d '{"clearCache": true}' | python3 -c "
-          import sys,json
-          d=json.load(sys.stdin)
-          print('Deploy triggered:', d.get('id','?'), d.get('status','?'))
-          "
+          import sys,json; d=json.load(sys.stdin); print('🚀 Deploy:', d.get('id'), d.get('status'))"
 
-      - name: Health check (wait 60s)
+      - name: Health check
         run: |
-          sleep 60
+          sleep 200
           curl -s https://wassel-cyj5.onrender.com/api/health | python3 -c "
           import sys,json
           try:
-              d=json.load(sys.stdin)
-              print('✅ Health:', d.get('status'), '| Modules:', len(d.get('modules',[])))
-          except:
-              print('Still starting up...')
+              d=json.load(sys.stdin); print('✅ Health:', d.get('status'))
+          except: print('Still starting...')
           "
