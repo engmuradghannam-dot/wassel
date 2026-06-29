@@ -1,3 +1,4 @@
+const BL = require('../services/businessLogic');
 const express  = require('express');
 const router   = express.Router();
 const { protect, authorize } = require('../middleware/auth');
@@ -38,7 +39,7 @@ router.post('/', protect, authorize('admin','manager','superadmin'), async (req,
     const count  = await SalesOrder.countDocuments({ company: req.user.company }) + 1;
     const order  = await SalesOrder.create({
       ...rest, ...totals,
-      company: req.user.company,
+      company: require("../middleware/auth").getCompany(req),
       orderNumber: `SO-${new Date().getFullYear()}-${String(count).padStart(5,'0')}`,
       remainingAmount: totals.total,
       createdBy: req.user.id
@@ -65,6 +66,37 @@ router.put('/:id', protect, authorize('admin','manager','superadmin'), async (re
     if (!order) return res.status(404).json({ success: false, message: 'الطلب غير موجود' });
     res.json({ success: true, data: order });
   } catch (e) { res.status(400).json({ success: false, message: e.message }); }
+});
+
+// Deliver sales order → update inventory (stock out)
+router.put('/:id/deliver', protect, authorize('admin','manager','superadmin'), async (req, res) => {
+  try {
+    const filter = buildFilter(req, { _id: req.params.id });
+    const order  = await SalesOrder.findOne(filter).populate('items.inventory');
+    if (!order) return res.status(404).json({ success:false, message:'الطلب غير موجود' });
+    if (!['confirmed','processing'].includes(order.status)) {
+      return res.status(400).json({ success:false, message:'الطلب يجب أن يكون مؤكداً قبل التسليم' });
+    }
+
+    // Ship inventory
+    await BL.shipStock({
+      company:      order.company,
+      salesOrderId: order._id,
+      userId:       req.user._id,
+      items: order.items
+        .filter(i => i.inventory)
+        .map(i => ({ inventoryId: i.inventory._id || i.inventory, qty: i.quantity })),
+    });
+
+    order.status      = 'delivered';
+    order.deliveredAt = new Date();
+    await order.save();
+
+    // Update customer balance
+    await BL.updatePartyBalance({ model:'Customer', id:order.customer, amount:order.total, direction:'debit' });
+
+    res.json({ success:true, data:order, message:'تم التسليم وتحديث المخزون' });
+  } catch (e) { res.status(500).json({ success:false, message:e.message }); }
 });
 
 module.exports = router;

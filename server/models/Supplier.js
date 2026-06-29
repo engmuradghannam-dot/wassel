@@ -36,7 +36,9 @@ const supplierSchema = new mongoose.Schema({
   currency:      { type:String, default:'SAR' },
   paymentTerms:  { type:Number, default:30 },           // days
   creditLimit:   { type:Number, default:0 },
-  balance:       { type:Number, default:0 },            // outstanding balance
+  balance:       { type:Number, default:0 },           // إجمالي ما علينا للمورد
+  paidAmount:    { type:Number, default:0 },           // إجمالي ما دفعناه
+  totalPurchases:{ type:Number, default:0 },          // إجمالي مشترياتنا منه            // outstanding balance
   discountPct:   { type:Number, default:0 },            // default discount %
   
   // ─── Bank Information ──────────────────────────────────────────

@@ -31,7 +31,9 @@ const customerSchema = new mongoose.Schema({
   currency:       { type: String, default: 'SAR' },
   paymentTerms:   { type: Number, default: 30 }, // أيام
   creditLimit:    { type: Number, default: 0 },
-  balance:        { type: Number, default: 0 },  // رصيد مستحق
+  balance:        { type: Number, default: 0 },  // إجمالي مديونية العميل
+  paidAmount:     { type: Number, default: 0 },  // إجمالي ما دفع
+  totalSales:     { type: Number, default: 0 },  // إجمالي مبيعاته
   
   // ─── Classification ───────────────────────────────────────────
   category:       { type: String, enum: ['A','B','C','VIP'], default: 'B' },
