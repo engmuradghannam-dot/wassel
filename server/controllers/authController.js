@@ -20,6 +20,16 @@ exports.googleCallback = async (req, res) => {
 
     const token = signToken(user);
     const clientUrl = process.env.CLIENT_URL || 'http://localhost:3000';
+
+    // ── New user with no company → send to company setup ──────────────
+    const needsSetup = !user.company;
+    const isNewUser  = !user.company && user.role === 'user';  // freshly created by Google
+
+    if (needsSetup) {
+      // Mark as new so frontend shows setup wizard
+      return res.redirect(`${clientUrl}/auth/callback?token=${token}&newUser=true`);
+    }
+
     res.redirect(`${clientUrl}/auth/callback?token=${token}`);
   } catch (error) {
     console.error('Google auth error:', error);
