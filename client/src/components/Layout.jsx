@@ -23,6 +23,7 @@ const navItems = [
   { path: '/employees',       icon: <People />,          label: 'الموظفون' },
   { path: '/branches',        icon: <AccountTree />,     label: 'الفروع' },
   { path: '/warehouses',      icon: <Warehouse />,       label: 'المستودعات' },
+  { path: '/roles',           icon: <AccountTree />,     label: 'الأدوار والصلاحيات' },
   { path: '/projects',        icon: <AccountTree />,     label: 'المشاريع' },
   { divider: true },
   { path: '/accounting',      icon: <AccountBalance />,  label: 'المحاسبة' }, // NEW

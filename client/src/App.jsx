@@ -25,6 +25,7 @@ const PurchaseOrdersPage = React.lazy(() => import('./pages/PurchaseOrders/Purch
 const AccountingPage     = React.lazy(() => import('./pages/Accounting/AccountingPage'));
 const BranchesPage       = React.lazy(() => import('./pages/Branches/BranchesPage'));
 const WarehousesPage     = React.lazy(() => import('./pages/Warehouses/WarehousesPage'));
+const RolesPage          = React.lazy(() => import('./pages/Roles/RolesPage'));
 const ProjectsPage       = React.lazy(() => import('./pages/Projects/ProjectsPage'));
 
 const PageLoader = () => (
@@ -83,6 +84,7 @@ function App() {
             <Route path="/accounting"       element={<PrivateRoute><AccountingPage /></PrivateRoute>} />
             <Route path="/branches"         element={<PrivateRoute><BranchesPage /></PrivateRoute>} />
             <Route path="/warehouses"       element={<PrivateRoute><WarehousesPage /></PrivateRoute>} />
+            <Route path="/roles"            element={<PrivateRoute><RolesPage /></PrivateRoute>} />
             <Route path="/projects"         element={<PrivateRoute><ProjectsPage /></PrivateRoute>} />
             <Route path="/"  element={<Navigate to="/login" replace />} />
             <Route path="*"  element={<Navigate to="/login" replace />} />
