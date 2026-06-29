@@ -7,11 +7,9 @@ jobs:
   seed:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Node 24
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '24'
 
@@ -28,7 +26,8 @@ jobs:
           const bcrypt   = require('bcryptjs');
 
           const CompanySchema = new mongoose.Schema({
-            name: String, nameEn: String, currency: { type: String, default: 'SAR' },
+            name: String, nameEn: String,
+            currency: { type: String, default: 'SAR' },
             timezone: String, plan: String, planExpiresAt: Date,
             maxUsers: Number, maxEmployees: Number, maxBranches: Number,
             isActive: { type: Boolean, default: true },
@@ -38,15 +37,18 @@ jobs:
           }, { timestamps: true });
 
           const UserSchema = new mongoose.Schema({
-            name: String,
-            email: { type: String, unique: true },
-            password: { type: String, default: null },
-            googleId:  { type: String, default: null },
-            role: { type: String, default: 'user' },
-            company: { type: mongoose.Schema.Types.ObjectId, default: null },
-            isOnline: { type: Boolean, default: false },
-            lastSeen: Date,
-            isActive: { type: Boolean, default: true }
+            name:        String,
+            email:       { type: String, unique: true },
+            password:    { type: String, default: null },
+            googleId:    { type: String, default: null },
+            avatar:      { type: String, default: '' },
+            role:        { type: String, default: 'user' },
+            company:     { type: mongoose.Schema.Types.ObjectId, default: null },
+            language:    { type: String, default: 'ar' },
+            isActive:    { type: Boolean, default: true },
+            isOnline:    { type: Boolean, default: false },
+            lastSeen:    Date,
+            permissions: { type: Array, default: [] }
           }, { timestamps: true });
 
           (async () => {
@@ -55,26 +57,43 @@ jobs:
               console.log('Connected');
               const Company = mongoose.model('Company', CompanySchema);
               const User    = mongoose.model('User',    UserSchema);
+
               let company = await Company.findOne({ name: 'Wassel' });
               if (!company) {
-                company = await Company.create({ name: 'Wassel', nameEn: 'Wassel', currency: 'SAR', timezone: 'Asia/Riyadh', plan: 'enterprise', planExpiresAt: new Date('2030-01-01'), maxUsers: 9999, maxEmployees: 9999, maxBranches: 99, isActive: true });
-                console.log('Company created');
+                company = await Company.create({
+                  name: 'Wassel', nameEn: 'Wassel', currency: 'SAR',
+                  timezone: 'Asia/Riyadh', plan: 'enterprise',
+                  planExpiresAt: new Date('2030-01-01'),
+                  maxUsers: 9999, maxEmployees: 9999, maxBranches: 99, isActive: true
+                });
               }
+
               const hashed = await bcrypt.hash('Admin2026@', 10);
-              await User.collection.findOneAndUpdate(
+              const user = await User.findOneAndUpdate(
                 { email: 'eng.murad.ghannam@gmail.com' },
-                { \$set: { name: 'Murad Ghannam', email: 'eng.murad.ghannam@gmail.com', password: hashed, role: 'superadmin', company: company._id, isActive: true, lastSeen: new Date() } },
-                { upsert: true }
+                { \$set: {
+                  name: 'مراد غنام', email: 'eng.murad.ghannam@gmail.com',
+                  password: hashed, avatar: '', role: 'superadmin',
+                  company: company._id, language: 'ar',
+                  isActive: true, isOnline: false,
+                  lastSeen: new Date(), permissions: []
+                }},
+                { upsert: true, new: true }
               );
-              console.log('DONE - superadmin ready');
+
+              await Company.findByIdAndUpdate(company._id, { owner: user._id, createdBy: user._id });
+
+              console.log('SUCCESS');
               console.log('Email: eng.murad.ghannam@gmail.com');
               console.log('Password: Admin2026@');
+              console.log('Role: superadmin');
+              console.log('ID:', user._id.toString());
+
+              await mongoose.disconnect();
               process.exit(0);
             } catch(e) {
               console.error('ERROR:', e.message);
-              console.error(e.stack);
               process.exit(1);
             }
           })();
-          " 2>&1 | tee /tmp/seed-output.txt
-          cat /tmp/seed-output.txt >> $GITHUB_STEP_SUMMARY
+          " 2>&1
