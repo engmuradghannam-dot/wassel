@@ -7,51 +7,19 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          fetch-depth: 0
-
-      - name: Run Tests
-        id: tests
+      - name: Test Login and Register
         run: |
-          echo "HEALTH=$(curl -s https://wassel-cyj5.onrender.com/api/health)" >> $GITHUB_OUTPUT
-          
-          LOGIN=$(curl -s -X POST https://wassel-cyj5.onrender.com/api/users/login \
-            -H "Content-Type: application/json" \
-            -d '{"email":"eng.murad.ghannam@gmail.com","password":"Admin2026@"}')
-          echo "LOGIN=$LOGIN" >> $GITHUB_OUTPUT
-          
-          REG=$(curl -s -X POST https://wassel-cyj5.onrender.com/api/users/register \
-            -H "Content-Type: application/json" \
-            -d '{"name":"Test","email":"brand_new_999@test.com","password":"Test1234","companyName":"BrandNew"}')
-          echo "REGISTER=$REG" >> $GITHUB_OUTPUT
-          
-          GOOGLE=$(curl -sI https://wassel-cyj5.onrender.com/api/auth/google | grep -i location | head -1)
-          echo "GOOGLE=$GOOGLE" >> $GITHUB_OUTPUT
-          
-          # Check Vercel deployed URL
-          HTML=$(curl -s https://wassel-seven.vercel.app)
-          JS=$(echo "$HTML" | grep -o '/static/js/main\.[^"]*' | head -1)
-          echo "JS_PATH=$JS" >> $GITHUB_OUTPUT
-          if [ -n "$JS" ]; then
-            API_IN_JS=$(curl -s "https://wassel-seven.vercel.app$JS" | grep -o '"https://[^"]*onrender[^"]*"' | head -1)
-            echo "API_IN_JS=$API_IN_JS" >> $GITHUB_OUTPUT
-          fi
+          echo "=== HEALTH ===" 
+          curl -v --max-time 40 https://wassel-cyj5.onrender.com/api/health 2>&1
 
-      - name: Write results
-        run: |
-          cat > results.txt << RESULTS
-          HEALTH: ${{ steps.tests.outputs.HEALTH }}
-          LOGIN: ${{ steps.tests.outputs.LOGIN }}
-          REGISTER: ${{ steps.tests.outputs.REGISTER }}
-          GOOGLE: ${{ steps.tests.outputs.GOOGLE }}
-          JS_PATH: ${{ steps.tests.outputs.JS_PATH }}
-          API_IN_JS: ${{ steps.tests.outputs.API_IN_JS }}
-          RESULTS
-          cat results.txt
-          git config user.email "ci@wassel.app"
-          git config user.name "CI"
-          git pull origin main
-          git add results.txt
-          git commit -m "ci: test results [skip ci]" && git push || echo "No changes"
+          echo ""
+          echo "=== LOGIN ==="
+          curl -v --max-time 40 -X POST https://wassel-cyj5.onrender.com/api/users/login \
+            -H "Content-Type: application/json" \
+            -d '{"email":"eng.murad.ghannam@gmail.com","password":"Admin2026@"}' 2>&1
+
+          echo ""
+          echo "=== REGISTER NEW ==="
+          curl -v --max-time 40 -X POST https://wassel-cyj5.onrender.com/api/users/register \
+            -H "Content-Type: application/json" \
+            -d '{"name":"Ahmad Test","email":"ahmad_test_xyz@gmail.com","password":"Test1234","companyName":"Ahmad Co"}' 2>&1
