@@ -7,31 +7,27 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - name: Full Debug Test
+      - name: Full Test
         run: |
-          echo "### Health" >> $GITHUB_STEP_SUMMARY
-          HEALTH=$(curl -s --max-time 30 https://wassel-cyj5.onrender.com/api/health)
-          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-          echo "$HEALTH" >> $GITHUB_STEP_SUMMARY
-          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-          echo "$HEALTH"
+          echo "=== 1. Health ==="
+          curl -s https://wassel-cyj5.onrender.com/api/health
 
-          echo "### Login" >> $GITHUB_STEP_SUMMARY
-          LOGIN=$(curl -s --max-time 30 -X POST \
-            https://wassel-cyj5.onrender.com/api/users/login \
+          echo ""
+          echo "=== 2. Login ==="
+          curl -s -X POST https://wassel-cyj5.onrender.com/api/users/login \
             -H "Content-Type: application/json" \
-            -d '{"email":"eng.murad.ghannam@gmail.com","password":"Admin2026@"}')
-          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-          echo "$LOGIN" >> $GITHUB_STEP_SUMMARY
-          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-          echo "$LOGIN"
+            -d '{"email":"eng.murad.ghannam@gmail.com","password":"Admin2026@"}'
 
-          echo "### Setup Endpoint" >> $GITHUB_STEP_SUMMARY
-          SETUP=$(curl -s --max-time 30 -X POST \
-            https://wassel-cyj5.onrender.com/api/setup/setup-admin \
+          echo ""
+          echo "=== 3. Register new user ==="
+          curl -s -X POST https://wassel-cyj5.onrender.com/api/users/register \
             -H "Content-Type: application/json" \
-            -d '{"name":"Murad","email":"eng.murad.ghannam@gmail.com","password":"Admin2026@"}')
-          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-          echo "$SETUP" >> $GITHUB_STEP_SUMMARY
-          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-          echo "$SETUP"
+            -d '{"name":"Test User","email":"testuser888@test.com","password":"Test1234","companyName":"Test Company"}'
+
+          echo ""
+          echo "=== 4. Google OAuth URL ==="
+          curl -sv https://wassel-cyj5.onrender.com/api/auth/google 2>&1 | grep -E "location:|HTTP/"
+
+          echo ""
+          echo "=== 5. Check REACT_APP_API_URL in deployed JS ==="
+          curl -s https://wassel-seven.vercel.app | grep -o 'chunk.*\.js' | head -3
