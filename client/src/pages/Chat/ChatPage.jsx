@@ -146,7 +146,7 @@ const ChatPage = () => {
 
       const [roomsRes, usersRes, meRes] = await Promise.all([
         axios.get('/api/chat/rooms', { headers }),
-        axios.get('/api/users', { headers }),
+        axios.get('/api/users/chat-contacts', { headers }),
         axios.get('/api/auth/me', { headers })
       ]);
 
@@ -612,23 +612,34 @@ const ChatPage = () => {
       {/* New Chat Dialog */}
       <Dialog open={newChatOpen} onClose={() => setNewChatOpen(false)} maxWidth="xs" fullWidth>
         <DialogTitle sx={{ fontWeight: 700 }}>محادثة جديدة</DialogTitle>
-        <DialogContent>
-          <List>
-            {users.filter(u => u._id !== myId).map(user => (
-              <ListItemButton key={user._id} onClick={() => startDirectChat(user._id)} sx={{ borderRadius: 2 }}>
-                <ListItemAvatar>
-                  <Badge variant="dot" overlap="circular"
-                    sx={{ '& .MuiBadge-dot': { bgcolor: user.isOnline ? '#34a853' : '#dadce0', width: 10, height: 10 } }}>
-                    <Avatar src={user.avatar} sx={{ bgcolor: '#1a73e8' }}>{user.name?.[0]}</Avatar>
-                  </Badge>
-                </ListItemAvatar>
-                <ListItemText
-                  primary={user.name}
-                  secondary={user.isOnline ? 'متصل' : 'غير متصل'}
-                />
-              </ListItemButton>
-            ))}
-          </List>
+        <DialogContent sx={{ p: 0 }}>
+          {users.filter(u => u._id !== myId).length === 0 ? (
+            <Box sx={{ p: 3, textAlign: 'center' }}>
+              <Typography color="text.secondary">لا يوجد مستخدمون آخرون</Typography>
+            </Box>
+          ) : (
+            <List>
+              {users.filter(u => u._id !== myId).map(user => (
+                <ListItemButton key={user._id} onClick={() => startDirectChat(user._id)} sx={{ borderRadius: 2, mx: 1 }}>
+                  <ListItemAvatar>
+                    <Badge variant="dot" overlap="circular"
+                      sx={{ '& .MuiBadge-dot': { bgcolor: user.isOnline ? '#34a853' : '#dadce0', width: 10, height: 10 } }}>
+                      <Avatar src={user.avatar} sx={{ bgcolor: '#1a73e8' }}>{user.name?.[0]}</Avatar>
+                    </Badge>
+                  </ListItemAvatar>
+                  <ListItemText
+                    primary={user.name}
+                    secondary={
+                      <span>
+                        {user.isOnline ? '🟢 متصل' : '⚫ غير متصل'}
+                        {user.company?.name ? ` · ${user.company.name}` : ''}
+                      </span>
+                    }
+                  />
+                </ListItemButton>
+              ))}
+            </List>
+          )}
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setNewChatOpen(false)}>إغلاق</Button>
