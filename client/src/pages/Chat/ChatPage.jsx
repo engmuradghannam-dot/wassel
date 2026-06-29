@@ -16,7 +16,7 @@ import {
 } from '@mui/icons-material';
 import axios from 'axios';
 import { io } from 'socket.io-client';
-import VideoCall from '../../components/VideoCall';
+import MeetRoom from '../../components/MeetRoom';
 
 const SERVER_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
@@ -670,22 +670,12 @@ const ChatPage = () => {
         </MenuItem>
       </Menu>
 
-      {/* Video Call */}
-      <VideoCall
-        open={videoCallOpen}
-        onClose={() => setVideoCallOpen(false)}
+      {/* Video/Voice Call — Google Meet style */}
+      <MeetRoom
+        open={videoCallOpen || voiceCallOpen}
+        onClose={() => { setVideoCallOpen(false); setVoiceCallOpen(false); }}
         roomName={callRoomName}
-        participantName={localStorage.getItem('userName') || 'مستخدم'}
-        callType="video"
-      />
-
-      {/* Voice Call */}
-      <VideoCall
-        open={voiceCallOpen}
-        onClose={() => setVoiceCallOpen(false)}
-        roomName={callRoomName}
-        participantName={localStorage.getItem('userName') || 'مستخدم'}
-        callType="audio"
+        mode={videoCallOpen ? 'video' : 'audio'}
       />
 
       <Snackbar
