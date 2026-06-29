@@ -36,8 +36,12 @@ exports.createSupplier = async (req, res) => {
     const count = await Supplier.countDocuments({ company: co });
     const code  = req.body.code?.trim() || `SUP-${String(count+1).padStart(4,'0')}`;
 
+    // Strip invalid rating value (0 causes validation error on old schema)
+    const body = { ...req.body };
+    if (!body.rating || body.rating < 1) delete body.rating;
+    
     const supplier = await Supplier.create({
-      ...req.body,
+      ...body,
       company:   co,
       code,
       createdBy: req.user._id
@@ -52,9 +56,12 @@ exports.createSupplier = async (req, res) => {
 exports.updateSupplier = async (req, res) => {
   try {
     const co = getCompany(req);
+    const updateBody = { ...req.body };
+    if (!updateBody.rating || updateBody.rating < 1) delete updateBody.rating;
+    
     const supplier = await Supplier.findOneAndUpdate(
       { _id:req.params.id, company:co },
-      req.body,
+      updateBody,
       { new:true, runValidators:true }
     );
     if (!supplier) return res.status(404).json({ success:false, message:'المورد غير موجود' });

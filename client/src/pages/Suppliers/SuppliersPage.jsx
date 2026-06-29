@@ -121,12 +121,18 @@ const SuppliersPage = () => {
     setSaving(true); setError('');
     try {
       // Clean numbers
+      // Build payload, exclude empty/zero rating to avoid validation error
+      const { rating: rawRating, ...restForm } = form;
       const payload = {
-        ...form,
+        ...restForm,
         commercialReg: form.commercialReg?.replace(/\s/g,''),
         vatNumber:     form.vatNumber?.replace(/\s/g,''),
         bankIBAN:      form.bankIBAN?.replace(/\s/g,''),
       };
+      // Only include rating if it's a valid value 1-5
+      if (rawRating && rawRating >= 1 && rawRating <= 5) {
+        payload.rating = rawRating;
+      }
       if (editId) await api.put(`/api/suppliers/${editId}`, payload);
       else        await api.post('/api/suppliers', payload);
       setSnack(editId ? (t('common.success')||'تم التحديث') : (t('common.success')||'تمت الإضافة'));
