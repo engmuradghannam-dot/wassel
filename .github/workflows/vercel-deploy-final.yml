@@ -9,28 +9,15 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Install & Build
+      - name: Trigger Vercel Deploy Hook
         run: |
-          cd client
-          npm install --legacy-peer-deps
-          CI=false REACT_APP_API_URL=https://wassel-cyj5.onrender.com npm run build
-
-      - name: Deploy via Vercel CLI
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-        run: |
-          npm install -g vercel@latest
-          cd client
-          # vcp_ token is project-scoped, deploy directly
-          vercel deploy --prebuilt --prod --token "$VERCEL_TOKEN" --yes 2>&1
-          EXIT=$?
-          if [ $EXIT -ne 0 ]; then
-            echo "Prebuilt failed, trying full deploy..."
-            vercel deploy --prod --token "$VERCEL_TOKEN" --yes 2>&1
-          fi
+          curl -s -X POST \
+            "https://api.vercel.com/v1/integrations/deploy/prj_AOPJi4HUR2Yj1BgI1Lc1ZAXqb1Il/7YMMWeFksb" \
+            | python3 -c "
+          import sys,json
+          try:
+              d=json.load(sys.stdin)
+              print('✅ Deploy triggered:', d.get('job',{}).get('id'), d.get('job',{}).get('state'))
+          except:
+              print('Response:', sys.stdin.read()[:200])
+          "
