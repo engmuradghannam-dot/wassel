@@ -1,30 +1,26 @@
 const mongoose = require('mongoose');
 const membershipSchema = new mongoose.Schema({
-  company:     { type: mongoose.Schema.Types.ObjectId, ref:'Company', required:true, index:true },
-  memberNumber:{ type: String },
-  member: {
-    name:      { type: String, required:true },
-    phone:     { type: String, required:true },
-    email:     { type: String },
-    dob:       { type: Date },
-    gender:    { type: String, enum:['male','female'] },
-    nationalId:{ type: String },
-    photo:     { type: String },
-    goals:     { type: String }
-  },
-  plan:        { type: String, required:true },
-  planType:    { type: String, enum:['monthly','quarterly','semi_annual','annual'], default:'monthly' },
-  startDate:   { type: Date, required:true },
-  endDate:     { type: Date, required:true },
-  amount:      { type: Number, required:true },
-  discount:    { type: Number, default:0 },
-  taxAmount:   { type: Number, default:0 },
-  netAmount:   { type: Number, default:0 },
-  paymentStatus:{ type: String, enum:['unpaid','paid'], default:'unpaid' },
-  trainer:     { type: mongoose.Schema.Types.ObjectId, ref:'Employee' },
-  locker:      { type: String },
-  status:      { type: String, enum:['active','expired','frozen','cancelled'], default:'active' },
-  notes:       { type: String },
-  createdBy:   { type: mongoose.Schema.Types.ObjectId, ref:'User' }
+  company:        { type:mongoose.Schema.Types.ObjectId, ref:'Company', required:true, index:true },
+  memberNumber:   { type:String },
+  memberName:     { type:String, required:true },
+  memberPhone:    { type:String },
+  memberEmail:    { type:String },
+  memberNationalId:{ type:String },
+  memberGender:   { type:String, enum:['male','female'], default:'male' },
+  membershipType: { type:String, enum:['daily','monthly','quarterly','semi_annual','annual','class_pack'], default:'monthly' },
+  startDate:      { type:Date },
+  endDate:        { type:Date },
+  fee:            { type:Number, default:0 },
+  paidAmount:     { type:Number, default:0 },
+  status:         { type:String, enum:['active','expired','frozen','cancelled'], default:'active' },
+  notes:          { type:String },
+  createdBy:      { type:mongoose.Schema.Types.ObjectId, ref:'User' }
 }, { timestamps:true });
-module.exports = mongoose.model('GymMembership', membershipSchema);
+membershipSchema.pre('save', async function(next) {
+  if (!this.memberNumber) {
+    const count = await this.constructor.countDocuments({ company: this.company });
+    this.memberNumber = `MEM-${String(count+1).padStart(5,'0')}`;
+  }
+  next();
+});
+module.exports = mongoose.model('Membership', membershipSchema);

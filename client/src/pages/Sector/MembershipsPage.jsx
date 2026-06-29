@@ -1,20 +1,146 @@
-import React from 'react';
-import { Chip, Box, Typography } from '@mui/material';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Box, Paper, Typography, Button, TextField, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Grid, Chip, Alert, CircularProgress, Snackbar, InputAdornment, MenuItem, Avatar, Tooltip, Card, CardContent } from '@mui/material';
+import { Add, Edit, Delete, Search, Refresh, FitnessCenter, Close, Save } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
-import SectorPage from './SectorPage';
-const Memberships = () => {
+import api from '../../services/api';
+import Layout from '../../components/Layout';
+import { getSectorColor } from '../../utils/sectorNav';
+
+const TYPES = [
+  {v:'monthly',ar:'شهري',en:'Monthly'},{v:'quarterly',ar:'ربع سنوي',en:'Quarterly'},
+  {v:'semi_annual',ar:'نصف سنوي',en:'Semi-Annual'},{v:'annual',ar:'سنوي',en:'Annual'},
+  {v:'daily',ar:'يومي',en:'Daily'},{v:'class_pack',ar:'باقة حصص',en:'Class Pack'},
+];
+const STATUS = [
+  {value:'active',ar:'نشط',en:'Active',color:'#34a853'},
+  {value:'expired',ar:'منتهي',en:'Expired',color:'#e53935'},
+  {value:'frozen',ar:'مجمد',en:'Frozen',color:'#1a73e8'},
+  {value:'cancelled',ar:'ملغى',en:'Cancelled',color:'#546e7a'},
+];
+const EMPTY = { memberName:'', memberPhone:'', memberNationalId:'', memberEmail:'', memberGender:'male', membershipType:'monthly', startDate:'', endDate:'', fee:0, paidAmount:0, status:'active', notes:'' };
+
+export default function MembershipsPage() {
   const { t, i18n } = useTranslation();
-  const AR = i18n.language === 'ar';
-  const CONFIGS = {
-    MembershipsPage: { endpoint:'/api/memberships', icon:'🏋️', title:AR?'الأعضاء':'Members', addLabel:AR?'عضو جديد':'New Member', itemLabel:AR?'عضو':'member', searchFields:['member.name','member.phone','memberNumber'], emptyForm:{'member.name':'','member.phone':'','member.gender':'male','plan':'','planType':'monthly','startDate':'','endDate':'','amount':0,'discount':0,'status':'active','notes':''}, validate:(f,AR)=>(!f['member.name']?.trim()?(AR?'الاسم مطلوب':'Name required'):null), columns:[{key:'memberNumber',label:AR?'رقم العضو':'#',render:(i)=><Typography variant="caption" sx={{fontFamily:'monospace'}}>{i.memberNumber||'—'}</Typography>},{key:'member',label:AR?'العضو':'Member',render:(i)=><Box><Typography variant="body2" fontWeight={600}>{i.member?.name||'—'}</Typography><Typography variant="caption" color="text.secondary">{i.member?.phone}</Typography></Box>},{key:'plan',label:AR?'الخطة':'Plan',render:(i)=><Chip label={i.plan||'—'} size="small" sx={{fontSize:'0.7rem'}}/>},{key:'endDate',label:AR?'الانتهاء':'Expiry',render:(i)=><Typography variant="body2">{i.endDate?new Date(i.endDate).toLocaleDateString('ar-SA'):'—'}</Typography>},{key:'status',label:AR?'الحالة':'Status',render:(i)=><Chip label={AR?{active:'نشط',expired:'منتهي',frozen:'مجمد',cancelled:'ملغى'}[i.status]:i.status} color={{active:'success',expired:'error',frozen:'info',cancelled:'default'}[i.status]||'default'} size="small" sx={{fontSize:'0.7rem'}}/>}],
-      formTabs:[{label:AR?'بيانات العضو':'Member Info',fields:[{key:'member.name',label:AR?'الاسم *':'Name *',width:6,required:true},{key:'member.phone',label:AR?'الهاتف *':'Phone *',width:6,required:true},{key:'member.gender',label:AR?'الجنس':'Gender',width:4,type:'select',options:[{value:'male',label:AR?'ذكر':'Male'},{value:'female',label:AR?'أنثى':'Female'}]},{key:'plan',label:AR?'الخطة':'Plan',width:4},{key:'planType',label:AR?'نوع الاشتراك':'Plan Type',width:4,type:'select',options:[{value:'monthly',label:AR?'شهري':'Monthly'},{value:'quarterly',label:AR?'ربع سنوي':'Quarterly'},{value:'semi_annual',label:AR?'نصف سنوي':'Semi-Annual'},{value:'annual',label:AR?'سنوي':'Annual'}]},{key:'startDate',label:AR?'تاريخ البداية *':'Start *',width:6,type:'date',required:true},{key:'endDate',label:AR?'تاريخ الانتهاء *':'End *',width:6,type:'date',required:true},{key:'amount',label:AR?'الرسوم (ر.س)':'Fee (SAR)',width:4,type:'number'},{key:'discount',label:AR?'الخصم':'Discount',width:4,type:'number'},{key:'status',label:AR?'الحالة':'Status',width:4,type:'select',options:[{value:'active',label:AR?'نشط':'Active'},{value:'frozen',label:AR?'مجمد':'Frozen'},{value:'expired',label:AR?'منتهي':'Expired'},{value:'cancelled',label:AR?'ملغى':'Cancelled'}]},{key:'notes',label:AR?'ملاحظات':'Notes',width:12,type:'textarea'}]}]},
-    TablesPage: { endpoint:'/api/tables', icon:'🪑', title:AR?'الطاولات':'Tables', addLabel:AR?'طاولة جديدة':'New Table', itemLabel:AR?'طاولة':'table', searchFields:['number','section'], emptyForm:{number:'',capacity:4,section:'',status:'available',notes:'',isActive:true}, validate:(f,AR)=>(!f.number?.trim()?(AR?'رقم الطاولة مطلوب':'Table number required'):null), columns:[{key:'number',label:AR?'رقم الطاولة':'Table #',render:(i)=><Typography variant="body2" fontWeight={700}>{i.number}</Typography>},{key:'capacity',label:AR?'السعة':'Capacity',render:(i)=><Typography variant="body2">{i.capacity} 👥</Typography>},{key:'section',label:AR?'القسم':'Section',render:(i)=><Typography variant="body2">{i.section||'—'}</Typography>},{key:'status',label:AR?'الحالة':'Status',render:(i)=><Chip label={AR?{available:'متاح',occupied:'مشغول',reserved:'محجوز',cleaning:'تنظيف'}[i.status]:i.status} color={{available:'success',occupied:'error',reserved:'warning',cleaning:'info'}[i.status]||'default'} size="small" sx={{fontSize:'0.7rem'}}/>}],
-      formTabs:[{label:AR?'بيانات الطاولة':'Table Details',fields:[{key:'number',label:AR?'رقم الطاولة *':'Table # *',width:4,required:true},{key:'capacity',label:AR?'السعة (أشخاص)':'Capacity',width:4,type:'number'},{key:'section',label:AR?'القسم / المنطقة':'Section',width:4},{key:'status',label:AR?'الحالة':'Status',width:6,type:'select',options:[{value:'available',label:AR?'متاح':'Available'},{value:'occupied',label:AR?'مشغول':'Occupied'},{value:'reserved',label:AR?'محجوز':'Reserved'},{value:'cleaning',label:AR?'تنظيف':'Cleaning'}]},{key:'notes',label:AR?'ملاحظات':'Notes',width:12,type:'textarea'}]}]},
-    RestaurantOrdersPage: { endpoint:'/api/restaurant-orders', icon:'🍽️', title:AR?'الطلبات':'Orders', addLabel:AR?'طلب جديد':'New Order', itemLabel:AR?'طلب':'order', searchFields:['orderNumber','customerName'], emptyForm:{orderNumber:'',type:'dine_in',customerName:'',customerPhone:'','items.0.name':'','items.0.quantity':1,'items.0.unitPrice':0,status:'open',paymentMethod:'cash',notes:''}, validate:(f,AR)=>null, columns:[{key:'orderNumber',label:AR?'رقم الطلب':'Order #',render:(i)=><Typography variant="caption" sx={{fontFamily:'monospace'}}>{i.orderNumber||i._id?.slice(-6)}</Typography>},{key:'type',label:AR?'النوع':'Type',render:(i)=><Chip label={AR?{dine_in:'داخل',takeaway:'خارج',delivery:'توصيل'}[i.type]:i.type} size="small" sx={{fontSize:'0.7rem'}}/>},{key:'total',label:AR?'الإجمالي':'Total',render:(i)=><Typography variant="body2" fontWeight={700}>{(i.total||0).toLocaleString()} {AR?'ر.س':'SAR'}</Typography>},{key:'status',label:AR?'الحالة':'Status',render:(i)=><Chip label={AR?{open:'مفتوح',preparing:'يُحضَّر',ready:'جاهز',served:'قُدِّم',paid:'مدفوع',cancelled:'ملغى'}[i.status]:i.status} color={{open:'warning',preparing:'info',ready:'primary',served:'secondary',paid:'success',cancelled:'error'}[i.status]||'default'} size="small" sx={{fontSize:'0.7rem'}}/>}],
-      formTabs:[{label:AR?'تفاصيل الطلب':'Order Details',fields:[{key:'type',label:AR?'نوع الطلب':'Type',width:4,type:'select',options:[{value:'dine_in',label:AR?'داخل المطعم':'Dine In'},{value:'takeaway',label:AR?'خارج':'Takeaway'},{value:'delivery',label:AR?'توصيل':'Delivery'}]},{key:'customerName',label:AR?'اسم العميل':'Customer',width:4},{key:'customerPhone',label:AR?'الهاتف':'Phone',width:4},{key:'items.0.name',label:AR?'اسم الطبق':'Item Name',width:5},{key:'items.0.quantity',label:AR?'الكمية':'Qty',width:3,type:'number'},{key:'items.0.unitPrice',label:AR?'السعر':'Price',width:4,type:'number'},{key:'status',label:AR?'الحالة':'Status',width:4,type:'select',options:[{value:'open',label:AR?'مفتوح':'Open'},{value:'preparing',label:AR?'يُحضَّر':'Preparing'},{value:'ready',label:AR?'جاهز':'Ready'},{value:'served',label:AR?'قُدِّم':'Served'},{value:'paid',label:AR?'مدفوع':'Paid'},{value:'cancelled',label:AR?'ملغى':'Cancelled'}]},{key:'paymentMethod',label:AR?'الدفع':'Payment',width:4,type:'select',options:[{value:'cash',label:AR?'نقد':'Cash'},{value:'card',label:AR?'بطاقة':'Card'},{value:'transfer',label:AR?'تحويل':'Transfer'}]},{key:'notes',label:AR?'ملاحظات':'Notes',width:12,type:'textarea'}]}]},
-    GradesPage: { endpoint:'/api/grades', icon:'📝', title:AR?'الدرجات':'Grades', addLabel:AR?'درجة جديدة':'New Grade', itemLabel:AR?'درجة':'grade', searchFields:['subject','semester'], emptyForm:{student:'',subject:'',grade:0,gradeType:'exam',semester:'',academicYear:'',notes:''}, validate:(f,AR)=>(!f.subject?.trim()?(AR?'المادة مطلوبة':'Subject required'):null), columns:[{key:'subject',label:AR?'المادة':'Subject',render:(i)=><Typography variant="body2" fontWeight={600}>{i.subject}</Typography>},{key:'grade',label:AR?'الدرجة':'Grade',render:(i)=><Typography variant="body2" fontWeight={700} sx={{color:i.grade>=60?'success.main':'error.main'}}>{i.grade}/100</Typography>},{key:'gradeType',label:AR?'النوع':'Type',render:(i)=><Chip label={AR?{exam:'اختبار',quiz:'واجب',assignment:'تكليف',midterm:'نصفي',final:'نهائي'}[i.gradeType]:i.gradeType} size="small" sx={{fontSize:'0.7rem'}}/>},{key:'semester',label:AR?'الفصل':'Semester',render:(i)=><Typography variant="body2">{i.semester||'—'}</Typography>}],
-      formTabs:[{label:AR?'بيانات الدرجة':'Grade Details',fields:[{key:'subject',label:AR?'المادة *':'Subject *',width:6,required:true},{key:'gradeType',label:AR?'نوع التقييم':'Assessment Type',width:6,type:'select',options:[{value:'exam',label:AR?'اختبار':'Exam'},{value:'quiz',label:AR?'اختبار قصير':'Quiz'},{value:'assignment',label:AR?'واجب':'Assignment'},{value:'midterm',label:AR?'منتصف الفصل':'Midterm'},{value:'final',label:AR?'نهائي':'Final'},{value:'project',label:AR?'مشروع':'Project'}]},{key:'grade',label:AR?'الدرجة (0-100)':'Grade (0-100)',width:4,type:'number'},{key:'semester',label:AR?'الفصل الدراسي':'Semester',width:4},{key:'academicYear',label:AR?'العام الدراسي':'Academic Year',width:4},{key:'notes',label:AR?'ملاحظات':'Notes',width:12,type:'textarea'}]}]},
+  const AR = i18n.language==='ar';
+  const color = getSectorColor(localStorage.getItem('userIndustry')||'gym');
+
+  const [items,setItems]=useState([]); const [loading,setLoading]=useState(true);
+  const [dialog,setDialog]=useState(false); const [form,setForm]=useState(EMPTY);
+  const [editId,setEditId]=useState(null); const [search,setSearch]=useState('');
+  const [saving,setSaving]=useState(false); const [error,setError]=useState('');
+  const [snack,setSnack]=useState('');
+
+  const load = useCallback(async()=>{ setLoading(true); try { const r=await api.get('/api/sector/memberships'); if(r.data.success) setItems(r.data.data||[]); } catch(e){setError(e.response?.data?.message||'خطأ');} finally{setLoading(false);} },[]);
+  useEffect(()=>{load();},[load]);
+
+  const set = k=>e=>setForm(p=>({...p,[k]:e.target.value}));
+  const openAdd=()=>{setForm({...EMPTY,startDate:new Date().toISOString().split('T')[0]});setEditId(null);setError('');setDialog(true);};
+  const openEdit=m=>{setForm({...m,startDate:m.startDate?.split('T')[0]||'',endDate:m.endDate?.split('T')[0]||''});setEditId(m._id);setError('');setDialog(true);};
+  const close=()=>{setDialog(false);setForm(EMPTY);setEditId(null);setError('');};
+
+  const handleSave=async()=>{
+    if(!form.memberName){setError(AR?'الاسم مطلوب':'Name required');return;}
+    setSaving(true);
+    try{if(editId)await api.put(`/api/sector/memberships/${editId}`,form);else await api.post('/api/sector/memberships',form);setSnack(t('common.success')||'تم');close();load();}
+    catch(e){setError(e.response?.data?.message||'خطأ');} finally{setSaving(false);}
   };
-  return <SectorPage config={CONFIGS['MembershipsPage']} />;
-};
-export default Memberships;
+  const handleDelete=async id=>{if(!window.confirm(AR?'تأكيد؟':'Confirm?'))return;try{await api.delete(`/api/sector/memberships/${id}`);setSnack('تم');load();}catch(e){setError(e.response?.data?.message||'خطأ');}};
+
+  const filtered=items.filter(m=>!search||m.memberName?.toLowerCase().includes(search.toLowerCase())||m.memberPhone?.includes(search));
+  const stInfo=v=>STATUS.find(s=>s.value===v)||STATUS[0];
+
+  const stats={total:items.length,active:items.filter(m=>m.status==='active').length,revenue:items.reduce((s,m)=>s+(m.paidAmount||0),0)};
+
+  return(
+    <Layout>
+      <Box sx={{p:3}}>
+        <Box sx={{display:'flex',justifyContent:'space-between',alignItems:'center',mb:3}}>
+          <Box sx={{display:'flex',alignItems:'center',gap:1.5}}>
+            <FitnessCenter sx={{fontSize:32,color}}/>
+            <Box><Typography variant="h5" fontWeight={800}>{AR?'الاشتراكات':'Memberships'}</Typography>
+              <Typography variant="caption" color="text.secondary">{stats.total} · {stats.active} {AR?'نشط':'active'}</Typography></Box>
+          </Box>
+          <Box sx={{display:'flex',gap:1}}>
+            <IconButton onClick={load} size="small"><Refresh/></IconButton>
+            <Button variant="contained" startIcon={<Add/>} onClick={openAdd} sx={{bgcolor:color,borderRadius:2}}>{AR?'اشتراك جديد':'New Membership'}</Button>
+          </Box>
+        </Box>
+
+        <Grid container spacing={2} sx={{mb:3}}>
+          {[{l:AR?'إجمالي':'Total',v:stats.total,c:'#1a73e8'},{l:AR?'نشط':'Active',v:stats.active,c:'#34a853'},{l:AR?'الإيرادات':'Revenue',v:(stats.revenue).toLocaleString()+' '+(AR?'ر.س':'SAR'),c:'#7b1fa2'}].map((s,i)=>(
+            <Grid item xs={4} key={i}><Card sx={{borderLeft:`4px solid ${s.c}`,borderRadius:2}}><CardContent sx={{py:1.5,'&:last-child':{pb:1.5}}}><Typography variant="h5" fontWeight={800} sx={{color:s.c}}>{s.v}</Typography><Typography variant="caption" color="text.secondary">{s.l}</Typography></CardContent></Card></Grid>
+          ))}
+        </Grid>
+
+        {error&&<Alert severity="error" sx={{mb:2,borderRadius:2}} onClose={()=>setError('')}>{error}</Alert>}
+        <TextField size="small" placeholder={`${t('common.search')||'Search'}...`} value={search} onChange={e=>setSearch(e.target.value)} sx={{mb:2,width:300}} InputProps={{startAdornment:<InputAdornment position="start"><Search sx={{fontSize:18,color:'text.secondary'}}/></InputAdornment>}}/>
+
+        <TableContainer component={Paper} sx={{borderRadius:3}}>
+          <Table><TableHead><TableRow sx={{bgcolor:'#f8f9fa'}}>
+            <TableCell sx={{fontWeight:700}}>{AR?'العضو':'Member'}</TableCell>
+            <TableCell sx={{fontWeight:700}}>{AR?'نوع الاشتراك':'Type'}</TableCell>
+            <TableCell sx={{fontWeight:700}}>{AR?'تاريخ البداية':'Start'}</TableCell>
+            <TableCell sx={{fontWeight:700}}>{AR?'تاريخ الانتهاء':'End'}</TableCell>
+            <TableCell sx={{fontWeight:700}}>{AR?'الرسوم':'Fee'}</TableCell>
+            <TableCell sx={{fontWeight:700}}>{AR?'الحالة':'Status'}</TableCell>
+            <TableCell sx={{fontWeight:700}} align="center">{t('common.actions')||'Actions'}</TableCell>
+          </TableRow></TableHead>
+          <TableBody>
+            {loading?<TableRow><TableCell colSpan={7} align="center" sx={{py:4}}><CircularProgress size={28}/></TableCell></TableRow>
+            :filtered.length===0?<TableRow><TableCell colSpan={7} align="center" sx={{py:4,color:'text.secondary'}}>{AR?'لا يوجد اشتراكات':'No memberships'}</TableCell></TableRow>
+            :filtered.map(m=>{const st=stInfo(m.status);return(
+              <TableRow key={m._id} hover>
+                <TableCell><Box sx={{display:'flex',alignItems:'center',gap:1.2}}>
+                  <Avatar sx={{width:32,height:32,bgcolor:`${color}20`,color,fontSize:13,fontWeight:700}}>{m.memberName?.[0]}</Avatar>
+                  <Box><Typography variant="body2" fontWeight={600}>{m.memberName}</Typography>
+                    {m.memberPhone&&<Typography variant="caption" color="text.secondary" sx={{fontFamily:'monospace'}}>{m.memberPhone}</Typography>}</Box>
+                </Box></TableCell>
+                <TableCell><Chip label={TYPES.find(tp=>tp.v===m.membershipType)?.(AR?'ar':'en')||m.membershipType} size="small" sx={{bgcolor:`${color}15`,color}}/></TableCell>
+                <TableCell><Typography variant="body2">{m.startDate?.split('T')[0]||'—'}</Typography></TableCell>
+                <TableCell><Typography variant="body2" color={m.status==='expired'?'error':undefined}>{m.endDate?.split('T')[0]||'—'}</Typography></TableCell>
+                <TableCell><Typography variant="body2" fontWeight={700}>{(m.paidAmount||0).toLocaleString()} {AR?'ر.س':'SAR'}</Typography></TableCell>
+                <TableCell><Chip label={AR?st.ar:st.en} size="small" sx={{bgcolor:`${st.color}18`,color:st.color,fontWeight:600,fontSize:'0.7rem'}}/></TableCell>
+                <TableCell align="center">
+                  <Tooltip title={t('common.edit')||'Edit'}><IconButton size="small" onClick={()=>openEdit(m)} sx={{color:'#1a73e8'}}><Edit sx={{fontSize:16}}/></IconButton></Tooltip>
+                  <Tooltip title={t('common.delete')||'Delete'}><IconButton size="small" onClick={()=>handleDelete(m._id)} sx={{color:'#e53935'}}><Delete sx={{fontSize:16}}/></IconButton></Tooltip>
+                </TableCell>
+              </TableRow>
+            );})}
+          </TableBody></Table>
+        </TableContainer>
+
+        <Dialog open={dialog} onClose={close} maxWidth="sm" fullWidth PaperProps={{sx:{borderRadius:3}}}>
+          <DialogTitle sx={{fontWeight:700,pb:0}}>
+            <Box sx={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+              {editId?(AR?'✏️ تعديل الاشتراك':'Edit'):(AR?'+ اشتراك جديد':'+ New Membership')}
+              <IconButton onClick={close} size="small"><Close sx={{fontSize:18}}/></IconButton>
+            </Box>
+          </DialogTitle>
+          <DialogContent>
+            {error&&<Alert severity="error" sx={{mb:2,mt:1,borderRadius:2}}>{error}</Alert>}
+            <Grid container spacing={2} sx={{mt:0.5}}>
+              <Grid item xs={12} sm={6}><TextField label={AR?'اسم العضو *':'Member Name *'} value={form.memberName} onChange={set('memberName')} fullWidth required/></Grid>
+              <Grid item xs={12} sm={6}><TextField label={AR?'الهاتف':'Phone'} value={form.memberPhone||''} onChange={set('memberPhone')} fullWidth/></Grid>
+              <Grid item xs={12} sm={6}><TextField label={AR?'البريد الإلكتروني':'Email'} value={form.memberEmail||''} onChange={set('memberEmail')} fullWidth/></Grid>
+              <Grid item xs={6} sm={3}><TextField label={AR?'الجنس':'Gender'} value={form.memberGender||'male'} onChange={set('memberGender')} fullWidth select><MenuItem value="male">{AR?'ذكر':'Male'}</MenuItem><MenuItem value="female">{AR?'أنثى':'Female'}</MenuItem></TextField></Grid>
+              <Grid item xs={12} sm={6}><TextField label={AR?'نوع الاشتراك':'Type'} value={form.membershipType||'monthly'} onChange={set('membershipType')} fullWidth select>{TYPES.map(tp=><MenuItem key={tp.v} value={tp.v}>{AR?tp.ar:tp.en}</MenuItem>)}</TextField></Grid>
+              <Grid item xs={6} sm={3}><TextField label={AR?'البداية':'Start'} type="date" value={form.startDate||''} onChange={set('startDate')} fullWidth InputLabelProps={{shrink:true}}/></Grid>
+              <Grid item xs={6} sm={3}><TextField label={AR?'الانتهاء':'End'} type="date" value={form.endDate||''} onChange={set('endDate')} fullWidth InputLabelProps={{shrink:true}}/></Grid>
+              <Grid item xs={6} sm={3}><TextField label={AR?'الرسوم (ر.س)':'Fee'} type="number" value={form.fee||0} onChange={set('fee')} fullWidth/></Grid>
+              <Grid item xs={6} sm={3}><TextField label={AR?'المدفوع':'Paid'} type="number" value={form.paidAmount||0} onChange={set('paidAmount')} fullWidth/></Grid>
+              <Grid item xs={6} sm={3}><TextField label={AR?'الحالة':'Status'} value={form.status||'active'} onChange={set('status')} fullWidth select>{STATUS.map(s=><MenuItem key={s.value} value={s.value}>{AR?s.ar:s.en}</MenuItem>)}</TextField></Grid>
+              <Grid item xs={12}><TextField label={AR?'ملاحظات':'Notes'} value={form.notes||''} onChange={set('notes')} fullWidth multiline rows={2}/></Grid>
+            </Grid>
+          </DialogContent>
+          <DialogActions sx={{px:3,py:2}}>
+            <Button onClick={close}>{t('common.cancel')||'Cancel'}</Button>
+            <Button variant="contained" onClick={handleSave} disabled={saving} startIcon={saving?<CircularProgress size={16}/>:<Save/>} sx={{bgcolor:color}}>{t('common.save')||'Save'}</Button>
+          </DialogActions>
+        </Dialog>
+        <Snackbar open={!!snack} autoHideDuration={3000} onClose={()=>setSnack('')} anchorOrigin={{vertical:'bottom',horizontal:'center'}}>
+          <Alert severity="success" onClose={()=>setSnack('')} sx={{borderRadius:2}}>{snack}</Alert>
+        </Snackbar>
+      </Box>
+    </Layout>
+  );
+}

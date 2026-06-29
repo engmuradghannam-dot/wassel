@@ -3,35 +3,35 @@ const { protect } = require('../middleware/auth');
 const { getCompany } = require('../middleware/auth');
 
 /**
- * Creates a generic CRUD router for any sector model
+ * Generic CRUD router factory for sector models
  */
-const makeSectorRouter = (Model, autoCode = null) => {
+const makeSectorRouter = (Model, options = {}) => {
   const router = express.Router();
+  const { autoCode, populate = '', searchFields = ['name'] } = options;
 
   // GET all
   router.get('/', protect, async (req, res) => {
     try {
       const co = getCompany(req);
+      if (!co) return res.status(400).json({ success:false, message:'الحساب غير مرتبط بشركة' });
       const filter = { company: co };
       if (req.query.search) {
         const q = new RegExp(req.query.search, 'i');
-        const searchFields = req.query.searchFields?.split(',') || ['name'];
         filter.$or = searchFields.map(f => ({ [f]: q }));
       }
+      // Extra filters from query params
+      const reserved = ['search','limit','skip','sort'];
       Object.entries(req.query).forEach(([k,v]) => {
-        if (!['search','searchFields','limit','skip','sort'].includes(k)) {
-          if (v === 'true') filter[k] = true;
-          else if (v === 'false') filter[k] = false;
-          else filter[k] = v;
+        if (!reserved.includes(k)) {
+          filter[k] = v === 'true' ? true : v === 'false' ? false : v;
         }
       });
-      const limit = parseInt(req.query.limit) || 500;
-      const skip  = parseInt(req.query.skip)  || 0;
-      const sort  = req.query.sort ? JSON.parse(req.query.sort) : { createdAt: -1 };
-      const [docs, count] = await Promise.all([
-        Model.find(filter).limit(limit).skip(skip).sort(sort),
-        Model.countDocuments(filter)
-      ]);
+      const limit = Math.min(parseInt(req.query.limit)||500, 1000);
+      const skip  = parseInt(req.query.skip)||0;
+      const sortQ = req.query.sort ? JSON.parse(req.query.sort) : { createdAt:-1 };
+      let q = Model.find(filter).sort(sortQ).limit(limit).skip(skip);
+      if (populate) q = q.populate(populate);
+      const [docs, count] = await Promise.all([q, Model.countDocuments(filter)]);
       res.json({ success:true, count, data:docs });
     } catch (err) { res.status(500).json({ success:false, message:err.message }); }
   });
@@ -39,7 +39,10 @@ const makeSectorRouter = (Model, autoCode = null) => {
   // GET one
   router.get('/:id', protect, async (req, res) => {
     try {
-      const doc = await Model.findOne({ _id:req.params.id, company:getCompany(req) });
+      const co = getCompany(req);
+      let q = Model.findOne({ _id:req.params.id, company:co });
+      if (populate) q = q.populate(populate);
+      const doc = await q;
       if (!doc) return res.status(404).json({ success:false, message:'السجل غير موجود' });
       res.json({ success:true, data:doc });
     } catch (err) { res.status(500).json({ success:false, message:err.message }); }
@@ -50,12 +53,7 @@ const makeSectorRouter = (Model, autoCode = null) => {
     try {
       const co = getCompany(req);
       if (!co) return res.status(400).json({ success:false, message:'الحساب غير مرتبط بشركة' });
-      let data = { ...req.body, company:co, createdBy:req.user._id };
-      if (autoCode) {
-        const count = await Model.countDocuments({ company:co });
-        data[autoCode.field] = req.body[autoCode.field]?.trim() || `${autoCode.prefix}${String(count+1).padStart(4,'0')}`;
-      }
-      const doc = await Model.create(data);
+      const doc = await Model.create({ ...req.body, company:co, createdBy:req.user._id });
       res.status(201).json({ success:true, data:doc });
     } catch (err) { res.status(400).json({ success:false, message:err.message }); }
   });
@@ -63,9 +61,9 @@ const makeSectorRouter = (Model, autoCode = null) => {
   // PUT update
   router.put('/:id', protect, async (req, res) => {
     try {
+      const co = getCompany(req);
       const doc = await Model.findOneAndUpdate(
-        { _id:req.params.id, company:getCompany(req) },
-        req.body, { new:true, runValidators:true }
+        { _id:req.params.id, company:co }, req.body, { new:true, runValidators:true }
       );
       if (!doc) return res.status(404).json({ success:false, message:'السجل غير موجود' });
       res.json({ success:true, data:doc });
@@ -75,13 +73,44 @@ const makeSectorRouter = (Model, autoCode = null) => {
   // DELETE
   router.delete('/:id', protect, async (req, res) => {
     try {
-      const doc = await Model.findOneAndDelete({ _id:req.params.id, company:getCompany(req) });
+      const co = getCompany(req);
+      const doc = await Model.findOneAndDelete({ _id:req.params.id, company:co });
       if (!doc) return res.status(404).json({ success:false, message:'السجل غير موجود' });
-      res.json({ success:true });
+      res.json({ success:true, message:'تم الحذف' });
     } catch (err) { res.status(500).json({ success:false, message:err.message }); }
   });
 
   return router;
 };
 
-module.exports = { makeSectorRouter };
+// ── Register all sector routes ────────────────────────────────────────────────
+const router = express.Router();
+
+// Hotel
+const Room       = require('../models/hotel/Room');
+const Booking    = require('../models/hotel/Booking');
+router.use('/rooms',    makeSectorRouter(Room,    { searchFields:['number','type'] }));
+router.use('/bookings', makeSectorRouter(Booking, { searchFields:['guestName','roomNumber','guestPhone'] }));
+
+// Clinic / Health
+const Patient     = require('../models/clinic/Patient');
+const Appointment = require('../models/clinic/Appointment');
+router.use('/patients',     makeSectorRouter(Patient,     { searchFields:['name','nationalId','phone'] }));
+router.use('/appointments', makeSectorRouter(Appointment, { searchFields:['patientName','doctorName'] }));
+
+// Education
+const Student = require('../models/education/Student');
+router.use('/students', makeSectorRouter(Student, { searchFields:['name','studentId','classroom'] }));
+
+// Gym
+const Membership = require('../models/gym/Membership');
+router.use('/memberships', makeSectorRouter(Membership, { searchFields:['memberName','memberPhone'] }));
+
+// Restaurant tables
+const Table = require('../models/restaurant/Table');
+router.use('/tables', makeSectorRouter(Table, { searchFields:['number'] }));
+
+// Real Estate
+// router.use('/properties', makeSectorRouter(Property, ...));
+
+module.exports = router;

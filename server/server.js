@@ -189,6 +189,10 @@ app.use('/api/accounting',      accountingRoutes);
 app.use('/api/payments',        paymentRoutes);
 app.use('/api/setup',           setupRoutes);
 
+// Sector-specific routes
+const sectorRoutes = require('./routes/sectorRoutes');
+app.use('/api/sector', sectorRoutes);
+
 app.get('/api/health', (req, res) => res.json({
   status: 'ok',
   timestamp: new Date(),

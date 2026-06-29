@@ -1,13 +1,16 @@
 import React, { useState } from 'react';
 import {
-  Box, ListItemButton, ListItemText, Typography, Avatar,
-  Divider, IconButton, Tooltip
+  Box, List, ListItemButton, ListItemIcon, ListItemText,
+  Typography, Avatar, Divider, IconButton, Tooltip, Chip
 } from '@mui/material';
 import { ChevronLeft, ChevronRight, Logout } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import LanguageSelector from './LanguageSelector';
 import { getNavForIndustry, getSectorColor } from '../utils/sectorNav';
+
+const DRAWER_W = 242;
+const DRAWER_M = 62;
 
 const Layout = ({ children }) => {
   const { t, i18n } = useTranslation();
@@ -22,8 +25,7 @@ const Layout = ({ children }) => {
   const userCompany = localStorage.getItem('userCompany')  || '';
   const sectorColor = getSectorColor(industry);
   const navItems    = getNavForIndustry(industry);
-
-  const drawerW = mini ? 64 : 240;
+  const drawerW     = mini ? DRAWER_M : DRAWER_W;
 
   const logout = () => {
     ['token','userId','userName','userRole','userIndustry','userCompany']
@@ -32,7 +34,7 @@ const Layout = ({ children }) => {
   };
 
   return (
-    <Box sx={{ display:'flex', minHeight:'100vh', bgcolor:'background.default' }}>
+    <Box sx={{ display:'flex', minHeight:'100vh', bgcolor:'#f5f7fa' }}>
 
       {/* ── SIDEBAR ── */}
       <Box sx={{
@@ -42,119 +44,130 @@ const Layout = ({ children }) => {
         display:'flex', flexDirection:'column',
         background:'linear-gradient(180deg,#0d1b2a 0%,#1a2e42 100%)',
         transition:'width 0.22s ease', overflow:'hidden', zIndex:1200,
-        boxShadow: isRTL ? '-2px 0 12px rgba(0,0,0,0.3)' : '2px 0 12px rgba(0,0,0,0.3)',
+        boxShadow: isRTL?'-2px 0 16px rgba(0,0,0,0.35)':'2px 0 16px rgba(0,0,0,0.35)',
       }}>
 
         {/* Logo */}
         <Box sx={{
           display:'flex', alignItems:'center', gap:1.5,
-          px: mini ? 1.5 : 2.5, py:2,
-          borderBottom:`1px solid ${sectorColor}40`, minHeight:64
+          px: mini?1.2:2.5, py:1.8,
+          borderBottom:'1px solid rgba(255,255,255,0.07)', minHeight:62,
         }}>
           <Box sx={{
-            width:36, height:36, borderRadius:'10px', flexShrink:0,
+            width:34, height:34, borderRadius:'9px', flexShrink:0,
             background:`linear-gradient(135deg,${sectorColor},${sectorColor}99)`,
             display:'flex', alignItems:'center', justifyContent:'center',
-            boxShadow:`0 0 16px ${sectorColor}50`
+            boxShadow:`0 0 16px ${sectorColor}55`,
           }}>
-            <Typography sx={{ fontSize:18, fontWeight:900, color:'#fff', fontFamily:'Georgia,serif' }}>W</Typography>
+            <Typography sx={{ fontSize:17, fontWeight:900, color:'#fff', fontFamily:'Georgia,serif' }}>W</Typography>
           </Box>
           {!mini && (
             <Box sx={{ flex:1, minWidth:0 }}>
               <Typography sx={{ color:'#fff', fontWeight:800, fontSize:14 }}>Wassel ERP</Typography>
               {userCompany && (
-                <Typography sx={{ color:`${sectorColor}cc`, fontSize:10, fontWeight:600 }} noWrap>
+                <Typography sx={{ color:'rgba(255,255,255,0.38)', fontSize:9.5 }} noWrap>
                   {userCompany}
                 </Typography>
               )}
             </Box>
           )}
           <IconButton size="small" onClick={() => setMini(v=>!v)}
-            sx={{ color:'rgba(255,255,255,0.4)', p:0.5, flexShrink:0, '&:hover':{ color:'white' } }}>
+            sx={{ color:'rgba(255,255,255,0.35)', p:0.4, '&:hover':{ color:'white' } }}>
             {mini
-              ? (isRTL ? <ChevronLeft sx={{ fontSize:18 }}/> : <ChevronRight sx={{ fontSize:18 }}/>)
-              : (isRTL ? <ChevronRight sx={{ fontSize:18 }}/> : <ChevronLeft sx={{ fontSize:18 }}/>)
+              ? (isRTL?<ChevronLeft sx={{ fontSize:17 }}/>:<ChevronRight sx={{ fontSize:17 }}/>)
+              : (isRTL?<ChevronRight sx={{ fontSize:17 }}/>:<ChevronLeft sx={{ fontSize:17 }}/>)
             }
           </IconButton>
         </Box>
 
-        {/* Nav list */}
+        {/* Sector indicator */}
+        {!mini && (
+          <Box sx={{ px:2, py:0.8, borderBottom:'1px solid rgba(255,255,255,0.05)' }}>
+            <Typography sx={{ color:sectorColor, fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:1 }}>
+              {t(`industries.${industry}`) || industry.replace(/_/g,' ')}
+            </Typography>
+          </Box>
+        )}
+
+        {/* Nav */}
         <Box sx={{
-          flex:1, overflow:'auto', py:1,
+          flex:1, overflow:'auto', py:0.8,
           '&::-webkit-scrollbar':{ width:3 },
-          '&::-webkit-scrollbar-thumb':{ bgcolor:'rgba(255,255,255,0.1)', borderRadius:2 }
+          '&::-webkit-scrollbar-thumb':{ bgcolor:'rgba(255,255,255,0.08)', borderRadius:2 }
         }}>
-          {navItems.map((item, idx) => {
-            if (item === null) return (
-              <Divider key={idx} sx={{ my:0.5, borderColor:'rgba(255,255,255,0.07)' }}/>
-            );
-            const isActive = location.pathname === item.path;
-            const label    = t(item.key);
-            return (
-              <Tooltip key={item.path} title={mini ? label : ''}
-                placement={isRTL ? 'left' : 'right'}>
-                <ListItemButton onClick={() => navigate(item.path)}
-                  sx={{
-                    mx:1, mb:0.2, borderRadius:2, px:1.5, py:0.9,
-                    bgcolor: isActive ? `${sectorColor}22` : 'transparent',
-                    border: '1px solid',
-                    borderColor: isActive ? `${sectorColor}50` : 'transparent',
-                    '&:hover':{ bgcolor:'rgba(255,255,255,0.07)' },
-                    transition:'all 0.15s',
-                    gap: mini ? 0 : 1.2
-                  }}>
-                  <Typography sx={{ fontSize: mini ? 20 : 17, lineHeight:1, flexShrink:0 }}>
-                    {item.icon}
-                  </Typography>
-                  {!mini && (
-                    <ListItemText primary={
-                      <Typography variant="body2" fontWeight={isActive ? 700 : 400} noWrap
-                        sx={{ color: isActive ? '#fff' : 'rgba(255,255,255,0.65)', fontSize:'0.84rem' }}>
-                        {label}
-                      </Typography>
-                    }/>
-                  )}
-                </ListItemButton>
-              </Tooltip>
-            );
-          })}
+          <List dense disablePadding>
+            {navItems.map((item, i) => {
+              if (item === null) return <Divider key={i} sx={{ my:0.4, borderColor:'rgba(255,255,255,0.06)' }}/>;
+              const isActive = location.pathname === item.path;
+              const label    = t(item.key) || item.key;
+              return (
+                <Tooltip key={item.path} title={mini ? label : ''}
+                  placement={isRTL?'left':'right'}>
+                  <ListItemButton onClick={() => navigate(item.path)}
+                    sx={{
+                      mx:0.8, mb:0.15, borderRadius:1.8, px:1.3, py:0.75,
+                      bgcolor: isActive ? `${sectorColor}28` : 'transparent',
+                      border:'1px solid', borderColor: isActive ? `${sectorColor}50` : 'transparent',
+                      '&:hover':{ bgcolor:'rgba(255,255,255,0.07)' },
+                      transition:'all 0.13s',
+                    }}>
+                    <ListItemIcon sx={{
+                      minWidth: mini?0:32,
+                      mr: mini?0:(isRTL?0:0.8), ml: mini?0:(isRTL?0.8:0),
+                      fontSize:17, color:'inherit',
+                    }}>
+                      <Typography sx={{ fontSize:17, lineHeight:1 }}>{item.icon}</Typography>
+                    </ListItemIcon>
+                    {!mini && (
+                      <ListItemText primary={
+                        <Typography variant="body2" fontWeight={isActive?700:400} noWrap
+                          sx={{ color: isActive?'#fff':'rgba(255,255,255,0.66)', fontSize:'0.83rem' }}>
+                          {label}
+                        </Typography>
+                      }/>
+                    )}
+                  </ListItemButton>
+                </Tooltip>
+              );
+            })}
+          </List>
         </Box>
 
-        {/* Bottom bar */}
-        <Box sx={{ borderTop:'1px solid rgba(255,255,255,0.08)', p:1.2 }}>
+        {/* Bottom: user + lang + logout */}
+        <Box sx={{ borderTop:'1px solid rgba(255,255,255,0.07)', p:1 }}>
           {!mini && (
             <Box sx={{
-              display:'flex', alignItems:'center', gap:1,
-              bgcolor:'rgba(255,255,255,0.06)', borderRadius:2,
-              px:1.2, py:0.8, mb:1
+              display:'flex', alignItems:'center', gap:0.8,
+              bgcolor:'rgba(255,255,255,0.05)', borderRadius:1.8, px:1.2, py:0.8, mb:0.8,
             }}>
-              <Avatar sx={{ width:26, height:26, bgcolor:sectorColor, fontSize:11, flexShrink:0 }}>
+              <Avatar sx={{ width:24, height:24, bgcolor:sectorColor, fontSize:10, flexShrink:0 }}>
                 {userName?.[0]}
               </Avatar>
               <Box sx={{ flex:1, minWidth:0 }}>
-                <Typography sx={{ color:'#fff', fontSize:12, fontWeight:600 }} noWrap>{userName}</Typography>
-                <Typography sx={{ color:'rgba(255,255,255,0.4)', fontSize:10 }} noWrap>{userRole}</Typography>
+                <Typography sx={{ color:'#fff', fontSize:11, fontWeight:600 }} noWrap>{userName}</Typography>
+                <Chip label={userRole} size="small"
+                  sx={{ height:14, fontSize:'0.58rem', bgcolor:`${sectorColor}30`, color:sectorColor, mt:0.1 }}/>
               </Box>
             </Box>
           )}
-          <Box sx={{ display:'flex', alignItems:'center', justifyContent: mini ? 'center' : 'space-between', gap:0.5 }}>
-            {!mini && <LanguageSelector variant="icon" onDark />}
-            <Tooltip title={t('auth.logout') || 'Logout'}>
+          <Box sx={{ display:'flex', alignItems:'center', justifyContent:mini?'center':'space-between', gap:0.5 }}>
+            {!mini && <LanguageSelector variant="icon" onDark/>}
+            <Tooltip title={t('auth.logout')||'Logout'}>
               <IconButton onClick={logout} size="small"
-                sx={{ color:'rgba(255,255,255,0.4)', '&:hover':{ color:'#ef5350' } }}>
-                <Logout sx={{ fontSize:18 }}/>
+                sx={{ color:'rgba(255,255,255,0.38)', '&:hover':{ color:'#ef5350' } }}>
+                <Logout sx={{ fontSize:17 }}/>
               </IconButton>
             </Tooltip>
           </Box>
         </Box>
       </Box>
 
-      {/* ── CONTENT ── */}
+      {/* ── MAIN ── */}
       <Box sx={{
         flex:1,
-        [isRTL ? 'mr' : 'ml']: `${drawerW}px`,
-        transition: `margin 0.22s ease`,
-        minHeight:'100vh', overflow:'auto'
+        [isRTL?'mr':'ml']: `${drawerW}px`,
+        transition: isRTL?`margin-right 0.22s ease`:`margin-left 0.22s ease`,
+        minHeight:'100vh', overflow:'auto',
       }}>
         {children}
       </Box>
