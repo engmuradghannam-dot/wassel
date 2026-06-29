@@ -16,7 +16,7 @@ import {
 } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
 import LocationPicker from '../../components/LocationPicker';
-import axios from 'axios';
+import api from '../../services/api';
 
 const CompanySettings = () => {
   const { t } = useTranslation();
@@ -71,7 +71,7 @@ const CompanySettings = () => {
 
   const fetchCompany = async () => {
     try {
-      const res = await axios.get('/api/company');
+      const res = await api.get('/api/company');
       if (res.data.success && res.data.data) {
         const data = res.data.data;
         setCompany(prev => ({ 
@@ -152,7 +152,7 @@ const CompanySettings = () => {
     formData.append('logo', file);
 
     try {
-      const res = await axios.post('/api/company/logo', formData, {
+      const res = await api.post('/api/company/logo', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       if (res.data.success) {
@@ -190,7 +190,7 @@ const CompanySettings = () => {
 
     setLoading(true);
     try {
-      const res = await axios.put('/api/company', company);
+      const res = await api.put('/api/company', company);
       if (res.data.success) {
         setSnackbar({ open: true, message: t('company.saved'), severity: 'success' });
       }

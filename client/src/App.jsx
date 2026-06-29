@@ -6,13 +6,11 @@ import { Box, CircularProgress, Typography } from '@mui/material';
 import { arSD } from '@mui/material/locale';
 import './i18n';
 
-// ─── Auth Guard ───────────────────────────────────────────────────────────
 const PrivateRoute = ({ children }) => {
   const token = localStorage.getItem('token');
   return token ? children : <Navigate to="/login" replace />;
 };
 
-// ─── Lazy Pages ───────────────────────────────────────────────────────────
 const LoginPage          = React.lazy(() => import('./pages/Login/LoginPage'));
 const RegisterPage       = React.lazy(() => import('./pages/Register/RegisterPage'));
 const AuthCallback       = React.lazy(() => import('./pages/AuthCallback/AuthCallback'));
@@ -24,8 +22,8 @@ const SuppliersPage      = React.lazy(() => import('./pages/Suppliers/SuppliersP
 const EmployeesPage      = React.lazy(() => import('./pages/Employees/EmployeesPage'));
 const PurchaseOrdersPage = React.lazy(() => import('./pages/PurchaseOrders/PurchaseOrdersPage'));
 const AccountingPage     = React.lazy(() => import('./pages/Accounting/AccountingPage'));
+const BranchesPage       = React.lazy(() => import('./pages/Branches/BranchesPage'));
 
-// ─── Loading ──────────────────────────────────────────────────────────────
 const PageLoader = () => (
   <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
     <CircularProgress />
@@ -33,7 +31,6 @@ const PageLoader = () => (
   </Box>
 );
 
-// ─── Theme ────────────────────────────────────────────────────────────────
 const theme = createTheme({
   direction: 'rtl',
   palette: {
@@ -55,7 +52,6 @@ const theme = createTheme({
   }
 }, arSD);
 
-// ─── App ──────────────────────────────────────────────────────────────────
 function App() {
   return (
     <ThemeProvider theme={theme}>
@@ -63,24 +59,20 @@ function App() {
       <Router>
         <Suspense fallback={<PageLoader />}>
           <Routes>
-            {/* Public */}
-            <Route path="/login"    element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
-
-            {/* Google OAuth callback */}
+            <Route path="/login"         element={<LoginPage />} />
+            <Route path="/register"      element={<RegisterPage />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
 
-            {/* Private */}
-            <Route path="/dashboard"       element={<PrivateRoute><Dashboard /></PrivateRoute>} />
-            <Route path="/chat"            element={<PrivateRoute><ChatPage /></PrivateRoute>} />
+            <Route path="/dashboard"        element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+            <Route path="/chat"             element={<PrivateRoute><ChatPage /></PrivateRoute>} />
             <Route path="/company-settings" element={<PrivateRoute><CompanySettings /></PrivateRoute>} />
-            <Route path="/inventory"       element={<PrivateRoute><InventoryPage /></PrivateRoute>} />
-            <Route path="/suppliers"       element={<PrivateRoute><SuppliersPage /></PrivateRoute>} />
-            <Route path="/employees"       element={<PrivateRoute><EmployeesPage /></PrivateRoute>} />
-            <Route path="/purchase-orders" element={<PrivateRoute><PurchaseOrdersPage /></PrivateRoute>} />
-            <Route path="/accounting"      element={<PrivateRoute><AccountingPage /></PrivateRoute>} />
+            <Route path="/inventory"        element={<PrivateRoute><InventoryPage /></PrivateRoute>} />
+            <Route path="/suppliers"        element={<PrivateRoute><SuppliersPage /></PrivateRoute>} />
+            <Route path="/employees"        element={<PrivateRoute><EmployeesPage /></PrivateRoute>} />
+            <Route path="/purchase-orders"  element={<PrivateRoute><PurchaseOrdersPage /></PrivateRoute>} />
+            <Route path="/accounting"       element={<PrivateRoute><AccountingPage /></PrivateRoute>} />
+            <Route path="/branches"         element={<PrivateRoute><BranchesPage /></PrivateRoute>} />
 
-            {/* Default */}
             <Route path="/"  element={<Navigate to="/login" replace />} />
             <Route path="*"  element={<Navigate to="/login" replace />} />
           </Routes>

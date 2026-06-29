@@ -10,6 +10,7 @@
   "env": {
     "CI": "false",
     "SKIP_PREFLIGHT_CHECK": "true",
-    "REACT_APP_API_URL": "https://wassel-cyj5.onrender.com"
+    "REACT_APP_API_URL": "https://wassel-cyj5.onrender.com",
+    "REACT_APP_GOOGLE_MAPS_API_KEY": "AIzaSyBUNkR0ggJBX0rbUrYU2IRm4uEZSrMQpcU"
   }
 }
