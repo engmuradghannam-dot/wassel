@@ -40,7 +40,10 @@ router.post('/', protect, async (req, res) => {
       createdBy: req.user._id
     });
     res.status(201).json({ success:true, data:customer });
-  } catch (e) { res.status(400).json({ success:false, message:e.message }); }
+  } catch (e) { 
+    console.error('Customer create error:', e.message, '| company:', getCompany(req));
+    res.status(400).json({ success:false, message:e.message, detail: e.message }); 
+  }
 });
 
 // GET single
@@ -74,3 +77,5 @@ router.delete('/:id', protect, authorize('owner','admin','superadmin'), async (r
 });
 
 module.exports = router;
+
+// Version: 2025-fix-getcompany
