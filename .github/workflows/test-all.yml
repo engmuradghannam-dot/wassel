@@ -7,51 +7,13 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - name: Test Backend
+      - name: Test Login
         run: |
-          echo "## Backend Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "=== Health ==="
+          curl -s --max-time 30 https://wassel-cyj5.onrender.com/api/health
 
-          echo "### Health" >> $GITHUB_STEP_SUMMARY
-          HEALTH=$(curl -s --max-time 30 https://wassel-cyj5.onrender.com/api/health)
-          echo "$HEALTH" | python3 -c "
-          import sys,json
-          try:
-              d=json.load(sys.stdin)
-              print('✅ Backend:', d.get('status'), '| DB:', d.get('db','?'))
-          except Exception as e:
-              print('❌ Backend error:', e)
-          " | tee -a $GITHUB_STEP_SUMMARY
-
-          echo "### Login" >> $GITHUB_STEP_SUMMARY
-          LOGIN=$(curl -s --max-time 30 -X POST https://wassel-cyj5.onrender.com/api/users/login \
+          echo ""
+          echo "=== Login ==="
+          curl -s --max-time 30 -X POST https://wassel-cyj5.onrender.com/api/users/login \
             -H "Content-Type: application/json" \
-            -d '{"email":"eng.murad.ghannam@gmail.com","password":"Admin2026@"}')
-          echo "Raw: $LOGIN"
-          echo "$LOGIN" | python3 -c "
-          import sys,json
-          try:
-              d=json.load(sys.stdin)
-              if d.get('success'):
-                  print('✅ Login OK - Role:', d['data']['user']['role'])
-              else:
-                  print('❌ Login failed:', d.get('message','?'))
-          except Exception as e:
-              print('❌ Parse error:', e)
-          " | tee -a $GITHUB_STEP_SUMMARY
-
-          echo "### Register" >> $GITHUB_STEP_SUMMARY
-          REG=$(curl -s --max-time 30 -X POST https://wassel-cyj5.onrender.com/api/users/register \
-            -H "Content-Type: application/json" \
-            -d '{"name":"Test","email":"newtest123@test.com","password":"Test1234","companyName":"TestCo"}')
-          echo "Raw: $REG"
-          echo "$REG" | python3 -c "
-          import sys,json
-          try:
-              d=json.load(sys.stdin)
-              if d.get('success'):
-                  print('✅ Register OK')
-              else:
-                  print('❌ Register failed:', d.get('message','?'))
-          except Exception as e:
-              print('❌ Parse error:', e)
-          " | tee -a $GITHUB_STEP_SUMMARY
+            -d '{"email":"eng.murad.ghannam@gmail.com","password":"Admin2026@"}'
