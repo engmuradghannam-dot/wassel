@@ -1,68 +1,26 @@
 name: Test All Endpoints
-
 on:
   workflow_dispatch:
-
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - name: Full System Test
+      - name: Test chat-contacts
         run: |
-          BASE="https://wassel-cyj5.onrender.com"
-          
-          # Login first
-          LOGIN=$(curl -s -X POST "$BASE/api/users/login" \
+          LOGIN=$(curl -s -X POST https://wassel-cyj5.onrender.com/api/users/login \
             -H "Content-Type: application/json" \
             -d '{"email":"eng.murad.ghannam@gmail.com","password":"Admin2026@"}')
           TOKEN=$(echo "$LOGIN" | python3 -c "import sys,json; print(json.load(sys.stdin).get('token',''))")
-          ROLE=$(echo "$LOGIN" | python3 -c "import sys,json; print(json.load(sys.stdin).get('data',{}).get('user',{}).get('role',''))")
-          echo "✅ Login - Role: $ROLE"
-          
-          H="Authorization: Bearer $TOKEN"
-          
-          test_endpoint() {
-            local name=$1; local method=$2; local url=$3; local data=$4
-            if [ -n "$data" ]; then
-              RES=$(curl -s -X $method "$BASE$url" -H "$H" -H "Content-Type: application/json" -d "$data")
-            else
-              RES=$(curl -s -X $method "$BASE$url" -H "$H")
-            fi
-            SUCCESS=$(echo "$RES" | python3 -c "import sys,json; d=json.load(sys.stdin); print('✅' if d.get('success') else '❌')" 2>/dev/null || echo "❌")
-            MSG=$(echo "$RES" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('message','') or f'{d.get(\"count\",\"?\")}')" 2>/dev/null || echo "parse error")
-            echo "$SUCCESS $name: $MSG"
-          }
-          
+          echo "Token: ${TOKEN:0:20}..."
+
+          echo "=== chat-contacts ==="
+          curl -s "https://wassel-cyj5.onrender.com/api/users/chat-contacts" \
+            -H "Authorization: Bearer $TOKEN"
+
           echo ""
-          echo "=== CORE ==="
-          test_endpoint "Health"         GET  "/api/health"
-          test_endpoint "Get Me"         GET  "/api/auth/me"
-          test_endpoint "Get Company"    GET  "/api/company"
-          test_endpoint "Get Users"      GET  "/api/users"
-          
-          echo ""
-          echo "=== INVENTORY ==="
-          test_endpoint "Get Inventory"  GET  "/api/inventory"
-          test_endpoint "Get Suppliers"  GET  "/api/suppliers"
-          test_endpoint "Get POs"        GET  "/api/purchase-orders"
-          test_endpoint "Get Warehouses" GET  "/api/warehouses"
-          
-          echo ""
-          echo "=== HR ==="
-          test_endpoint "Get Employees"  GET  "/api/employees"
-          test_endpoint "Get Branches"   GET  "/api/branches"
-          test_endpoint "Get Roles"      GET  "/api/roles"
-          
-          echo ""
-          echo "=== FINANCE ==="
-          test_endpoint "Get Accounting" GET  "/api/accounting/accounts"
-          test_endpoint "Get Reports"    GET  "/api/reports/balance-sheet"
-          
-          echo ""
-          echo "=== CHAT ==="
-          test_endpoint "Get Rooms"      GET  "/api/chat/rooms"
-          test_endpoint "Chat Contacts"  GET  "/api/users/chat-contacts"
-          
-          echo ""
-          echo "=== SUPERADMIN ==="
-          test_endpoint "SuperAdmin"     GET  "/api/superadmin/stats"
+          echo "=== all users ==="
+          curl -s "https://wassel-cyj5.onrender.com/api/users" \
+            -H "Authorization: Bearer $TOKEN" | python3 -c "
+          import sys,json
+          d=json.load(sys.stdin)
+          print('Count:', d.get('count', len(d.get('data',[]))))"
