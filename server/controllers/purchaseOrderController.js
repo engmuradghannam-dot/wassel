@@ -1,6 +1,6 @@
 const PurchaseOrder = require('../models/PurchaseOrder');
+const { getCompany } = require('../middleware/auth');
 
-const getCompany = (req) => (req.user?.company?.toString() || req.company || '');
 const Inventory     = require('../models/Inventory');
 const { buildFilter } = require('../middleware/tenant');
 

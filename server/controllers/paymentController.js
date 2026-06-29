@@ -1,6 +1,6 @@
 const Payment = require('../models/Payment');
+const { getCompany } = require('../middleware/auth');
 
-const getCompany = (req) => (req.user?.company?.toString() || req.company || '');
 const Company = require('../models/Company');
 
 const PLAN_PRICES = {

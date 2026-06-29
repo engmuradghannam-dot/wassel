@@ -95,6 +95,8 @@ exports.register = async (req, res) => {
       email:     email.toLowerCase().trim(),
       password:  hashed,
       role:      isSystemFirstUser ? 'superadmin' : 'owner',
+      // 'owner' = full admin of their company (same as admin but higher hierarchy)
+      // 'superadmin' = platform admin (only 1 in the whole system)
       company:   company._id,
       language:  'ar',
       isActive:  true,
@@ -234,7 +236,7 @@ exports.createUser = async (req, res) => {
       name, email:email.toLowerCase(), password:hashed,
       role: role || 'user',
       customRole, permissionOverrides, branch,
-      company: req.user.role==='superadmin' ? (req.body.company || req.user.company) : req.user.company,
+      company: req.user.role==='superadmin' ? (req.body.company || require('../middleware/auth').getCompany(req)) : require('../middleware/auth').getCompany(req),
       isActive:true, isOnline:false, lastSeen:new Date(),
       createdBy: req.user.id
     });
@@ -247,7 +249,9 @@ exports.createUser = async (req, res) => {
 // ── Update user ───────────────────────────────────────────────────────────────
 exports.updateUser = async (req, res) => {
   try {
-    const filter = req.user.role==='superadmin' ? { _id:req.params.id } : { _id:req.params.id, company:req.user.company };
+    const { getCompany: __gc } = require('../middleware/auth');
+    const __co = __gc(req);
+    const filter = req.user.role==='superadmin' ? { _id:req.params.id } : { _id:req.params.id, company:__co };
     const { password, email, ...rest } = req.body;
     const update = { ...rest };
     if (password) update.password = await bcrypt.hash(password, 12);
@@ -262,7 +266,9 @@ exports.updateUser = async (req, res) => {
 // ── Delete user ───────────────────────────────────────────────────────────────
 exports.deleteUser = async (req, res) => {
   try {
-    const filter = req.user.role==='superadmin' ? { _id:req.params.id } : { _id:req.params.id, company:req.user.company };
+    const { getCompany: __gc } = require('../middleware/auth');
+    const __co = __gc(req);
+    const filter = req.user.role==='superadmin' ? { _id:req.params.id } : { _id:req.params.id, company:__co };
     const user = await User.findOne(filter);
     if (!user) return res.status(404).json({ success:false, message:'المستخدم غير موجود' });
     if (user.role==='superadmin') return res.status(403).json({ success:false, message:'لا يمكن حذف المشرف العام' });

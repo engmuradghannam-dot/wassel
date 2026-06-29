@@ -1,4 +1,5 @@
 const { Account, JournalEntry, Transaction, CostCenter } = require('../models/Accounting');
+const { getCompany } = require('../middleware/auth');
 
 // ════════════════════════════════════════════════════════
 // ACCOUNTS (Chart of Accounts)

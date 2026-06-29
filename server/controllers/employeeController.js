@@ -1,6 +1,6 @@
 const Employee = require('../models/Employee');
+const { getCompany } = require('../middleware/auth');
 
-const getCompany = (req) => (req.user?.company?.toString() || req.company || '');
 const { buildFilter } = require('../middleware/tenant');
 
 exports.getEmployees = async (req, res) => {

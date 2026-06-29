@@ -1,4 +1,5 @@
 const ChatRoom = require('../models/ChatRoom');
+const { getCompany } = require('../middleware/auth');
 const Message  = require('../models/Message');
 const User     = require('../models/User');
 

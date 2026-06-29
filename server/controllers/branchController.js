@@ -1,6 +1,6 @@
 const Branch = require('../models/Branch');
+const { getCompany } = require('../middleware/auth');
 
-const getCompany = (req) => (req.user?.company?.toString() || req.company || '');
 const { buildFilter, checkPlanLimit } = require('../middleware/tenant');
 
 exports.getBranches = async (req, res) => {

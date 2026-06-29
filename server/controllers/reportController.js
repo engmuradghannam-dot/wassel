@@ -1,4 +1,5 @@
 const Inventory     = require('../models/Inventory');
+const { getCompany } = require('../middleware/auth');
 const Supplier      = require('../models/Supplier');
 const Employee      = require('../models/Employee');
 const PurchaseOrder = require('../models/PurchaseOrder');

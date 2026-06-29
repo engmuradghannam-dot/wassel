@@ -1,6 +1,6 @@
 const Warehouse = require('../models/Warehouse');
+const { getCompany } = require('../middleware/auth');
 
-const getCompany = (req) => (req.user?.company?.toString() || req.company || '');
 const { buildFilter } = require('../middleware/tenant');
 
 exports.getWarehouses = async (req, res) => {

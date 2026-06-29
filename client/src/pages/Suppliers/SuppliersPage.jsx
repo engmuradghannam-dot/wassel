@@ -481,8 +481,8 @@ const SuppliersPage = () => {
 
           <DialogActions sx={{ px:3, py:2, borderTop:'1px solid', borderColor:'divider' }}>
             <Box sx={{ display:'flex', gap:1, mr:'auto' }}>
-              {tab>0 && <Button onClick={()=>setTab(t=>t-1)} variant="outlined" size="small">← {i18n.language==='ar'?'السابق':'Previous'}</Button>}
-              {tab<3 && <Button onClick={()=>setTab(t=>t+1)} variant="outlined" size="small">{i18n.language==='ar'?'التالي':'Next'} →</Button>}
+              {tab>0 && <Button onClick={()=>setTab(t=>t-1)} variant="outlined" size="small">← {t('common.previous')||'Previous'}</Button>}
+              {tab<3 && <Button onClick={()=>setTab(t=>t+1)} variant="outlined" size="small">{t('common.next')||'Next'} →</Button>}
             </Box>
             <Button onClick={close}>{tx.cancel}</Button>
             <Button variant="contained" onClick={handleSave} disabled={saving}
