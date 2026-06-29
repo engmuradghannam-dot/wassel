@@ -7,27 +7,39 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Full Test
         run: |
-          echo "=== 1. Health ==="
-          curl -s https://wassel-cyj5.onrender.com/api/health
+          {
+            echo "=== HEALTH ==="
+            curl -s https://wassel-cyj5.onrender.com/api/health
+            echo ""
+            echo "=== LOGIN ==="
+            curl -s -X POST https://wassel-cyj5.onrender.com/api/users/login \
+              -H "Content-Type: application/json" \
+              -d '{"email":"eng.murad.ghannam@gmail.com","password":"Admin2026@"}'
+            echo ""
+            echo "=== REGISTER ==="
+            curl -s -X POST https://wassel-cyj5.onrender.com/api/users/register \
+              -H "Content-Type: application/json" \
+              -d '{"name":"Test","email":"newtest777@gmail.com","password":"Test1234","companyName":"TestCo"}'
+            echo ""
+            echo "=== GOOGLE REDIRECT ==="
+            curl -sI https://wassel-cyj5.onrender.com/api/auth/google | grep -i "location\|HTTP"
+            echo ""
+            echo "=== VERCEL JS URL CHECK ==="
+            JS_FILE=$(curl -s https://wassel-seven.vercel.app | grep -o '/static/js/main\.[^"]*\.js' | head -1)
+            echo "JS: $JS_FILE"
+            curl -s "https://wassel-seven.vercel.app$JS_FILE" | grep -o '"https://[^"]*onrender[^"]*"' | head -3
+          } > results.txt
+          cat results.txt
 
-          echo ""
-          echo "=== 2. Login ==="
-          curl -s -X POST https://wassel-cyj5.onrender.com/api/users/login \
-            -H "Content-Type: application/json" \
-            -d '{"email":"eng.murad.ghannam@gmail.com","password":"Admin2026@"}'
-
-          echo ""
-          echo "=== 3. Register new user ==="
-          curl -s -X POST https://wassel-cyj5.onrender.com/api/users/register \
-            -H "Content-Type: application/json" \
-            -d '{"name":"Test User","email":"testuser888@test.com","password":"Test1234","companyName":"Test Company"}'
-
-          echo ""
-          echo "=== 4. Google OAuth URL ==="
-          curl -sv https://wassel-cyj5.onrender.com/api/auth/google 2>&1 | grep -E "location:|HTTP/"
-
-          echo ""
-          echo "=== 5. Check REACT_APP_API_URL in deployed JS ==="
-          curl -s https://wassel-seven.vercel.app | grep -o 'chunk.*\.js' | head -3
+      - name: Commit results
+        run: |
+          git config user.email "ci@wassel.app"
+          git config user.name "CI"
+          git add results.txt
+          git diff --staged --quiet || (git commit -m "ci: test results" && git push) || true
