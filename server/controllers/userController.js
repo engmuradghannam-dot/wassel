@@ -95,12 +95,11 @@ exports.login = async (req, res) => {
 
     const token = signToken(user);
 
+    const userData = { ...user.toObject(), password: undefined };
     res.json({
       success: true, token,
-      data: {
-        user:    { ...user.toObject(), password: undefined },
-        company: user.company
-      }
+      data:    { user: userData, company: user.company },
+      user:    userData  // top-level for compatibility
     });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
