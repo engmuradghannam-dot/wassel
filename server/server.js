@@ -117,6 +117,28 @@ io.on('connection', (socket) => {
     socket.to(roomId).emit('user_typing', { userId, userName, isTyping: true }));
   socket.on('typing_stop',  ({ roomId, userId }) =>
     socket.to(roomId).emit('user_typing', { userId, isTyping: false }));
+  // ── Incoming call relay ─────────────────────────────────────────────────
+  socket.on('call_incoming', ({ roomId, mode, callerName, meetRoom, participants }) => {
+    // Notify all participants in the room except caller
+    if (Array.isArray(participants)) {
+      participants.forEach(p => {
+        const pid = p._id || p;
+        if (pid !== socket.userId) {
+          const targetSocket = onlineUsers.get(pid.toString());
+          if (targetSocket) {
+            io.to(targetSocket).emit('incoming_call', {
+              callerName, mode, meetRoom,
+              callerAvatar: null,
+              callerCompany: null
+            });
+          }
+        }
+      });
+    } else {
+      socket.to(roomId).emit('incoming_call', { callerName, mode, meetRoom });
+    }
+  });
+
   socket.on('mark_read',    ({ roomId, userId }) =>
     socket.to(roomId).emit('messages_read', { roomId, userId }));
   socket.on('disconnect', async () => {
