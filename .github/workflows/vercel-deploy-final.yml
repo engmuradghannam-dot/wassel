@@ -21,44 +21,16 @@ jobs:
           npm install --legacy-peer-deps
           CI=false REACT_APP_API_URL=https://wassel-cyj5.onrender.com npm run build
 
-      - name: Deploy via Vercel API
+      - name: Deploy via Vercel CLI
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
-          # Get user info
-          USER=$(curl -s "https://api.vercel.com/v2/user" \
-            -H "Authorization: Bearer $VERCEL_TOKEN")
-          echo "User: $USER"
-          ORG_ID=$(echo "$USER" | python3 -c "
-          import sys,json
-          d=json.load(sys.stdin)
-          print(d.get('user',d).get('id',''))
-          " 2>/dev/null || echo "")
-
-          # Get projects
-          PROJECTS=$(curl -s "https://api.vercel.com/v9/projects" \
-            -H "Authorization: Bearer $VERCEL_TOKEN")
-          echo "Projects: $PROJECTS"
-          
-          PROJECT_ID=$(echo "$PROJECTS" | python3 -c "
-          import sys,json
-          d=json.load(sys.stdin)
-          for p in d.get('projects',[]):
-              print(p['id'])
-              break
-          " 2>/dev/null || echo "")
-          
-          echo "ORG_ID=$ORG_ID PROJECT_ID=$PROJECT_ID"
-          
-          # Install vercel CLI
           npm install -g vercel@latest
-          
-          # Create project.json
-          mkdir -p client/.vercel
-          echo "{\"orgId\":\"$ORG_ID\",\"projectId\":\"$PROJECT_ID\"}" > client/.vercel/project.json
-          cat client/.vercel/project.json
-          
-          # Deploy - show full output
           cd client
-          vercel deploy --prebuilt --prod --token "$VERCEL_TOKEN" --yes 2>&1 || \
-          vercel deploy --prod --token "$VERCEL_TOKEN" --yes 2>&1
+          # vcp_ token is project-scoped, deploy directly
+          vercel deploy --prebuilt --prod --token "$VERCEL_TOKEN" --yes 2>&1
+          EXIT=$?
+          if [ $EXIT -ne 0 ]; then
+            echo "Prebuilt failed, trying full deploy..."
+            vercel deploy --prod --token "$VERCEL_TOKEN" --yes 2>&1
+          fi
