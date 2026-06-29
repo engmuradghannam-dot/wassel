@@ -187,6 +187,13 @@ app.use('/api/chat',            chatRoutes);
 app.use('/api/calls',           callRoutes);
 app.use('/api/accounting',      accountingRoutes);
 app.use('/api/payments',        paymentRoutes);
+// Countries API (public)
+app.get('/api/countries', (req,res) => {
+  try {
+    const { getCountriesList } = require('./config/countries');
+    res.json({ success:true, data: getCountriesList() });
+  } catch(e) { res.status(500).json({ success:false, message:e.message }); }
+});
 app.use('/api/setup',           setupRoutes);
 
 // Sector-specific routes

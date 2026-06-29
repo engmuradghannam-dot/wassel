@@ -20,3 +20,13 @@ router.post('/logo', protect, authorize('admin', 'superadmin'), upload.single('l
 router.get('/all', protect, authorize('superadmin'), companyController.getAllCompanies);
 
 module.exports = router;
+
+// ── GET countries list ─────────────────────────────────────────────────────
+const countriesRouter = require('express').Router();
+countriesRouter.get('/', (req, res) => {
+  try {
+    const { getCountriesList } = require('../config/countries');
+    res.json({ success:true, data: getCountriesList() });
+  } catch(e) { res.status(500).json({ success:false, message:e.message }); }
+});
+module.exports.countriesRouter = countriesRouter;

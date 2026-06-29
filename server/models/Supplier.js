@@ -49,7 +49,7 @@ const supplierSchema = new mongoose.Schema({
   // ─── Classification ────────────────────────────────────────────
   category:    { type:String, trim:true },
   tags:        [{ type:String }],
-  rating:      { type:Number, min:1, max:5 },
+  rating:      { type:Number, min:0, max:5, default:0 },
   
   // ─── Status ────────────────────────────────────────────────────
   isActive:    { type:Boolean, default:true },
