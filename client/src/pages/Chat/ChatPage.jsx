@@ -58,6 +58,7 @@ const ChatPage = () => {
   const [msgMenu, setMsgMenu] = useState({ anchor: null, msg: null });
   const [optionsMenu, setOptionsMenu] = useState(null);
   const [videoCallOpen, setVideoCallOpen] = useState(false);
+  const [userSearch, setUserSearch] = useState('');
   const [voiceCallOpen, setVoiceCallOpen] = useState(false);
   const [callRoomName, setCallRoomName] = useState('');
   const [newChatOpen, setNewChatOpen] = useState(false);
@@ -610,30 +611,66 @@ const ChatPage = () => {
       {/* ── Dialogs & Menus ── */}
 
       {/* New Chat Dialog */}
-      <Dialog open={newChatOpen} onClose={() => setNewChatOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ fontWeight: 700 }}>محادثة جديدة</DialogTitle>
+      <Dialog open={newChatOpen} onClose={() => { setNewChatOpen(false); setUserSearch(''); }} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700, pb: 1 }}>محادثة جديدة</DialogTitle>
         <DialogContent sx={{ p: 0 }}>
-          {users.filter(u => u._id !== myId).length === 0 ? (
+          {/* Search */}
+          <Box sx={{ px: 2, pb: 1 }}>
+            <TextField
+              size="small" fullWidth
+              placeholder="ابحث باسم المستخدم أو البريد..."
+              value={userSearch || ''}
+              onChange={e => setUserSearch(e.target.value)}
+              InputProps={{ startAdornment: <Search sx={{ fontSize: 18, color: 'text.secondary', mr: 1 }} /> }}
+              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
+            />
+          </Box>
+
+          {users.filter(u => u._id !== myId && (
+            !userSearch || 
+            u.name?.toLowerCase().includes(userSearch.toLowerCase()) ||
+            u.email?.toLowerCase().includes(userSearch.toLowerCase()) ||
+            u.company?.name?.toLowerCase().includes(userSearch.toLowerCase())
+          )).length === 0 ? (
             <Box sx={{ p: 3, textAlign: 'center' }}>
-              <Typography color="text.secondary">لا يوجد مستخدمون آخرون</Typography>
+              <Avatar sx={{ width: 56, height: 56, bgcolor: '#e8f0fe', mx: 'auto', mb: 1.5 }}>
+                <PersonAdd sx={{ color: '#1a73e8', fontSize: 28 }} />
+              </Avatar>
+              <Typography variant="subtitle2" gutterBottom>
+                {userSearch ? 'لا نتائج للبحث' : 'لا يوجد مستخدمون آخرون'}
+              </Typography>
+              <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 2 }}>
+                {userSearch ? 'جرّب اسماً أو بريداً مختلفاً' : 'يمكن التواصل مع أي مستخدم مسجّل في Wassel ERP سواء من شركتك أو شركة أخرى'}
+              </Typography>
             </Box>
           ) : (
-            <List>
-              {users.filter(u => u._id !== myId).map(user => (
-                <ListItemButton key={user._id} onClick={() => startDirectChat(user._id)} sx={{ borderRadius: 2, mx: 1 }}>
+            <List sx={{ maxHeight: 360, overflow: 'auto' }}>
+              {users.filter(u => u._id !== myId && (
+                !userSearch ||
+                u.name?.toLowerCase().includes(userSearch.toLowerCase()) ||
+                u.email?.toLowerCase().includes(userSearch.toLowerCase()) ||
+                u.company?.name?.toLowerCase().includes(userSearch.toLowerCase())
+              )).map(user => (
+                <ListItemButton key={user._id} onClick={() => startDirectChat(user._id)} sx={{ py: 1 }}>
                   <ListItemAvatar>
                     <Badge variant="dot" overlap="circular"
                       sx={{ '& .MuiBadge-dot': { bgcolor: user.isOnline ? '#34a853' : '#dadce0', width: 10, height: 10 } }}>
-                      <Avatar src={user.avatar} sx={{ bgcolor: '#1a73e8' }}>{user.name?.[0]}</Avatar>
+                      <Avatar src={user.avatar} sx={{ bgcolor: '#1a73e8', width: 40, height: 40 }}>
+                        {user.name?.[0]}
+                      </Avatar>
                     </Badge>
                   </ListItemAvatar>
                   <ListItemText
-                    primary={user.name}
+                    primary={<Typography variant="body2" fontWeight={600}>{user.name}</Typography>}
                     secondary={
-                      <span>
-                        {user.isOnline ? '🟢 متصل' : '⚫ غير متصل'}
-                        {user.company?.name ? ` · ${user.company.name}` : ''}
-                      </span>
+                      <Box>
+                        <Typography variant="caption" sx={{ color: user.isOnline ? '#34a853' : 'text.secondary' }}>
+                          {user.isOnline ? '● متصل الآن' : '○ غير متصل'}
+                        </Typography>
+                        {user.company?.name && (
+                          <Typography variant="caption" color="text.secondary"> · {user.company.name}</Typography>
+                        )}
+                      </Box>
                     }
                   />
                 </ListItemButton>
@@ -641,8 +678,8 @@ const ChatPage = () => {
             </List>
           )}
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setNewChatOpen(false)}>إغلاق</Button>
+        <DialogActions sx={{ px: 2 }}>
+          <Button onClick={() => setNewChatOpen(false)} size="small">إغلاق</Button>
         </DialogActions>
       </Dialog>
 
