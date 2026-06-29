@@ -205,3 +205,7 @@ app.use('/api/customers',    customerRoutes);
 app.use('/api/sales-orders', salesOrderRoutes);
 app.use('/api/shipments',    shipmentRoutes);
 app.use('/api/projects',     projectRoutes);
+
+// ─── AI Module ───────────────────────────────────────────────────────────
+const aiRoutes = require('./routes/aiRoutes');
+app.use('/api/ai', aiRoutes);

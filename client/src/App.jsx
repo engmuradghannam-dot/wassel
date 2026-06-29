@@ -1,10 +1,11 @@
 import React, { Suspense } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { Box, CircularProgress, Typography } from '@mui/material';
 import { arSD } from '@mui/material/locale';
 import './i18n';
+import WasselAI from './components/AI/WasselAI';
 
 const PrivateRoute = ({ children }) => {
   const token = localStorage.getItem('token');
@@ -27,8 +28,7 @@ const WarehousesPage     = React.lazy(() => import('./pages/Warehouses/Warehouse
 
 const PageLoader = () => (
   <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-    <CircularProgress />
-    <Typography sx={{ ml: 2 }}>جارٍ التحميل...</Typography>
+    <CircularProgress /><Typography sx={{ ml: 2 }}>جارٍ التحميل...</Typography>
   </Box>
 );
 
@@ -42,8 +42,7 @@ const theme = createTheme({
   },
   typography: {
     fontFamily: '"Segoe UI", "Arial", sans-serif',
-    h5: { fontWeight: 700 },
-    h6: { fontWeight: 600 }
+    h5: { fontWeight: 700 }, h6: { fontWeight: 600 }
   },
   shape: { borderRadius: 8 },
   components: {
@@ -52,6 +51,15 @@ const theme = createTheme({
     MuiTableCell: { styleOverrides: { head: { fontWeight: 600 } } }
   }
 }, arSD);
+
+// Show AI only on private pages
+const AIWrapper = () => {
+  const token = localStorage.getItem('token');
+  const loc   = useLocation();
+  const publicPaths = ['/login', '/register', '/auth/callback'];
+  if (!token || publicPaths.includes(loc.pathname)) return null;
+  return <WasselAI />;
+};
 
 function App() {
   return (
@@ -63,7 +71,6 @@ function App() {
             <Route path="/login"         element={<LoginPage />} />
             <Route path="/register"      element={<RegisterPage />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
-
             <Route path="/dashboard"        element={<PrivateRoute><Dashboard /></PrivateRoute>} />
             <Route path="/chat"             element={<PrivateRoute><ChatPage /></PrivateRoute>} />
             <Route path="/company-settings" element={<PrivateRoute><CompanySettings /></PrivateRoute>} />
@@ -74,10 +81,10 @@ function App() {
             <Route path="/accounting"       element={<PrivateRoute><AccountingPage /></PrivateRoute>} />
             <Route path="/branches"         element={<PrivateRoute><BranchesPage /></PrivateRoute>} />
             <Route path="/warehouses"       element={<PrivateRoute><WarehousesPage /></PrivateRoute>} />
-
             <Route path="/"  element={<Navigate to="/login" replace />} />
             <Route path="*"  element={<Navigate to="/login" replace />} />
           </Routes>
+          <AIWrapper />
         </Suspense>
       </Router>
     </ThemeProvider>
