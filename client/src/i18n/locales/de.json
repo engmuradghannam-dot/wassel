@@ -167,5 +167,16 @@
     "branches": "Filialen",
     "warehouses": "Lager",
     "lastUpdate": "Letztes Update"
+  },
+  "suppliers": {
+    "title": "Lieferanten",
+    "newSupplier": "Neuer Lieferant",
+    "supplierName": "Lieferantenname",
+    "tabs": {
+      "info": "Unternehmensinfo",
+      "contact": "Kontakt",
+      "finance": "Finanzen",
+      "bank": "Bank"
+    }
   }
 }

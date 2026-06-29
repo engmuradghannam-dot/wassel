@@ -170,5 +170,16 @@
     "incomingCall": "Appel entrant",
     "accept": "Accepter",
     "reject": "Refuser"
+  },
+  "suppliers": {
+    "title": "Fournisseurs",
+    "newSupplier": "Nouveau fournisseur",
+    "supplierName": "Nom du fournisseur",
+    "tabs": {
+      "info": "Infos entreprise",
+      "contact": "Contact & Adresse",
+      "finance": "Finances",
+      "bank": "Banque"
+    }
   }
 }

@@ -1,4 +1,6 @@
 const Warehouse = require('../models/Warehouse');
+
+const getCompany = (req) => (req.user?.company?.toString() || req.company || '');
 const { buildFilter } = require('../middleware/tenant');
 
 exports.getWarehouses = async (req, res) => {
@@ -18,7 +20,7 @@ exports.getWarehouse = async (req, res) => {
 };
 exports.createWarehouse = async (req, res) => {
   try {
-    const wh = await Warehouse.create({ ...req.body, company: req.company });
+    const wh = await Warehouse.create({ ...req.body, company: getCompany(req) });
     res.status(201).json({ success: true, data: wh });
   } catch (err) { res.status(400).json({ success: false, message: err.message }); }
 };

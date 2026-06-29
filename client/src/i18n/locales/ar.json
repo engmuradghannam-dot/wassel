@@ -25,7 +25,10 @@
     "create": "إنشاء",
     "refresh": "تحديث",
     "export": "تصدير",
-    "language": "اللغة"
+    "language": "اللغة",
+    "currency": "ر.س",
+    "days": "يوم",
+    "percent": "%"
   },
   "nav": {
     "dashboard": "الرئيسية",
@@ -118,14 +121,42 @@
     "warehouse": "المستودع",
     "lowStock": "مخزون منخفض",
     "outOfStock": "نفد المخزون",
-    "inStock": "متوفر"
+    "inStock": "متوفر",
+    "barcode": "الباركود"
   },
   "suppliers": {
     "title": "الموردون",
     "newSupplier": "مورد جديد",
     "supplierName": "اسم المورد",
     "contactPerson": "شخص التواصل",
-    "paymentTerms": "شروط الدفع"
+    "paymentTerms": "شروط الدفع",
+    "address": "العنوان",
+    "city": "المدينة",
+    "country": "الدولة",
+    "creditLimit": "حد الائتمان",
+    "balance": "الرصيد",
+    "bankName": "اسم البنك",
+    "bankIBAN": "رقم الآيبان",
+    "category": "التصنيف",
+    "rating": "التقييم",
+    "notes": "ملاحظات",
+    "cr": "السجل التجاري",
+    "vat": "الرقم الضريبي",
+    "legal": "المعلومات القانونية",
+    "contact": "التواصل",
+    "financial": "المالية",
+    "bank": "البنك",
+    "tabs": {
+      "info": "معلومات الشركة",
+      "contact": "العنوان والتواصل",
+      "finance": "المالية والدفع",
+      "bank": "معلومات البنك"
+    },
+    "type": {
+      "company": "شركة",
+      "individual": "فرد",
+      "government": "حكومي"
+    }
   },
   "purchases": {
     "title": "أوامر الشراء",
@@ -140,7 +171,10 @@
     "pending": "معلق",
     "approved": "معتمد",
     "received": "مستلم",
-    "cancelled": "ملغى"
+    "cancelled": "ملغى",
+    "subtotal": "المجموع",
+    "tax": "الضريبة",
+    "items": "البنود"
   },
   "employees": {
     "title": "الموظفون",
@@ -153,7 +187,10 @@
     "nationality": "الجنسية",
     "active": "نشط",
     "inactive": "غير نشط",
-    "terminated": "منهي"
+    "terminated": "منهي",
+    "iqama": "رقم الإقامة",
+    "passport": "رقم الجواز",
+    "insurance": "التأمين الصحي"
   },
   "accounting": {
     "title": "المحاسبة",

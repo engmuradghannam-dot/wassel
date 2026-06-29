@@ -167,5 +167,16 @@
     "branches": "Филиалы",
     "warehouses": "Склады",
     "lastUpdate": "Последнее обновление"
+  },
+  "suppliers": {
+    "title": "Поставщики",
+    "newSupplier": "Новый поставщик",
+    "supplierName": "Название поставщика",
+    "tabs": {
+      "info": "О компании",
+      "contact": "Контакты",
+      "finance": "Финансы",
+      "bank": "Банк"
+    }
   }
 }

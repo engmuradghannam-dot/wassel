@@ -25,7 +25,10 @@
     "create": "Create",
     "refresh": "Refresh",
     "export": "Export",
-    "language": "Language"
+    "language": "Language",
+    "currency": "SAR",
+    "days": "days",
+    "percent": "%"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -125,7 +128,34 @@
     "newSupplier": "New Supplier",
     "supplierName": "Supplier Name",
     "contactPerson": "Contact Person",
-    "paymentTerms": "Payment Terms"
+    "paymentTerms": "Payment Terms",
+    "address": "Address",
+    "city": "City",
+    "country": "Country",
+    "creditLimit": "Credit Limit",
+    "balance": "Balance",
+    "bankName": "Bank Name",
+    "bankIBAN": "IBAN",
+    "category": "Category",
+    "rating": "Rating",
+    "notes": "Notes",
+    "cr": "CR Number",
+    "vat": "VAT Number",
+    "legal": "Legal Information",
+    "contact": "Contact",
+    "financial": "Financials",
+    "bank": "Bank",
+    "tabs": {
+      "info": "Company Info",
+      "contact": "Contact & Address",
+      "finance": "Financials",
+      "bank": "Bank Info"
+    },
+    "type": {
+      "company": "Company",
+      "individual": "Individual",
+      "government": "Government"
+    }
   },
   "purchases": {
     "title": "Purchase Orders",
@@ -140,7 +170,10 @@
     "pending": "Pending",
     "approved": "Approved",
     "received": "Received",
-    "cancelled": "Cancelled"
+    "cancelled": "Cancelled",
+    "subtotal": "Subtotal",
+    "tax": "Tax",
+    "items": "Items"
   },
   "employees": {
     "title": "Employees",

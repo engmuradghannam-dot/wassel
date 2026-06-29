@@ -167,5 +167,16 @@
     "branches": "分支机构",
     "warehouses": "仓库",
     "lastUpdate": "最后更新"
+  },
+  "suppliers": {
+    "title": "供应商",
+    "newSupplier": "新供应商",
+    "supplierName": "供应商名称",
+    "tabs": {
+      "info": "公司信息",
+      "contact": "联系&地址",
+      "finance": "财务",
+      "bank": "银行"
+    }
   }
 }

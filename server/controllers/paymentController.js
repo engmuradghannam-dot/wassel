@@ -1,4 +1,6 @@
 const Payment = require('../models/Payment');
+
+const getCompany = (req) => (req.user?.company?.toString() || req.company || '');
 const Company = require('../models/Company');
 
 const PLAN_PRICES = {
@@ -173,7 +175,7 @@ exports.manualActivate = async (req, res) => {
 // ─── Get my payments ──────────────────────────────────────────
 exports.getMyPayments = async (req, res) => {
   try {
-    const payments = await Payment.find({ company: req.company })
+    const payments = await Payment.find({ company: getCompany(req) })
       .populate('paidBy','name').sort({ createdAt: -1 });
     res.json({ success: true, count: payments.length, data: payments });
   } catch (err) { res.status(500).json({ success: false, message: err.message }); }

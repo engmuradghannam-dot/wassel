@@ -167,5 +167,16 @@
     "branches": "शाखाएं",
     "warehouses": "गोदाम",
     "lastUpdate": "अंतिम अपडेट"
+  },
+  "suppliers": {
+    "title": "आपूर्तिकर्ता",
+    "newSupplier": "नया आपूर्तिकर्ता",
+    "supplierName": "आपूर्तिकर्ता नाम",
+    "tabs": {
+      "info": "कंपनी जानकारी",
+      "contact": "संपर्क",
+      "finance": "वित्त",
+      "bank": "बैंक"
+    }
   }
 }

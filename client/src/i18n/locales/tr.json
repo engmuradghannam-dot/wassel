@@ -167,5 +167,16 @@
     "branches": "Şubeler",
     "warehouses": "Depolar",
     "lastUpdate": "Son güncelleme"
+  },
+  "suppliers": {
+    "title": "Tedarikçiler",
+    "newSupplier": "Yeni tedarikçi",
+    "supplierName": "Tedarikçi adı",
+    "tabs": {
+      "info": "Şirket Bilgileri",
+      "contact": "İletişim",
+      "finance": "Finansal",
+      "bank": "Banka"
+    }
   }
 }

@@ -170,5 +170,16 @@
     "incomingCall": "آنے والی کال",
     "accept": "قبول",
     "reject": "رد"
+  },
+  "suppliers": {
+    "title": "سپلائرز",
+    "newSupplier": "نیا سپلائر",
+    "supplierName": "سپلائر کا نام",
+    "tabs": {
+      "info": "کمپنی کی معلومات",
+      "contact": "رابطہ اور پتہ",
+      "finance": "مالیات",
+      "bank": "بینک"
+    }
   }
 }

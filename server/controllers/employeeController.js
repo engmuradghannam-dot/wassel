@@ -1,4 +1,6 @@
 const Employee = require('../models/Employee');
+
+const getCompany = (req) => (req.user?.company?.toString() || req.company || '');
 const { buildFilter } = require('../middleware/tenant');
 
 exports.getEmployees = async (req, res) => {
@@ -23,7 +25,7 @@ exports.getEmployee = async (req, res) => {
 };
 exports.createEmployee = async (req, res) => {
   try {
-    const emp = await Employee.create({ ...req.body, company: req.company });
+    const emp = await Employee.create({ ...req.body, company: getCompany(req) });
     res.status(201).json({ success: true, data: emp });
   } catch (err) { res.status(400).json({ success: false, message: err.message }); }
 };

@@ -1,4 +1,6 @@
 const PurchaseOrder = require('../models/PurchaseOrder');
+
+const getCompany = (req) => (req.user?.company?.toString() || req.company || '');
 const Inventory     = require('../models/Inventory');
 const { buildFilter } = require('../middleware/tenant');
 
@@ -37,7 +39,7 @@ exports.createPurchaseOrder = async (req, res) => {
       return { ...item, total };
     });
     const order = await PurchaseOrder.create({
-      ...rest, company: req.company,
+      ...rest, company: getCompany(req),
       items: processedItems, subtotal, taxAmount,
       total: subtotal + taxAmount, createdBy: req.user.id
     });

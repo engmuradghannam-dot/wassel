@@ -1,4 +1,6 @@
 const Inventory = require('../models/Inventory');
+
+const getCompany = (req) => (req.user?.company?.toString() || req.company || '');
 const { buildFilter } = require('../middleware/tenant');
 
 exports.getItems = async (req, res) => {
@@ -25,7 +27,7 @@ exports.getItem = async (req, res) => {
 exports.createItem = async (req, res) => {
   try {
     if (!req.body.sku) req.body.sku = 'SKU-' + Date.now();
-    const item = await Inventory.create({ ...req.body, company: req.company });
+    const item = await Inventory.create({ ...req.body, company: getCompany(req) });
     res.status(201).json({ success: true, data: item });
   } catch (err) { res.status(400).json({ success: false, message: err.message }); }
 };

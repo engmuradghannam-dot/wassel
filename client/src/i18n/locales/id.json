@@ -167,5 +167,16 @@
     "branches": "Cabang",
     "warehouses": "Gudang",
     "lastUpdate": "Pembaruan terakhir"
+  },
+  "suppliers": {
+    "title": "Pemasok",
+    "newSupplier": "Pemasok baru",
+    "supplierName": "Nama pemasok",
+    "tabs": {
+      "info": "Info Perusahaan",
+      "contact": "Kontak & Alamat",
+      "finance": "Keuangan",
+      "bank": "Bank"
+    }
   }
 }

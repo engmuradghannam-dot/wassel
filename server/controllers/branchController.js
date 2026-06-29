@@ -1,4 +1,6 @@
 const Branch = require('../models/Branch');
+
+const getCompany = (req) => (req.user?.company?.toString() || req.company || '');
 const { buildFilter, checkPlanLimit } = require('../middleware/tenant');
 
 exports.getBranches = async (req, res) => {
@@ -18,7 +20,7 @@ exports.getBranch = async (req, res) => {
 };
 exports.createBranch = async (req, res) => {
   try {
-    const branch = await Branch.create({ ...req.body, company: req.company });
+    const branch = await Branch.create({ ...req.body, company: getCompany(req) });
     res.status(201).json({ success: true, data: branch });
   } catch (err) { res.status(400).json({ success: false, message: err.message }); }
 };

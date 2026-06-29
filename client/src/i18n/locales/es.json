@@ -167,5 +167,16 @@
     "branches": "Sucursales",
     "warehouses": "Almacenes",
     "lastUpdate": "Última actualización"
+  },
+  "suppliers": {
+    "title": "Proveedores",
+    "newSupplier": "Nuevo proveedor",
+    "supplierName": "Nombre proveedor",
+    "tabs": {
+      "info": "Info empresa",
+      "contact": "Contacto",
+      "finance": "Finanzas",
+      "bank": "Banco"
+    }
   }
 }
