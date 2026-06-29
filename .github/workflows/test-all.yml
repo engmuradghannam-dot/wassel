@@ -7,35 +7,31 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Full Debug Test
         run: |
-          echo "=== Health ===" > /tmp/results.txt
-          curl -s --max-time 30 https://wassel-cyj5.onrender.com/api/health >> /tmp/results.txt
+          echo "### Health" >> $GITHUB_STEP_SUMMARY
+          HEALTH=$(curl -s --max-time 30 https://wassel-cyj5.onrender.com/api/health)
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo "$HEALTH" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo "$HEALTH"
 
-          echo "" >> /tmp/results.txt
-          echo "=== Login ===" >> /tmp/results.txt
-          curl -s --max-time 30 -X POST \
+          echo "### Login" >> $GITHUB_STEP_SUMMARY
+          LOGIN=$(curl -s --max-time 30 -X POST \
             https://wassel-cyj5.onrender.com/api/users/login \
             -H "Content-Type: application/json" \
-            -d '{"email":"eng.murad.ghannam@gmail.com","password":"Admin2026@"}' >> /tmp/results.txt
+            -d '{"email":"eng.murad.ghannam@gmail.com","password":"Admin2026@"}')
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo "$LOGIN" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo "$LOGIN"
 
-          echo "" >> /tmp/results.txt
-          echo "=== Setup Admin ===" >> /tmp/results.txt
-          curl -s --max-time 30 -X POST \
+          echo "### Setup Endpoint" >> $GITHUB_STEP_SUMMARY
+          SETUP=$(curl -s --max-time 30 -X POST \
             https://wassel-cyj5.onrender.com/api/setup/setup-admin \
             -H "Content-Type: application/json" \
-            -d '{"name":"Murad","email":"eng.murad.ghannam@gmail.com","password":"Admin2026@"}' >> /tmp/results.txt
-
-          cat /tmp/results.txt
-
-      - name: Save results
-        run: |
-          cp /tmp/results.txt test-results.txt
-          git config user.email "ci@wassel.app"
-          git config user.name "CI"
-          git add test-results.txt
-          git diff --staged --quiet || (git commit -m "ci: test results" && git push)
+            -d '{"name":"Murad","email":"eng.murad.ghannam@gmail.com","password":"Admin2026@"}')
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo "$SETUP" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo "$SETUP"
