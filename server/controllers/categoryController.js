@@ -21,11 +21,13 @@ exports.getCategory = async (req, res) => {
 exports.createCategory = async (req, res) => {
   const co = getCompany(req);
   if (!co) return res.status(400).json({ success:false, message:'الحساب غير مرتبط بشركة' });
+  const body = { ...req.body };
+  if (!body.parent) delete body.parent; // تجنّب CastError على ObjectId فارغ
   const MAX_RETRIES = 5; let lastErr = null;
   for (let i=0; i<MAX_RETRIES; i++) {
     try {
-      const code = req.body.code?.trim() || `CAT-${Date.now().toString(36).toUpperCase()}${Math.floor(Math.random()*100)}`;
-      const category = await Category.create({ ...req.body, company: co, code });
+      const code = body.code?.trim() || `CAT-${Date.now().toString(36).toUpperCase()}${Math.floor(Math.random()*100)}`;
+      const category = await Category.create({ ...body, company: co, code });
       return res.status(201).json({ success: true, data: category });
     } catch (err) {
       lastErr = err;
@@ -38,8 +40,10 @@ exports.createCategory = async (req, res) => {
 
 exports.updateCategory = async (req, res) => {
   try {
+    const body = { ...req.body };
+    if (!body.parent) delete body.parent;
     const category = await Category.findOneAndUpdate(
-      buildFilter(req, { _id: req.params.id }), req.body, { new: true, runValidators: true });
+      buildFilter(req, { _id: req.params.id }), body, { new: true, runValidators: true });
     if (!category) return res.status(404).json({ success: false, message: 'الفئة غير موجودة' });
     res.json({ success: true, data: category });
   } catch (err) { res.status(400).json({ success: false, message: err.message }); }

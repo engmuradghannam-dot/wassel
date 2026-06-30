@@ -26,18 +26,26 @@ exports.getItem = async (req, res) => {
 };
 exports.createItem = async (req, res) => {
   try {
-    if (!req.body.sku) req.body.sku = 'SKU-' + Date.now();
-    const item = await Inventory.create({ ...req.body, company: getCompany(req) });
+    const body = { ...req.body };
+    if (!body.sku) body.sku = 'SKU-' + Date.now();
+    if (!body.categoryRef) delete body.categoryRef; // تجنّب CastError على ObjectId فارغ
+    if (!body.warehouse)   delete body.warehouse;
+    if (!body.branch)      delete body.branch;
+    const item = await Inventory.create({ ...body, company: getCompany(req) });
     res.status(201).json({ success: true, data: item });
-  } catch (err) { res.status(400).json({ success: false, message: err.message }); }
+  } catch (err) { res.status(400).json({ success: false, message: err.message, detail: err.message }); }
 };
 exports.updateItem = async (req, res) => {
   try {
+    const body = { ...req.body };
+    if (!body.categoryRef) delete body.categoryRef;
+    if (!body.warehouse)   delete body.warehouse;
+    if (!body.branch)      delete body.branch;
     const item = await Inventory.findOneAndUpdate(
-      buildFilter(req, { _id: req.params.id }), req.body, { new: true, runValidators: true });
+      buildFilter(req, { _id: req.params.id }), body, { new: true, runValidators: true });
     if (!item) return res.status(404).json({ success: false, message: 'المنتج غير موجود' });
     res.json({ success: true, data: item });
-  } catch (err) { res.status(400).json({ success: false, message: err.message }); }
+  } catch (err) { res.status(400).json({ success: false, message: err.message, detail: err.message }); }
 };
 exports.deleteItem = async (req, res) => {
   try {

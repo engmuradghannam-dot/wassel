@@ -16,7 +16,7 @@ import Layout from '../../components/Layout';
 
 const EMPTY = {
   name:'', nameEn:'', email:'', phone:'', nationalId:'',
-  position:'', positionEn:'', department:'', grade:'', employeeType:'full_time',
+  position:'', positionEn:'', department:'', departmentRef:'', grade:'', employeeType:'full_time',
   nationality:'سعودي', gender:'',
   salary:0, housingAllowance:0, transportAllowance:0, otherAllowances:0,
   hireDate:'', contractEnd:'', contractType:'unlimited', status:'active',
@@ -56,16 +56,19 @@ export default function EmployeesPage() {
   const [snack,   setSnack]   = useState('');
   const [delId,   setDelId]   = useState(null);
   const [showPw,  setShowPw]  = useState(false);
+  const [departmentList, setDepartmentList] = useState([]);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [empR, rolesR] = await Promise.all([
+      const [empR, rolesR, deptR] = await Promise.all([
         api.get('/api/employees'),
         api.get('/api/roles').catch(()=>({data:{data:[]}})),
+        api.get('/api/departments').catch(()=>({data:{data:[]}})),
       ]);
       if (empR.data.success)   setItems(empR.data.data || []);
       if (rolesR.data.success) setRoles(rolesR.data.data || []);
+      if (deptR.data.success)  setDepartmentList(deptR.data.data || []);
     } catch (e) { setError(e.response?.data?.message || t('common.error')); }
     finally { setLoading(false); }
   }, [t]);
@@ -120,6 +123,7 @@ export default function EmployeesPage() {
       if (!payload.hireDate)  delete payload.hireDate;
       if (!payload.contractEnd) delete payload.contractEnd;
       if (!payload.customRole) delete payload.customRole;
+      if (!payload.departmentRef) delete payload.departmentRef; // تجنّب CastError على ObjectId فارغ
       delete payload.loginEmail; delete payload.systemRole;
 
       let res;
@@ -144,7 +148,6 @@ export default function EmployeesPage() {
   };
 
   // Departments from existing employees
-  const departments = [...new Set(items.map(e=>e.department).filter(Boolean))];
 
   const filtered = items.filter(e => {
     if (!search) return true;
@@ -397,11 +400,18 @@ export default function EmployeesPage() {
                   <TextField fullWidth label="Job Title (English)" value={form.positionEn||''} onChange={set('positionEn')}/>
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  <TextField fullWidth label={AR?'القسم / الإدارة':'Department'} value={form.department||''} onChange={set('department')}
-                    InputProps={{ inputProps:{ list:'dept-list' } }}/>
-                  <datalist id="dept-list">
-                    {departments.map(d=><option key={d} value={d}/>)}
-                  </datalist>
+                  <TextField fullWidth select label={AR?'القسم / الإدارة':'Department'}
+                    value={form.departmentRef || ''}
+                    onChange={e => {
+                      const deptId = e.target.value;
+                      const dept = departmentList.find(d => d._id === deptId);
+                      setForm(p => ({ ...p, departmentRef: deptId, department: dept ? (AR ? dept.name : (dept.nameEn || dept.name)) : '' }));
+                    }}>
+                    <MenuItem value="">{AR ? 'بدون قسم' : 'No department'}</MenuItem>
+                    {departmentList.map(d => (
+                      <MenuItem key={d._id} value={d._id}>{AR ? d.name : (d.nameEn || d.name)}</MenuItem>
+                    ))}
+                  </TextField>
                 </Grid>
                 <Grid item xs={12} sm={3}>
                   <TextField fullWidth label={AR?'المستوى الوظيفي':'Grade/Level'} value={form.grade||''} onChange={set('grade')}/>

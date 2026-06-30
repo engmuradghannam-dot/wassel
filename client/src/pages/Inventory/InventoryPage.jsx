@@ -12,7 +12,7 @@ import api from '../../services/api';
 import Layout from '../../components/Layout';
 
 const EMPTY = {
-  name:'', nameEn:'', sku:'', barcode:'', category:'', unit:'',
+  name:'', nameEn:'', sku:'', barcode:'', category:'', categoryRef:'', unit:'',
   quantity:0, minQuantity:5, costPrice:0, salePrice:0, taxRate:15,
   description:'', isActive:true
 };
@@ -23,6 +23,7 @@ const InventoryPage = () => {
   const AR = L === 'ar';
 
   const [items,   setItems]   = useState([]);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [dialog,  setDialog]  = useState(false);
   const [form,    setForm]    = useState(EMPTY);
@@ -36,8 +37,12 @@ const InventoryPage = () => {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const r = await api.get('/api/inventory');
-      if (r.data.success) setItems(r.data.data || []);
+      const [invRes, catRes] = await Promise.all([
+        api.get('/api/inventory'),
+        api.get('/api/categories').catch(() => ({ data:{ data:[] } })),
+      ]);
+      if (invRes.data.success) setItems(invRes.data.data || []);
+      if (catRes.data.success) setCategories(catRes.data.data || []);
     } catch (e) { setError(e.response?.data?.message || t('common.error')); }
     finally { setLoading(false); }
   }, [t]);
@@ -53,8 +58,10 @@ const InventoryPage = () => {
     if (!form.name.trim()) { setError(t('common.required')+': '+t('inventory.itemName')); return; }
     setSaving(true); setError('');
     try {
-      if (editId) await api.put(`/api/inventory/${editId}`, form);
-      else        await api.post('/api/inventory', form);
+      const payload = { ...form };
+      if (!payload.categoryRef) delete payload.categoryRef; // تجنّب CastError على ObjectId فارغ
+      if (editId) await api.put(`/api/inventory/${editId}`, payload);
+      else        await api.post('/api/inventory', payload);
       setSnack(t('common.success'));
       close(); load();
     } catch (e) { setError(e.response?.data?.message || t('common.error')); }
@@ -238,7 +245,20 @@ const InventoryPage = () => {
               <Grid item xs={12} sm={6}><TextField fullWidth label={lbl.nameEn} value={form.nameEn||''} onChange={set('nameEn')}/></Grid>
               <Grid item xs={12} sm={6}><TextField fullWidth label={lbl.sku} value={form.sku||''} onChange={set('sku')}/></Grid>
               <Grid item xs={12} sm={6}><TextField fullWidth label={lbl.barcode} value={form.barcode||''} onChange={set('barcode')}/></Grid>
-              <Grid item xs={12} sm={6}><TextField fullWidth label={lbl.category} value={form.category||''} onChange={set('category')}/></Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField fullWidth select label={lbl.category}
+                  value={form.categoryRef || ''}
+                  onChange={e => {
+                    const catId = e.target.value;
+                    const cat = categories.find(c => c._id === catId);
+                    setForm(p => ({ ...p, categoryRef: catId, category: cat ? (AR ? cat.name : (cat.nameEn || cat.name)) : '' }));
+                  }}>
+                  <MenuItem value="">{AR ? 'بدون فئة' : 'No category'}</MenuItem>
+                  {categories.map(c => (
+                    <MenuItem key={c._id} value={c._id}>{c.icon} {AR ? c.name : (c.nameEn || c.name)}</MenuItem>
+                  ))}
+                </TextField>
+              </Grid>
               <Grid item xs={12} sm={6}><TextField fullWidth label={lbl.unit} value={form.unit||''} onChange={set('unit')}/></Grid>
               <Grid item xs={12} sm={4}><TextField fullWidth label={lbl.qty} type="number" value={form.quantity} onChange={set('quantity')}/></Grid>
               <Grid item xs={12} sm={4}><TextField fullWidth label={lbl.minQty} type="number" value={form.minQuantity} onChange={set('minQuantity')}/></Grid>

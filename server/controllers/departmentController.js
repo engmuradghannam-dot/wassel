@@ -31,11 +31,13 @@ exports.getDepartment = async (req, res) => {
 exports.createDepartment = async (req, res) => {
   const co = getCompany(req);
   if (!co) return res.status(400).json({ success:false, message:'الحساب غير مرتبط بشركة' });
+  const body = { ...req.body };
+  ['parent','manager','branch'].forEach(f => { if (!body[f]) delete body[f]; });
   const MAX_RETRIES = 5; let lastErr = null;
   for (let i=0; i<MAX_RETRIES; i++) {
     try {
-      const code = req.body.code?.trim() || `DEPT-${Date.now().toString(36).toUpperCase()}${Math.floor(Math.random()*100)}`;
-      const department = await Department.create({ ...req.body, company: co, code });
+      const code = body.code?.trim() || `DEPT-${Date.now().toString(36).toUpperCase()}${Math.floor(Math.random()*100)}`;
+      const department = await Department.create({ ...body, company: co, code });
       return res.status(201).json({ success: true, data: department });
     } catch (err) {
       lastErr = err;
@@ -48,8 +50,10 @@ exports.createDepartment = async (req, res) => {
 
 exports.updateDepartment = async (req, res) => {
   try {
+    const body = { ...req.body };
+    ['parent','manager','branch'].forEach(f => { if (!body[f]) delete body[f]; });
     const department = await Department.findOneAndUpdate(
-      buildFilter(req, { _id: req.params.id }), req.body, { new: true, runValidators: true });
+      buildFilter(req, { _id: req.params.id }), body, { new: true, runValidators: true });
     if (!department) return res.status(404).json({ success: false, message: 'القسم غير موجود' });
     res.json({ success: true, data: department });
   } catch (err) { res.status(400).json({ success: false, message: err.message }); }

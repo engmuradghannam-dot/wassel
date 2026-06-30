@@ -45,6 +45,10 @@ exports.createEmployee = async (req, res) => {
   if (!co) return res.status(400).json({ success:false, message:'الحساب غير مرتبط بشركة' });
 
   const { createLogin, loginPassword, ...empData } = req.body;
+  // تجنّب CastError على حقول ObjectId الاختيارية الفارغة
+  ['departmentRef','manager','director','branch','customRole'].forEach(f => {
+    if (!empData[f]) delete empData[f];
+  });
 
   try {
     let linkedUser = null;
@@ -118,6 +122,10 @@ exports.updateEmployee = async (req, res) => {
   try {
     const { createLogin, loginPassword, ...empData } = req.body;
     const co = getCompany(req);
+    // تجنّب CastError على حقول ObjectId الاختيارية الفارغة
+    ['departmentRef','manager','director','branch','customRole'].forEach(f => {
+      if (!empData[f]) delete empData[f];
+    });
 
     const emp = await Employee.findOneAndUpdate(
       buildFilter(req, { _id: req.params.id }), empData, { new: true, runValidators: true });
