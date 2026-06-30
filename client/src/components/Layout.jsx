@@ -95,9 +95,14 @@ const Layout = ({ children }) => {
 
         {/* Nav */}
         <Box sx={{
-          flex:1, overflow:'auto', py:0.8,
-          '&::-webkit-scrollbar':{ width:3 },
-          '&::-webkit-scrollbar-thumb':{ bgcolor:'rgba(255,255,255,0.08)', borderRadius:2 }
+          flex:1, overflow:'auto', overflowX:'hidden', py:0.8,
+          '&::-webkit-scrollbar':{ width:6 },
+          '&::-webkit-scrollbar-track':{ bgcolor:'transparent' },
+          '&::-webkit-scrollbar-thumb':{
+            bgcolor:'rgba(255,255,255,0.12)', borderRadius:3,
+            '&:hover':{ bgcolor:'rgba(255,255,255,0.22)' },
+          },
+          scrollbarWidth:'thin', scrollbarColor:'rgba(255,255,255,0.12) transparent',
         }}>
           <List dense disablePadding>
             {navItems.map((item, i) => {
@@ -112,15 +117,21 @@ const Layout = ({ children }) => {
                       mx:0.8, mb:0.15, borderRadius:1.8, px:1.3, py:0.75,
                       bgcolor: isActive ? `${sectorColor}28` : 'transparent',
                       border:'1px solid', borderColor: isActive ? `${sectorColor}50` : 'transparent',
-                      '&:hover':{ bgcolor:'rgba(255,255,255,0.07)' },
-                      transition:'all 0.13s',
+                      transform: isActive ? 'scale(1.045)' : 'scale(1)',
+                      transformOrigin: isRTL ? 'right center' : 'left center',
+                      boxShadow: isActive ? `0 2px 10px ${sectorColor}40` : 'none',
+                      '&:hover':{
+                        bgcolor: isActive ? `${sectorColor}33` : 'rgba(255,255,255,0.07)',
+                        transform: isActive ? 'scale(1.045)' : 'scale(1.02)',
+                      },
+                      transition:'transform 0.16s ease, background-color 0.16s ease, box-shadow 0.16s ease',
                     }}>
                     <ListItemIcon sx={{
                       minWidth: mini?0:32,
                       mr: mini?0:(isRTL?0:0.8), ml: mini?0:(isRTL?0.8:0),
                       fontSize:17, color:'inherit',
                     }}>
-                      <Typography sx={{ fontSize:17, lineHeight:1 }}>{item.icon}</Typography>
+                      <Typography sx={{ fontSize: isActive?19:17, lineHeight:1, transition:'font-size 0.16s ease' }}>{item.icon}</Typography>
                     </ListItemIcon>
                     {!mini && (
                       <ListItemText primary={
