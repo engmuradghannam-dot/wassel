@@ -99,7 +99,7 @@ const projectSchema = new mongoose.Schema({
 
   notes:     { type: String },
   tags:      [{ type: String }],
-  createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
+  createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
 
   // ─── Attachments (BOQ, specs, docs) ──────────────────────────
   attachments: [{

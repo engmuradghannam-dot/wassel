@@ -1,13 +1,14 @@
 const Company = require('../models/Company');
 const User    = require('../models/User');
+const { getCompany } = require('../middleware/auth');
 
-// Helper: get company ID for current user
+// Helper: get company ID for current user (handles populated {_id,...} safely)
 const getCompanyId = async (req) => {
   if (['superadmin'].includes(req.user.role)) {
     // superadmin: use their company or query param
-    return req.user.company || req.query.companyId || null;
+    return getCompany(req) || req.query.companyId || null;
   }
-  return req.user.company;
+  return getCompany(req);
 };
 
 // ─── Get company ──────────────────────────────────────────────────────────

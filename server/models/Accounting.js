@@ -2,7 +2,8 @@ const mongoose = require('mongoose');
 
 // ─── Chart of Accounts ────────────────────────────────────────────────────
 const accountSchema = new mongoose.Schema({
-  code: { type: String, required: true, unique: true },
+  company: { type: mongoose.Schema.Types.ObjectId, ref: 'Company', required: true, index: true },
+  code: { type: String, required: true },
   name: { type: String, required: true },
   nameEn: { type: String },
   type: {
@@ -16,10 +17,13 @@ const accountSchema = new mongoose.Schema({
   isActive: { type: Boolean, default: true },
   notes: { type: String }
 }, { timestamps: true });
+// رمز الحساب فريد داخل الشركة فقط — لا يتعارض بين شركات مختلفة
+accountSchema.index({ company: 1, code: 1 }, { unique: true });
 
 // ─── Journal Entry ─────────────────────────────────────────────────────────
 const journalEntrySchema = new mongoose.Schema({
-  entryNumber: { type: String, unique: true },
+  company: { type: mongoose.Schema.Types.ObjectId, ref: 'Company', required: true, index: true },
+  entryNumber: { type: String },
   date: { type: Date, default: Date.now },
   description: { type: String, required: true },
   reference: { type: String },         // e.g. invoice number, PO number
@@ -41,6 +45,8 @@ const journalEntrySchema = new mongoose.Schema({
   totalDebit: { type: Number, default: 0 },
   totalCredit: { type: Number, default: 0 }
 }, { timestamps: true });
+journalEntrySchema.index({ company: 1, entryNumber: 1 }, { unique: true, sparse: true });
+journalEntrySchema.index({ company: 1, status: 1, date: -1 });
 
 // Auto-calculate totals before save
 journalEntrySchema.pre('save', function (next) {
@@ -49,11 +55,11 @@ journalEntrySchema.pre('save', function (next) {
   next();
 });
 
-// Auto-generate entry number
+// Auto-generate entry number — مُرقَّم داخل نطاق الشركة فقط
 journalEntrySchema.pre('save', async function (next) {
   if (!this.entryNumber) {
     const year = new Date().getFullYear();
-    const count = await this.constructor.countDocuments({});
+    const count = await this.constructor.countDocuments({ company: this.company });
     this.entryNumber = `JE-${year}-${String(count + 1).padStart(5, '0')}`;
   }
   next();
@@ -61,7 +67,8 @@ journalEntrySchema.pre('save', async function (next) {
 
 // ─── Transaction / Payment ─────────────────────────────────────────────────
 const transactionSchema = new mongoose.Schema({
-  transactionNumber: { type: String, unique: true },
+  company: { type: mongoose.Schema.Types.ObjectId, ref: 'Company', required: true, index: true },
+  transactionNumber: { type: String },
   date: { type: Date, default: Date.now },
   type: { type: String, enum: ['income', 'expense', 'transfer'], required: true },
   amount: { type: Number, required: true },
@@ -75,11 +82,13 @@ const transactionSchema = new mongoose.Schema({
   journalEntry: { type: mongoose.Schema.Types.ObjectId, ref: 'JournalEntry' },
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
 }, { timestamps: true });
+transactionSchema.index({ company: 1, transactionNumber: 1 }, { unique: true, sparse: true });
+transactionSchema.index({ company: 1, date: -1 });
 
 transactionSchema.pre('save', async function (next) {
   if (!this.transactionNumber) {
     const year = new Date().getFullYear();
-    const count = await this.constructor.countDocuments({});
+    const count = await this.constructor.countDocuments({ company: this.company });
     this.transactionNumber = `TXN-${year}-${String(count + 1).padStart(5, '0')}`;
   }
   next();
@@ -87,12 +96,14 @@ transactionSchema.pre('save', async function (next) {
 
 // ─── Cost Center ───────────────────────────────────────────────────────────
 const costCenterSchema = new mongoose.Schema({
-  code: { type: String, required: true, unique: true },
+  company: { type: mongoose.Schema.Types.ObjectId, ref: 'Company', required: true, index: true },
+  code: { type: String, required: true },
   name: { type: String, required: true },
   nameEn: { type: String },
   parent: { type: mongoose.Schema.Types.ObjectId, ref: 'CostCenter' },
   isActive: { type: Boolean, default: true }
 }, { timestamps: true });
+costCenterSchema.index({ company: 1, code: 1 }, { unique: true });
 
 const Account = mongoose.model('Account', accountSchema);
 const JournalEntry = mongoose.model('JournalEntry', journalEntrySchema);

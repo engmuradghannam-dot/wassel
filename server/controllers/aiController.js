@@ -9,6 +9,7 @@
  */
 
 const Groq       = require('groq-sdk');
+const { getCompany } = require('../middleware/auth');
 const { buildERPContext, ERP_SYSTEM_PROMPT } = require('../middleware/aiContext');
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
@@ -31,7 +32,7 @@ exports.chat = async (req, res) => {
   try {
     const { message, page, clearHistory } = req.body;
     const userId    = req.user.id;
-    const companyId = req.user.company;
+    const companyId = getCompany(req);
 
     if (!message) return res.status(400).json({ success: false, message: 'الرسالة مطلوبة' });
 
@@ -110,7 +111,7 @@ ${erpContext.stats ? `
 exports.analyze = async (req, res) => {
   try {
     const { type, data, question } = req.body;
-    const companyId = req.user.company;
+    const companyId = getCompany(req);
 
     // Gather data based on type
     let analysisData = data;
@@ -260,7 +261,7 @@ ${employeeData ? `بيانات الموظف: ${JSON.stringify(employeeData).slic
 exports.suggestions = async (req, res) => {
   try {
     const { page } = req.query;
-    const companyId = req.user.company;
+    const companyId = getCompany(req);
     const erpContext = await buildERPContext(req.user.id, companyId, page);
 
     const suggPrompt = `بناءً على هذا السياق:

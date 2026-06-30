@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { protect } = require('../middleware/auth');
+const { protect, getCompany } = require('../middleware/auth');
 const {  } = require('../middleware/tenant');
 const { getRooms, getOrCreateDirectRoom, createGroupRoom, getMessages, sendMessage, deleteMessage, getOnlineUsers } = require('../controllers/chatController');
 
@@ -40,7 +40,7 @@ router.post('/direct', protect, async (req, res) => {
       room = await ChatRoom.create({
         type: isCross ? 'cross_company' : 'direct',
         participants: [myId, userId],
-        company: isCross ? null : req.user.company,
+        company: isCross ? null : getCompany(req),
         lastActivity: new Date()
       });
       room = await ChatRoom.findById(room._id)

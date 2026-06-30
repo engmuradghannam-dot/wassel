@@ -44,8 +44,6 @@ router.post('/setup-admin', async (req, res) => {
   }
 });
 
-module.exports = router;
-
 // ── Fix superadmin users who have a company → they should be 'owner' ────────
 router.post('/fix-owner-role', async (req, res) => {
   try {
@@ -72,3 +70,5 @@ router.post('/fix-owner-role', async (req, res) => {
     res.status(500).json({ success: false, message: e.message });
   }
 });
+
+module.exports = router;

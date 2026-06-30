@@ -50,7 +50,7 @@ exports.getOrCreateDirectRoom = async (req, res) => {
       room = await ChatRoom.create({
         type: isCrossCompany ? 'cross_company' : 'direct',
         participants: [myId, userId],
-        company: isCrossCompany ? null : req.user.company
+        company: isCrossCompany ? null : getCompany(req)
       });
       room = await ChatRoom.findById(room._id)
         .populate('participants', 'name avatar isOnline lastSeen')
@@ -79,7 +79,7 @@ exports.createGroupRoom = async (req, res) => {
       type: 'group',
       participants: allParticipants,
       admin: req.user.id,
-      company: isCrossCompany ? null : req.user.company
+      company: isCrossCompany ? null : getCompany(req)
     });
 
     const populated = await ChatRoom.findById(room._id)

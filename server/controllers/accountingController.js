@@ -7,8 +7,9 @@ const { getCompany } = require('../middleware/auth');
 
 exports.getAccounts = async (req, res) => {
   try {
+    const co = getCompany(req);
     const { type, isActive } = req.query;
-    const filter = {};
+    const filter = { company: co };
     if (type) filter.type = type;
     if (isActive !== undefined) filter.isActive = isActive === 'true';
     const accounts = await Account.find(filter).populate('parent', 'name code').sort({ code: 1 });
@@ -18,7 +19,8 @@ exports.getAccounts = async (req, res) => {
 
 exports.getAccount = async (req, res) => {
   try {
-    const account = await Account.findById(req.params.id).populate('parent', 'name code');
+    const co = getCompany(req);
+    const account = await Account.findOne({ _id: req.params.id, company: co }).populate('parent', 'name code');
     if (!account) return res.status(404).json({ success: false, message: 'الحساب غير موجود' });
     res.json({ success: true, data: account });
   } catch (err) { res.status(500).json({ success: false, message: err.message }); }
@@ -26,14 +28,22 @@ exports.getAccount = async (req, res) => {
 
 exports.createAccount = async (req, res) => {
   try {
-    const account = await Account.create(req.body);
+    const co = getCompany(req);
+    if (!co) return res.status(400).json({ success: false, message: 'الحساب غير مرتبط بشركة' });
+    const account = await Account.create({ ...req.body, company: co });
     res.status(201).json({ success: true, data: account });
-  } catch (err) { res.status(400).json({ success: false, message: err.message }); }
+  } catch (err) {
+    if (err.code === 11000) return res.status(400).json({ success: false, message: 'رمز الحساب مستخدم بالفعل في شركتك' });
+    res.status(400).json({ success: false, message: err.message });
+  }
 };
 
 exports.updateAccount = async (req, res) => {
   try {
-    const account = await Account.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
+    const co = getCompany(req);
+    const account = await Account.findOneAndUpdate(
+      { _id: req.params.id, company: co }, req.body, { new: true, runValidators: true }
+    );
     if (!account) return res.status(404).json({ success: false, message: 'الحساب غير موجود' });
     res.json({ success: true, data: account });
   } catch (err) { res.status(400).json({ success: false, message: err.message }); }
@@ -41,19 +51,23 @@ exports.updateAccount = async (req, res) => {
 
 exports.deleteAccount = async (req, res) => {
   try {
-    // Check if account has journal lines
-    const hasLines = await JournalEntry.findOne({ 'lines.account': req.params.id });
+    const co = getCompany(req);
+    // Check if account has journal lines (within the same company only)
+    const hasLines = await JournalEntry.findOne({ company: co, 'lines.account': req.params.id });
     if (hasLines) return res.status(400).json({ success: false, message: 'لا يمكن حذف حساب له قيود محاسبية' });
-    const account = await Account.findByIdAndDelete(req.params.id);
+    const account = await Account.findOneAndDelete({ _id: req.params.id, company: co });
     if (!account) return res.status(404).json({ success: false, message: 'الحساب غير موجود' });
     res.json({ success: true, message: 'تم حذف الحساب' });
   } catch (err) { res.status(500).json({ success: false, message: err.message }); }
 };
 
-// Seed default chart of accounts
+// Seed default chart of accounts — لكل شركة على حدة
 exports.seedAccounts = async (req, res) => {
   try {
-    const existing = await Account.countDocuments();
+    const co = getCompany(req);
+    if (!co) return res.status(400).json({ success: false, message: 'الحساب غير مرتبط بشركة' });
+
+    const existing = await Account.countDocuments({ company: co });
     if (existing > 0) return res.json({ success: true, message: 'دليل الحسابات موجود بالفعل', count: existing });
 
     const defaults = [
@@ -93,7 +107,7 @@ exports.seedAccounts = async (req, res) => {
       { code: '5600', name: 'مصروفات تسويقية', nameEn: 'Marketing Expenses', type: 'expense', category: 'expense' },
     ];
 
-    await Account.insertMany(defaults);
+    await Account.insertMany(defaults.map(d => ({ ...d, company: co })));
     res.json({ success: true, message: 'تم إنشاء دليل الحسابات الافتراضي', count: defaults.length });
   } catch (err) { res.status(500).json({ success: false, message: err.message }); }
 };
@@ -104,8 +118,9 @@ exports.seedAccounts = async (req, res) => {
 
 exports.getJournalEntries = async (req, res) => {
   try {
+    const co = getCompany(req);
     const { status, from, to, page = 1, limit = 50 } = req.query;
-    const filter = {};
+    const filter = { company: co };
     if (status) filter.status = status;
     if (from || to) {
       filter.date = {};
@@ -125,7 +140,8 @@ exports.getJournalEntries = async (req, res) => {
 
 exports.getJournalEntry = async (req, res) => {
   try {
-    const entry = await JournalEntry.findById(req.params.id)
+    const co = getCompany(req);
+    const entry = await JournalEntry.findOne({ _id: req.params.id, company: co })
       .populate('lines.account', 'code name type')
       .populate('postedBy', 'name')
       .populate('voidedBy', 'name');
@@ -136,6 +152,9 @@ exports.getJournalEntry = async (req, res) => {
 
 exports.createJournalEntry = async (req, res) => {
   try {
+    const co = getCompany(req);
+    if (!co) return res.status(400).json({ success: false, message: 'الحساب غير مرتبط بشركة' });
+
     const { lines } = req.body;
     // Validate debit = credit
     const totalDebit = lines.reduce((s, l) => s + (l.debit || 0), 0);
@@ -143,7 +162,15 @@ exports.createJournalEntry = async (req, res) => {
     if (Math.abs(totalDebit - totalCredit) > 0.01) {
       return res.status(400).json({ success: false, message: 'مجموع المدين يجب أن يساوي مجموع الدائن' });
     }
-    const entry = await JournalEntry.create(req.body);
+
+    // Validate every referenced account actually belongs to this company
+    const accountIds = lines.map(l => l.account);
+    const ownedCount = await Account.countDocuments({ _id: { $in: accountIds }, company: co });
+    if (ownedCount !== new Set(accountIds.map(String)).size) {
+      return res.status(400).json({ success: false, message: 'أحد الحسابات المحددة لا ينتمي لشركتك' });
+    }
+
+    const entry = await JournalEntry.create({ ...req.body, company: co });
     const populated = await entry.populate('lines.account', 'code name');
     res.status(201).json({ success: true, data: populated });
   } catch (err) { res.status(400).json({ success: false, message: err.message }); }
@@ -151,20 +178,19 @@ exports.createJournalEntry = async (req, res) => {
 
 exports.postJournalEntry = async (req, res) => {
   try {
-    const entry = await JournalEntry.findById(req.params.id);
+    const co = getCompany(req);
+    const entry = await JournalEntry.findOne({ _id: req.params.id, company: co });
     if (!entry) return res.status(404).json({ success: false, message: 'القيد غير موجود' });
     if (entry.status === 'posted') return res.status(400).json({ success: false, message: 'القيد محدث بالفعل' });
     if (entry.status === 'voided') return res.status(400).json({ success: false, message: 'القيد ملغى' });
 
-    // Update account balances
+    // Update account balances — scoped to company
     for (const line of entry.lines) {
-      const account = await Account.findById(line.account);
+      const account = await Account.findOne({ _id: line.account, company: co });
       if (!account) continue;
-      // For assets/expenses: debit increases balance, credit decreases
-      // For liabilities/equity/revenue: credit increases, debit decreases
       const isDebitNature = ['asset', 'expense'].includes(account.type);
       const change = isDebitNature ? (line.debit - line.credit) : (line.credit - line.debit);
-      await Account.findByIdAndUpdate(line.account, { $inc: { balance: change } });
+      await Account.findOneAndUpdate({ _id: line.account, company: co }, { $inc: { balance: change } });
     }
 
     entry.status = 'posted';
@@ -178,18 +204,18 @@ exports.postJournalEntry = async (req, res) => {
 
 exports.voidJournalEntry = async (req, res) => {
   try {
-    const entry = await JournalEntry.findById(req.params.id);
+    const co = getCompany(req);
+    const entry = await JournalEntry.findOne({ _id: req.params.id, company: co });
     if (!entry) return res.status(404).json({ success: false, message: 'القيد غير موجود' });
     if (entry.status === 'voided') return res.status(400).json({ success: false, message: 'القيد ملغى بالفعل' });
 
-    // Reverse account balances if posted
     if (entry.status === 'posted') {
       for (const line of entry.lines) {
-        const account = await Account.findById(line.account);
+        const account = await Account.findOne({ _id: line.account, company: co });
         if (!account) continue;
         const isDebitNature = ['asset', 'expense'].includes(account.type);
         const change = isDebitNature ? (line.debit - line.credit) : (line.credit - line.debit);
-        await Account.findByIdAndUpdate(line.account, { $inc: { balance: -change } });
+        await Account.findOneAndUpdate({ _id: line.account, company: co }, { $inc: { balance: -change } });
       }
     }
 
@@ -204,7 +230,8 @@ exports.voidJournalEntry = async (req, res) => {
 
 exports.deleteJournalEntry = async (req, res) => {
   try {
-    const entry = await JournalEntry.findById(req.params.id);
+    const co = getCompany(req);
+    const entry = await JournalEntry.findOne({ _id: req.params.id, company: co });
     if (!entry) return res.status(404).json({ success: false, message: 'القيد غير موجود' });
     if (entry.status === 'posted') return res.status(400).json({ success: false, message: 'لا يمكن حذف قيد مرحّل' });
     await entry.deleteOne();
@@ -218,8 +245,9 @@ exports.deleteJournalEntry = async (req, res) => {
 
 exports.getTransactions = async (req, res) => {
   try {
+    const co = getCompany(req);
     const { type, from, to, page = 1, limit = 50 } = req.query;
-    const filter = {};
+    const filter = { company: co };
     if (type) filter.type = type;
     if (from || to) {
       filter.date = {};
@@ -240,7 +268,9 @@ exports.getTransactions = async (req, res) => {
 
 exports.createTransaction = async (req, res) => {
   try {
-    const txn = await Transaction.create({ ...req.body, createdBy: req.user.id });
+    const co = getCompany(req);
+    if (!co) return res.status(400).json({ success: false, message: 'الحساب غير مرتبط بشركة' });
+    const txn = await Transaction.create({ ...req.body, company: co, createdBy: req.user.id });
     res.status(201).json({ success: true, data: txn });
   } catch (err) { res.status(400).json({ success: false, message: err.message }); }
 };
@@ -252,9 +282,10 @@ exports.createTransaction = async (req, res) => {
 // Balance Sheet
 exports.getBalanceSheet = async (req, res) => {
   try {
-    const assets = await Account.find({ type: 'asset', isActive: true }).sort({ code: 1 });
-    const liabilities = await Account.find({ type: 'liability', isActive: true }).sort({ code: 1 });
-    const equity = await Account.find({ type: 'equity', isActive: true }).sort({ code: 1 });
+    const co = getCompany(req);
+    const assets = await Account.find({ company: co, type: 'asset', isActive: true }).sort({ code: 1 });
+    const liabilities = await Account.find({ company: co, type: 'liability', isActive: true }).sort({ code: 1 });
+    const equity = await Account.find({ company: co, type: 'equity', isActive: true }).sort({ code: 1 });
 
     const totalAssets = assets.reduce((s, a) => s + a.balance, 0);
     const totalLiabilities = liabilities.reduce((s, a) => s + a.balance, 0);
@@ -274,9 +305,9 @@ exports.getBalanceSheet = async (req, res) => {
 // Income Statement (P&L)
 exports.getIncomeStatement = async (req, res) => {
   try {
-    const { from, to } = req.query;
-    const revenues = await Account.find({ type: 'revenue', isActive: true }).sort({ code: 1 });
-    const expenses = await Account.find({ type: 'expense', isActive: true }).sort({ code: 1 });
+    const co = getCompany(req);
+    const revenues = await Account.find({ company: co, type: 'revenue', isActive: true }).sort({ code: 1 });
+    const expenses = await Account.find({ company: co, type: 'expense', isActive: true }).sort({ code: 1 });
 
     const totalRevenue = revenues.reduce((s, a) => s + a.balance, 0);
     const totalExpenses = expenses.reduce((s, a) => s + a.balance, 0);
@@ -292,7 +323,8 @@ exports.getIncomeStatement = async (req, res) => {
 // Trial Balance
 exports.getTrialBalance = async (req, res) => {
   try {
-    const accounts = await Account.find({ isActive: true }).sort({ code: 1 });
+    const co = getCompany(req);
+    const accounts = await Account.find({ company: co, isActive: true }).sort({ code: 1 });
     const withBalances = accounts.map(a => ({
       ...a.toObject(),
       debit: a.balance > 0 && ['asset', 'expense'].includes(a.type) ? a.balance : 0,
@@ -312,10 +344,14 @@ exports.getTrialBalance = async (req, res) => {
 // Account Ledger (كشف حساب)
 exports.getAccountLedger = async (req, res) => {
   try {
+    const co = getCompany(req);
     const { accountId } = req.params;
     const { from, to } = req.query;
 
-    const filter = { 'lines.account': accountId, status: 'posted' };
+    const account = await Account.findOne({ _id: accountId, company: co });
+    if (!account) return res.status(404).json({ success: false, message: 'الحساب غير موجود' });
+
+    const filter = { company: co, 'lines.account': accountId, status: 'posted' };
     if (from || to) {
       filter.date = {};
       if (from) filter.date.$gte = new Date(from);
@@ -325,9 +361,6 @@ exports.getAccountLedger = async (req, res) => {
     const entries = await JournalEntry.find(filter)
       .populate('lines.account', 'code name')
       .sort({ date: 1 });
-
-    const account = await Account.findById(accountId);
-    if (!account) return res.status(404).json({ success: false, message: 'الحساب غير موجود' });
 
     let runningBalance = 0;
     const ledgerLines = [];
