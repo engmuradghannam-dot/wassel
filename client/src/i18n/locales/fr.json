@@ -75,7 +75,11 @@
     "legal": "Juridique",
     "purchaseRequests": "Demandes d'achat",
     "orgChart": "Organigramme",
-    "mail": "Mail"
+    "mail": "Mail",
+    "departments": "Departments",
+    "leaves": "Leaves",
+    "attendance": "Attendance",
+    "categories": "Categories"
   },
   "auth": {
     "login": "Connexion",

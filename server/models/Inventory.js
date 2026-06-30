@@ -5,7 +5,8 @@ const inventorySchema = new mongoose.Schema({
   nameEn:      { type: String },
   sku:         { type: String },
   barcode:     { type: String },
-  category:    { type: String },
+  category:    { type: String },  // قديم: نص حر — يبقى للتوافق العكسي
+  categoryRef: { type: mongoose.Schema.Types.ObjectId, ref: 'Category' }, // جديد: مرجع فعلي
   unit:        { type: String, default: 'pcs' },
   costPrice:   { type: Number, default: 0 },
   salePrice:   { type: Number, default: 0 },

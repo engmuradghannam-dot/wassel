@@ -75,7 +75,11 @@
     "legal": "Legal & Cases",
     "purchaseRequests": "Purchase Requests",
     "orgChart": "Org Chart",
-    "mail": "Mail"
+    "mail": "Mail",
+    "departments": "Departments",
+    "leaves": "Leaves",
+    "attendance": "Attendance",
+    "categories": "Categories"
   },
   "auth": {
     "login": "Giriş Yap",

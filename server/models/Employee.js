@@ -8,7 +8,8 @@ const employeeSchema = new mongoose.Schema({
   phone:          { type: String },
   nationalId:     { type: String },
   position:       { type: String },
-  department:     { type: String },
+  department:     { type: String },  // قديم: نص حر — يبقى للتوافق العكسي
+  departmentRef:  { type: mongoose.Schema.Types.ObjectId, ref: 'Department' }, // جديد: مرجع فعلي
   branch:         { type: mongoose.Schema.Types.ObjectId, ref: 'Branch' },
   manager:        { type: mongoose.Schema.Types.ObjectId, ref: 'Employee' },
   user:           { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
