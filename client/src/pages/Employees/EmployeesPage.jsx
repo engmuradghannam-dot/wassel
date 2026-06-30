@@ -51,6 +51,8 @@ export default function EmployeesPage() {
   const [search,  setSearch]  = useState('');
   const [saving,  setSaving]  = useState(false);
   const [error,   setError]   = useState('');
+  const [seeding, setSeeding] = useState(false);
+  const [accountsDialog, setAccountsDialog] = useState(null); // shows generated logins after seeding
   const [snack,   setSnack]   = useState('');
   const [delId,   setDelId]   = useState(null);
   const [showPw,  setShowPw]  = useState(false);
@@ -69,6 +71,24 @@ export default function EmployeesPage() {
   }, [t]);
 
   useEffect(() => { load(); }, [load]);
+
+  const handleSeedSector = async (force=false) => {
+    setSeeding(true); setError('');
+    try {
+      const r = await api.post(`/api/employees/seed-sector${force?'?force=true':''}`);
+      if (r.data.success) {
+        setAccountsDialog({ accounts: r.data.accounts||[], domain: r.data.domain, password: r.data.defaultPassword, count: r.data.count });
+        setSnack(r.data.message);
+        load();
+      }
+    } catch (e) {
+      const msg = e.response?.data?.message || (AR?'فشل التوليد':'Generation failed');
+      if (msg.includes('يوجد بالفعل') && window.confirm(msg + (AR?'\n\nهل تريد المتابعة؟':'\n\nContinue anyway?'))) {
+        return handleSeedSector(true);
+      }
+      setError(msg);
+    } finally { setSeeding(false); }
+  };
 
   const set = k => e => setForm(p => ({ ...p, [k]: e.target.value }));
   const setBool = k => e => setForm(p => ({ ...p, [k]: e.target.checked }));
@@ -152,6 +172,11 @@ export default function EmployeesPage() {
           </Box>
           <Box sx={{ display:'flex', gap:1 }}>
             <IconButton onClick={load} size="small"><Refresh/></IconButton>
+            <Button variant="outlined" onClick={()=>handleSeedSector(false)} disabled={seeding}
+              startIcon={seeding?<CircularProgress size={16}/>:<Badge/>}
+              sx={{ borderRadius:2 }}>
+              {AR?'توليد فريق مقترح':'Generate Suggested Team'}
+            </Button>
             <Button variant="contained" startIcon={<Add/>} onClick={openAdd}
               sx={{ bgcolor:'#1565c0', '&:hover':{bgcolor:'#0d47a1'}, borderRadius:2 }}>
               {AR?'+ موظف جديد':'+ New Employee'}
@@ -185,8 +210,17 @@ export default function EmployeesPage() {
               {loading ? (
                 <TableRow><TableCell colSpan={9} align="center" sx={{ py:5 }}><CircularProgress size={28}/></TableCell></TableRow>
               ) : filtered.length === 0 ? (
-                <TableRow><TableCell colSpan={9} align="center" sx={{ py:5, color:'text.secondary' }}>
-                  {AR?'لا يوجد موظفون':'No employees found'}
+                <TableRow><TableCell colSpan={9} align="center" sx={{ py:6 }}>
+                  <Typography color="text.secondary" sx={{ mb:1.5 }}>
+                    {AR?'لا يوجد موظفون بعد':'No employees yet'}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary" display="block" sx={{ mb:2 }}>
+                    {AR?'يمكنك توليد فريق مقترح بمسميات وظيفية وحسابات دخول جاهزة حسب نشاط شركتك':'Generate a suggested team with job titles and login accounts based on your business sector'}
+                  </Typography>
+                  <Button variant="contained" onClick={()=>handleSeedSector(false)} disabled={seeding}
+                    startIcon={seeding?<CircularProgress size={16}/>:<Badge/>}>
+                    {AR?'توليد فريق مقترح الآن':'Generate Suggested Team Now'}
+                  </Button>
                 </TableCell></TableRow>
               ) : filtered.map(emp => (
                 <TableRow key={emp._id} hover>
@@ -542,6 +576,54 @@ export default function EmployeesPage() {
             <Button color="error" variant="contained" onClick={handleDelete}>{t('common.delete')}</Button>
           </DialogActions>
         </Dialog>
+
+        {/* ── Generated Accounts Dialog ── */}
+        {accountsDialog && (
+          <Dialog open maxWidth="sm" fullWidth onClose={()=>setAccountsDialog(null)} PaperProps={{ sx:{ borderRadius:3 } }}>
+            <DialogTitle fontWeight={800} sx={{ borderBottom:'1px solid', borderColor:'divider' }}>
+              <Box sx={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                <Box>
+                  {AR?'تم إنشاء الفريق':'Team Created'}
+                  <Typography variant="caption" display="block" color="text.secondary">
+                    {accountsDialog.count} {AR?'موظف':'employees'} · {accountsDialog.accounts.length} {AR?'حساب دخول':'login accounts'}
+                  </Typography>
+                </Box>
+                <IconButton onClick={()=>setAccountsDialog(null)} size="small"><Close sx={{ fontSize:18 }}/></IconButton>
+              </Box>
+            </DialogTitle>
+            <DialogContent sx={{ pt:2 }}>
+              <Alert severity="warning" sx={{ mb:2, borderRadius:2 }}>
+                {AR
+                  ? `كلمة المرور الموحدة لجميع الحسابات: ${accountsDialog.password} — يُنصح بإلزام كل موظف بتغييرها عند أول دخول.`
+                  : `Shared default password for all accounts: ${accountsDialog.password} — recommend forcing change on first login.`}
+              </Alert>
+              <Table size="small">
+                <TableHead><TableRow sx={{ bgcolor:'#f5f5f5' }}>
+                  <TableCell sx={{ fontWeight:700 }}>{AR?'الاسم':'Name'}</TableCell>
+                  <TableCell sx={{ fontWeight:700 }}>{AR?'المنصب':'Position'}</TableCell>
+                  <TableCell sx={{ fontWeight:700 }}>{AR?'البريد الإلكتروني':'Email'}</TableCell>
+                </TableRow></TableHead>
+                <TableBody>
+                  {accountsDialog.accounts.map((a,i)=>(
+                    <TableRow key={i}>
+                      <TableCell><Typography variant="body2" fontWeight={600}>{a.name}</Typography></TableCell>
+                      <TableCell><Typography variant="caption" color="text.secondary">{a.position}</Typography></TableCell>
+                      <TableCell><Typography variant="caption" sx={{ fontFamily:'monospace' }}>{a.email}</Typography></TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              <Typography variant="caption" color="text.secondary" display="block" sx={{ mt:2 }}>
+                {AR
+                  ? 'هذه أسماء وبريد إلكتروني تجريبية (placeholders) — عدّلها لاحقاً من قسم الموظفين بالأسماء والبيانات الحقيقية.'
+                  : 'These are placeholder names and emails — edit them later from the Employees section with real data.'}
+              </Typography>
+            </DialogContent>
+            <DialogActions sx={{ px:3, py:2, borderTop:'1px solid', borderColor:'divider' }}>
+              <Button variant="contained" onClick={()=>setAccountsDialog(null)}>{AR?'تم':'Done'}</Button>
+            </DialogActions>
+          </Dialog>
+        )}
 
         <Snackbar open={!!snack} autoHideDuration={3000} onClose={()=>setSnack('')} anchorOrigin={{ vertical:'bottom', horizontal:'center' }}>
           <Alert severity="success" onClose={()=>setSnack('')} sx={{ borderRadius:2 }}>{snack}</Alert>

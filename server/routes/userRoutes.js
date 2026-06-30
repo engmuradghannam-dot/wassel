@@ -92,7 +92,25 @@ router.post('/setup-company', protect, async (req, res) => {
       { expiresIn: '30d' }
     );
 
-    res.json({ success:true, token, data:{ user } });
+    // ── Auto-seed sector-suggested employees + login accounts ────────────
+    let seedResult = null;
+    try {
+      const { seedSectorEmployees } = require('../services/seedSectorEmployees');
+      seedResult = await seedSectorEmployees({
+        companyId:   company._id,
+        companyName: company.name,
+        industry:    company.industry,
+        ownerUserId: user._id,
+      });
+    } catch (seedErr) {
+      console.error('Auto-seed employees failed (non-critical):', seedErr.message);
+    }
+
+    res.json({
+      success:true, token, data:{ user },
+      seededEmployees: seedResult ? seedResult.employees.length : 0,
+      seededAccounts:  seedResult ? seedResult.accounts.length  : 0,
+    });
   } catch(e) { res.status(400).json({ success:false, message:e.message }); }
 });
 
