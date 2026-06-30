@@ -10,12 +10,24 @@ const api = axios.create({
   timeout: 30000
 });
 
-// Request interceptor - add auth token
+// Request interceptor - add auth token + fix Content-Type for file uploads
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+    }
+    // ── إصلاح حرج: الـ Content-Type الثابت أعلاه (application/json) لا
+    // يُستبدَل تلقائياً عند إرسال FormData (رفع ملفات). تحققتُ من هذا
+    // فعلياً عبر اختبار مباشر للسلوك الحقيقي لـ axios، وليس بالاعتماد
+    // على افتراض سابق غير مُختبَر. النتيجة: أي رفع ملف كان يصل للسيرفر
+    // بترويسة Content-Type: application/json رغم أن الجسم الفعلي
+    // multipart/form-data، فيفشل Multer في قراءة الملف بصمت (req.file
+    // يبقى undefined). الحل: حذف Content-Type كلياً من الطلب عندما تكون
+    // البيانات FormData، ليضبطه المتصفح بنفسه تلقائياً مع قيمة boundary
+    // الصحيحة — وهي قيمة لا يمكن ضبطها يدوياً بشكل صحيح أصلاً.
+    if (typeof FormData !== 'undefined' && config.data instanceof FormData) {
+      delete config.headers['Content-Type'];
     }
     return config;
   },
