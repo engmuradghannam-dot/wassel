@@ -63,7 +63,7 @@ router.get('/:id/pdf', protect, async (req, res) => {
 // ── رفع مرفق لأمر الشراء (عرض سعر عند الإنشاء، فاتورة ضريبية عند طلب الدفع) ──
 // docType: quotation | tax_invoice | pro_forma | boq | contract | other
 router.post('/:id/documents', protect, async (req, res) => {
-  const { upload: uploadAny, saveFileToGridFS } = require('../middleware/fileStorage');
+  const { upload: uploadAny, saveFile } = require('../middleware/fileStorage');
   uploadAny.single('file')(req, res, async (uploadErr) => {
     if (uploadErr) return res.status(400).json({ success: false, message: uploadErr.message });
     try {
@@ -75,7 +75,7 @@ router.post('/:id/documents', protect, async (req, res) => {
       if (!order) return res.status(404).json({ success: false, message: 'أمر الشراء غير موجود' });
 
       const docType = req.body.docType || 'other';
-      const saved = await saveFileToGridFS(req.file, {
+      const saved = await saveFile(req.file, {
         company: co,
         uploadedBy: req.user._id,
         module: 'purchase_order',

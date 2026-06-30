@@ -167,7 +167,7 @@ router.put('/:id', protect, async (req, res) => {
 // ── رفع مرفق لطلب الشراء (BOQ، عرض سعر، فاتورة...) ─────────────────────────
 // docType: boq | quotation | invoice | other
 router.post('/:id/documents', protect, async (req, res) => {
-  const { upload: uploadAny, saveFileToGridFS } = require('../middleware/fileStorage');
+  const { upload: uploadAny, saveFile } = require('../middleware/fileStorage');
   uploadAny.single('file')(req, res, async (uploadErr) => {
     if (uploadErr) return res.status(400).json({ success: false, message: uploadErr.message });
     try {
@@ -177,7 +177,7 @@ router.post('/:id/documents', protect, async (req, res) => {
       const pr = await PR.findOne(buildFilter(req, { _id: req.params.id }));
       if (!pr) return res.status(404).json({ success: false, message: 'الطلب غير موجود' });
 
-      const saved = await saveFileToGridFS(req.file, {
+      const saved = await saveFile(req.file, {
         company: co,
         uploadedBy: req.user._id,
         module: 'purchase_request',

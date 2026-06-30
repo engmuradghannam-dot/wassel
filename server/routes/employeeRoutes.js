@@ -61,7 +61,7 @@ router.route('/:id')
 // ── رفع مستند للموظف (هوية/إقامة، عقد، شهادة...) ──────────────────────────
 // docType: national_id | iqama | passport | contract | certificate | cv | photo | other
 router.post('/:id/documents', protect, authorize('owner','admin','manager'), async (req, res) => {
-  const { upload: uploadAny, saveFileToGridFS } = require('../middleware/fileStorage');
+  const { upload: uploadAny, saveFile } = require('../middleware/fileStorage');
   uploadAny.single('file')(req, res, async (uploadErr) => {
     if (uploadErr) return res.status(400).json({ success: false, message: uploadErr.message });
     try {
@@ -71,7 +71,7 @@ router.post('/:id/documents', protect, authorize('owner','admin','manager'), asy
       const emp = await Employee.findOne({ _id: req.params.id, company: co });
       if (!emp) return res.status(404).json({ success: false, message: 'الموظف غير موجود' });
 
-      const saved = await saveFileToGridFS(req.file, {
+      const saved = await saveFile(req.file, {
         company: co,
         uploadedBy: req.user._id,
         module: 'employee_docs',

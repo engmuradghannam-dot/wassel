@@ -3,7 +3,7 @@ const router  = express.Router();
 const companyController = require('../controllers/companyController');
 const { protect, authorize, getCompany } = require('../middleware/auth');
 const upload = require('../middleware/upload'); // رفع شعار الشركة فقط (صورة) — لم يُمس
-const { upload: uploadAny, saveFileToGridFS } = require('../middleware/fileStorage');
+const { upload: uploadAny, saveFile } = require('../middleware/fileStorage');
 const Company = require('../models/Company');
 
 // GET /api/company — get company settings
@@ -29,7 +29,7 @@ router.post('/documents', protect, authorize('owner','admin','superadmin'), uplo
     const co = getCompany(req);
     if (!co) return res.status(400).json({ success: false, message: 'الحساب غير مرتبط بشركة' });
 
-    const saved = await saveFileToGridFS(req.file, {
+    const saved = await saveFile(req.file, {
       company: co,
       uploadedBy: req.user._id,
       module: 'company_docs',

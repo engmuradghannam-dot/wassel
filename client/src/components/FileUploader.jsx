@@ -127,7 +127,9 @@ export default function FileUploader({
                   <Chip label={f.docType || f.type} size="small" sx={{ fontSize: '0.65rem', height: 18 }} />
                 ) : null}
                 <Tooltip title={AR ? 'تنزيل / عرض' : 'Download / View'}>
-                  <IconButton size="small" component="a" href={`${api.defaults.baseURL}${f.url}`} target="_blank" rel="noreferrer">
+                  <IconButton size="small" component="a"
+                    href={/^https?:\/\//.test(f.url) ? f.url : `${api.defaults.baseURL}${f.url}`}
+                    target="_blank" rel="noreferrer">
                     <Download sx={{ fontSize: 14 }} />
                   </IconButton>
                 </Tooltip>

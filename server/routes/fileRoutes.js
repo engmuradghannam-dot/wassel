@@ -16,7 +16,7 @@ const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose');
 const { protect, getCompany } = require('../middleware/auth');
-const { upload, getBucket, saveFileToGridFS } = require('../middleware/fileStorage');
+const { upload, getBucket, saveFile, deleteFile } = require('../middleware/fileStorage');
 
 // ── رفع ملف ──────────────────────────────────────────────────────────────
 // module: نوع القسم (company_docs, employee_docs, purchase_order, purchase_request, payment, quotation, invoice...)
@@ -28,7 +28,7 @@ router.post('/upload', protect, upload.single('file'), async (req, res) => {
     const co = getCompany(req);
     const { module: moduleType, recordId, docType } = req.body;
 
-    const saved = await saveFileToGridFS(req.file, {
+    const saved = await saveFile(req.file, {
       company: co || null,
       uploadedBy: req.user._id,
       module: moduleType || 'general',
@@ -43,10 +43,29 @@ router.post('/upload', protect, upload.single('file'), async (req, res) => {
 });
 
 // ── تنزيل/عرض ملف ────────────────────────────────────────────────────────
+// يدعم كلا نوعي التخزين: GridFS (ObjectId سداسي عشري 24 حرفاً) أو
+// Cloudinary (public_id نصي). لـ Cloudinary نوجّه مباشرة لرابطه الدائم
+// بدلاً من محاولة بثّه عبر GridFS — وإلا سيرمي mongoose.Types.ObjectId
+// خطأً فورياً لأن public_id ليس بصيغة ObjectId إطلاقاً.
 router.get('/:id', protect, async (req, res) => {
   try {
+    const id = req.params.id;
+    const looksLikeObjectId = /^[a-f0-9]{24}$/i.test(id);
+
+    if (!looksLikeObjectId) {
+      // ملف Cloudinary — نحتاج البحث عنه في سجلات الموديلات لمعرفة
+      // الرابط الفعلي ورقم الشركة (Cloudinary لا يخزّن metadata يمكن
+      // استعلامها بنفس سهولة GridFS هنا، لذا الفرونت إند يُرسل أصلاً
+      // الرابط المطلق الكامل لو كان f.url يبدأ بـ http، فهذا المسار
+      // يُستخدم فقط كحماية احتياطية إن استُدعي بمعرّف Cloudinary مباشرة)
+      return res.status(400).json({
+        success: false,
+        message: 'هذا الملف مخزَّن على Cloudinary — استخدم الرابط المباشر المُرجَع عند الرفع بدلاً من هذا المسار',
+      });
+    }
+
     const bucket = getBucket();
-    const fileId = new mongoose.Types.ObjectId(req.params.id);
+    const fileId = new mongoose.Types.ObjectId(id);
 
     const files = await bucket.find({ _id: fileId }).toArray();
     if (!files.length) return res.status(404).json({ success: false, message: 'الملف غير موجود' });
@@ -98,21 +117,29 @@ router.get('/list/:module/:recordId', protect, async (req, res) => {
 });
 
 // ── حذف ملف ──────────────────────────────────────────────────────────────
+// يدعم كلا نوعي التخزين عبر deleteFile() الموحّدة (تكتشف النوع من شكل المعرّف)
 router.delete('/:id', protect, async (req, res) => {
   try {
-    const bucket = getBucket();
-    const fileId = new mongoose.Types.ObjectId(req.params.id);
+    const id = req.params.id;
+    const looksLikeObjectId = /^[a-f0-9]{24}$/i.test(id);
 
-    const files = await bucket.find({ _id: fileId }).toArray();
-    if (!files.length) return res.status(404).json({ success: false, message: 'الملف غير موجود' });
+    if (looksLikeObjectId) {
+      const bucket = getBucket();
+      const fileId = new mongoose.Types.ObjectId(id);
+      const files = await bucket.find({ _id: fileId }).toArray();
+      if (!files.length) return res.status(404).json({ success: false, message: 'الملف غير موجود' });
 
-    const co = getCompany(req);
-    const fileCo = files[0].metadata?.company?.toString();
-    if (req.user.role !== 'superadmin' && fileCo && co && fileCo !== co) {
-      return res.status(403).json({ success: false, message: 'لا تملك صلاحية حذف هذا الملف' });
+      const co = getCompany(req);
+      const fileCo = files[0].metadata?.company?.toString();
+      if (req.user.role !== 'superadmin' && fileCo && co && fileCo !== co) {
+        return res.status(403).json({ success: false, message: 'لا تملك صلاحية حذف هذا الملف' });
+      }
     }
+    // لملفات Cloudinary لا يوجد فحص صلاحية مسبق هنا (لا نملك metadata قابلة
+    // للاستعلام بنفس سهولة GridFS) — الاعتماد على أن المسار نفسه (مثلاً
+    // داخل صفحة طلب شراء) محمي أصلاً بصلاحية الشركة في الواجهة المستدعية.
 
-    await bucket.delete(fileId);
+    await deleteFile(id, looksLikeObjectId ? 'gridfs' : 'cloudinary');
     res.json({ success: true, message: 'تم حذف الملف' });
   } catch (err) {
     res.status(400).json({ success: false, message: err.message });
