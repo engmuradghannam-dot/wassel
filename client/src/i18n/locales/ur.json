@@ -74,7 +74,8 @@
     "contracts": "Contracts",
     "legal": "Legal & Cases",
     "purchaseRequests": "Purchase Requests",
-    "orgChart": "Org Chart"
+    "orgChart": "Org Chart",
+    "mail": "Mail"
   },
   "auth": {
     "login": "لاگ ان",

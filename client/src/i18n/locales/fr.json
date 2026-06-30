@@ -74,7 +74,8 @@
     "contracts": "Contrats",
     "legal": "Juridique",
     "purchaseRequests": "Demandes d'achat",
-    "orgChart": "Organigramme"
+    "orgChart": "Organigramme",
+    "mail": "Mail"
   },
   "auth": {
     "login": "Connexion",

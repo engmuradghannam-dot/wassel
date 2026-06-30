@@ -12,6 +12,7 @@ const SHARED_BOTTOM = [
   { path:'/contracts',        icon:'📄', key:'nav.contracts'        },
   { path:'/legal',            icon:'⚖️', key:'nav.legal'           },
   { path:'/chat',             icon:'💬', key:'nav.chat'             },
+  { path:'/mail',             icon:'📧', key:'nav.mail'             },
   null,
   { path:'/roles',            icon:'🔐', key:'nav.roles'            },
   { path:'/company-settings', icon:'🏢', key:'nav.company'          },

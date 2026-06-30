@@ -189,10 +189,12 @@ app.use('/api/accounting',      accountingRoutes);
 app.use('/api/payments',        paymentRoutes);
 
 // ── New modules ───────────────────────────────────────────────────────────
+const emailRoutes            = require('./routes/emailRoutes');
 const purchaseRequestRoutes = require('./routes/purchaseRequestRoutes');
 const legalRoutes            = require('./routes/legalRoutes');
 const contractRoutes         = require('./routes/contractRoutes');
 
+app.use('/api/mail',              emailRoutes);
 app.use('/api/purchase-requests', purchaseRequestRoutes);
 app.use('/api/legal',             legalRoutes);
 app.use('/api/contracts',         contractRoutes);
