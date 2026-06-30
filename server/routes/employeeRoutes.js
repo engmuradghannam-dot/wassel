@@ -58,4 +58,58 @@ router.route('/:id')
   .put(   protect, authorize('owner','admin','manager'), updateEmployee)
   .delete(protect, authorize('owner','admin'), deleteEmployee);
 
+// ── رفع مستند للموظف (هوية/إقامة، عقد، شهادة...) ──────────────────────────
+// docType: national_id | iqama | passport | contract | certificate | cv | photo | other
+router.post('/:id/documents', protect, authorize('owner','admin','manager'), async (req, res) => {
+  const { upload: uploadAny, saveFileToGridFS } = require('../middleware/fileStorage');
+  uploadAny.single('file')(req, res, async (uploadErr) => {
+    if (uploadErr) return res.status(400).json({ success: false, message: uploadErr.message });
+    try {
+      if (!req.file) return res.status(400).json({ success: false, message: 'لم يتم إرفاق أي ملف' });
+      const co = getCompany(req);
+
+      const emp = await Employee.findOne({ _id: req.params.id, company: co });
+      if (!emp) return res.status(404).json({ success: false, message: 'الموظف غير موجود' });
+
+      const saved = await saveFileToGridFS(req.file, {
+        company: co,
+        uploadedBy: req.user._id,
+        module: 'employee_docs',
+        recordId: req.params.id,
+        docType: req.body.docType || 'other',
+      });
+
+      emp.documents.push({
+        fileId: saved.fileId, name: saved.filename, url: saved.url,
+        docType: req.body.docType || 'other', uploadedBy: req.user._id,
+      });
+      await emp.save();
+
+      res.status(201).json({ success: true, data: saved, documents: emp.documents });
+    } catch (err) {
+      res.status(400).json({ success: false, message: err.message, detail: err.message });
+    }
+  });
+});
+
+// ── حذف مستند موظف ──────────────────────────────────────────────────────
+router.delete('/:id/documents/:fileId', protect, authorize('owner','admin','manager'), async (req, res) => {
+  try {
+    const co = getCompany(req);
+    const { getBucket } = require('../middleware/fileStorage');
+    const mongoose = require('mongoose');
+
+    const emp = await Employee.findOne({ _id: req.params.id, company: co });
+    if (!emp) return res.status(404).json({ success: false, message: 'الموظف غير موجود' });
+
+    await getBucket().delete(new mongoose.Types.ObjectId(req.params.fileId)).catch(() => {});
+    emp.documents = emp.documents.filter(d => d.fileId !== req.params.fileId);
+    await emp.save();
+
+    res.json({ success: true, documents: emp.documents });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
 module.exports = router;

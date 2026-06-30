@@ -221,6 +221,7 @@ const legalRoutes            = require('./routes/legalRoutes');
 const contractRoutes         = require('./routes/contractRoutes');
 
 app.use('/api/mail',              emailRoutes);
+app.use('/api/files',             require('./routes/fileRoutes'));
 app.use('/api/purchase-requests', purchaseRequestRoutes);
 app.use('/api/legal',             legalRoutes);
 app.use('/api/contracts',         contractRoutes);

@@ -16,10 +16,12 @@ import {
 } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
 import LocationPicker from '../../components/LocationPicker';
+import FileUploader from '../../components/FileUploader';
 import api from '../../services/api';
 
 const CompanySettings = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isRTL = i18n.language === 'ar';
   const [activeStep, setActiveStep] = useState(0);
   const [company, setCompany] = useState({
     name: '',
@@ -27,11 +29,12 @@ const CompanySettings = () => {
     email: '',
     phone: '',
     website: '',
-    taxNumber: '',
+    vatNumber: '',
     commercialReg: '',
     crIssueDate: '',
     crExpiryDate: '',
     crAuthority: '',
+    documents: [],
     address: '',
     city: '',
     country: 'SA',
@@ -507,6 +510,34 @@ const CompanySettings = () => {
                         {t('company.taxHint')}
                       </Typography>
                     </Box>
+                  </CardContent>
+                </Card>
+              </Grid>
+
+              {/* Official Documents */}
+              <Grid item xs={12}>
+                <Card variant="outlined" sx={{ bgcolor: 'background.paper', borderColor: 'info.main', borderWidth: 2 }}>
+                  <CardContent>
+                    <Typography variant="subtitle1" fontWeight="bold" gutterBottom color="info.main">
+                      <Assignment sx={{ mr: 1, verticalAlign: 'middle' }} />
+                      {t('company.officialDocuments') || (isRTL ? 'المستندات الرسمية' : 'Official Documents')}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+                      {isRTL ? 'ارفع نسخة من السجل التجاري والشهادة الضريبية وأي ترخيص آخر' : 'Upload a copy of the commercial registration, tax certificate, and any other license'}
+                    </Typography>
+                    <FileUploader
+                      uploadUrl="/api/company/documents"
+                      deleteUrlBuilder={(fileId) => `/api/company/documents/${fileId}`}
+                      existingFiles={(company.documents || []).map(d => ({ ...d, fileId: d.fileId || d.url?.split('/').pop() }))}
+                      onChange={(updated) => handleChange('documents', updated)}
+                      docTypeOptions={[
+                        { value:'commercial_reg',  label:'Commercial Registration', labelAr:'السجل التجاري' },
+                        { value:'vat_certificate', label:'VAT Certificate',         labelAr:'الشهادة الضريبية' },
+                        { value:'license',         label:'License',                 labelAr:'رخصة' },
+                        { value:'bank_letter',     label:'Bank Letter',             labelAr:'خطاب بنكي' },
+                        { value:'other',           label:'Other',                   labelAr:'أخرى' },
+                      ]}
+                    />
                   </CardContent>
                 </Card>
               </Grid>

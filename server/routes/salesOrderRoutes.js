@@ -1,7 +1,7 @@
 const BL = require('../services/businessLogic');
 const express  = require('express');
 const router   = express.Router();
-const { protect, authorize } = require('../middleware/auth');
+const { protect, authorize, getCompany } = require('../middleware/auth');
 const SalesOrder = require('../models/SalesOrder');
 const { buildFilter } = require('../middleware/tenant');
 
@@ -39,7 +39,7 @@ router.post('/', protect, authorize('admin','manager','superadmin'), async (req,
     const count  = await SalesOrder.countDocuments({ company: getCompany(req) }) + 1;
     const order  = await SalesOrder.create({
       ...rest, ...totals,
-      company: require("../middleware/auth").getCompany(req),
+      company: getCompany(req),
       orderNumber: `SO-${new Date().getFullYear()}-${String(count).padStart(5,'0')}`,
       remainingAmount: totals.total,
       createdBy: req.user.id
@@ -99,7 +99,6 @@ router.put('/:id/deliver', protect, authorize('admin','manager','superadmin'), a
   } catch (e) { res.status(500).json({ success:false, message:e.message }); }
 });
 
-module.exports = router;
 
 // ── Convert quotation to invoice ──────────────────────────────────────────
 router.put('/:id/convert-to-invoice', protect, authorize('admin','manager','superadmin'), async (req, res) => {
@@ -140,3 +139,48 @@ router.get('/search/customers', protect, async (req, res) => {
     res.json({ success: true, data: customers });
   } catch (e) { res.status(500).json({ success: false, message: e.message }); }
 });
+
+// ── تصدير PDF (عرض سعر أو فاتورة، حسب type السجل) ──────────────────────────
+router.get('/:id/pdf', protect, async (req, res) => {
+  try {
+    const order = await SalesOrder.findOne(buildFilter(req, { _id: req.params.id }))
+      .populate('customer', 'name commercialReg vatNumber phone address')
+      .populate('company');
+    if (!order) return res.status(404).json({ success: false, message: 'السجل غير موجود' });
+
+    const Company = require('../models/Company');
+    const company = await Company.findById(order.company);
+
+    const { generateDocumentPDF } = require('../services/pdfService');
+    const docType = order.type === 'invoice' ? 'invoice' : 'quotation';
+
+    const pdfBuffer = await generateDocumentPDF({
+      docType,
+      company: {
+        name: company?.name, nameEn: company?.nameEn,
+        commercialReg: company?.commercialReg, vatNumber: company?.vatNumber,
+        address: company?.address, phone: company?.phone,
+      },
+      party: {
+        name: order.customer?.name,
+        commercialReg: order.customer?.commercialReg,
+        vatNumber: order.customer?.vatNumber,
+        phone: order.customer?.phone,
+      },
+      docNumber: order.invoiceNumber || order.orderNumber,
+      date: order.orderDate,
+      dueDate: docType === 'quotation' ? order.validUntil : order.dueDate,
+      items: order.items,
+      totals: { subtotal: order.subtotal, taxAmount: order.taxAmount, total: order.total },
+      notes: order.notes,
+    });
+
+    res.set('Content-Type', 'application/pdf');
+    res.set('Content-Disposition', `inline; filename="${docType}-${order.invoiceNumber || order.orderNumber}.pdf"`);
+    res.send(pdfBuffer);
+  } catch (e) {
+    res.status(500).json({ success: false, message: e.message, detail: e.message });
+  }
+});
+
+module.exports = router;

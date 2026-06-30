@@ -13,6 +13,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
 import Layout from '../../components/Layout';
+import FileUploader from '../../components/FileUploader';
 
 const EMPTY = {
   name:'', nameEn:'', email:'', phone:'', nationalId:'',
@@ -523,6 +524,31 @@ export default function EmployeesPage() {
                 </Grid>
                 <Grid item xs={12} sm={6}>
                   <TextField fullWidth label={AR?'تاريخ انتهاء الجواز':'Passport Expiry'} type="date" value={form.passportExpiry||''} onChange={set('passportExpiry')} InputLabelProps={{shrink:true}}/>
+                </Grid>
+                <Grid item xs={12}>
+                  {editId ? (
+                    <FileUploader
+                      uploadUrl={`/api/employees/${editId}/documents`}
+                      deleteUrlBuilder={(fileId) => `/api/employees/${editId}/documents/${fileId}`}
+                      existingFiles={(form.documents || []).map(d => ({ ...d, fileId: d.fileId || d.url?.split('/').pop() }))}
+                      onChange={(updated) => setForm(p => ({ ...p, documents: updated }))}
+                      docTypeOptions={[
+                        { value:'national_id', label:'National ID', labelAr:'الهوية الوطنية' },
+                        { value:'iqama',       label:'Iqama',       labelAr:'الإقامة' },
+                        { value:'passport',    label:'Passport',    labelAr:'جواز السفر' },
+                        { value:'contract',    label:'Contract',    labelAr:'عقد العمل' },
+                        { value:'certificate', label:'Certificate', labelAr:'شهادة' },
+                        { value:'cv',          label:'CV',          labelAr:'السيرة الذاتية' },
+                        { value:'photo',       label:'Photo',       labelAr:'صورة شخصية' },
+                        { value:'other',       label:'Other',       labelAr:'أخرى' },
+                      ]}
+                      label={AR?'مستندات الموظف':'Employee Documents'}
+                    />
+                  ) : (
+                    <Alert severity="info" sx={{ borderRadius:2, fontSize:'0.8rem' }}>
+                      {AR?'احفظ بيانات الموظف أولاً لتتمكن من رفع مستنداته':'Save employee details first to upload documents'}
+                    </Alert>
+                  )}
                 </Grid>
               </Grid>
             )}

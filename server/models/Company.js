@@ -160,6 +160,16 @@ const companySchema = new mongoose.Schema({
   isSuspended: { type: Boolean, default: false },
   suspendReason: { type: String },
 
+  // ─── المستندات الرسمية (سجل تجاري، شهادة ضريبية، رخصة...) ────────
+  documents: [{
+    fileId:     { type: String },   // معرّف GridFS
+    name:       { type: String },   // اسم الملف الأصلي
+    url:        { type: String },
+    docType:    { type: String, enum: ['commercial_reg','vat_certificate','license','bank_letter','other'], default: 'other' },
+    uploadedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    uploadedAt: { type: Date, default: Date.now },
+  }],
+
   // ─── Relations ────────────────────────────────────────────────
   owner:     { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }

@@ -164,4 +164,38 @@ router.put('/:id', protect, async (req, res) => {
   } catch(e){ res.status(400).json({ success:false, message:e.message }); }
 });
 
+// ── رفع مرفق لطلب الشراء (BOQ، عرض سعر، فاتورة...) ─────────────────────────
+// docType: boq | quotation | invoice | other
+router.post('/:id/documents', protect, async (req, res) => {
+  const { upload: uploadAny, saveFileToGridFS } = require('../middleware/fileStorage');
+  uploadAny.single('file')(req, res, async (uploadErr) => {
+    if (uploadErr) return res.status(400).json({ success: false, message: uploadErr.message });
+    try {
+      if (!req.file) return res.status(400).json({ success: false, message: 'لم يتم إرفاق أي ملف' });
+      const co = getCompany(req);
+
+      const pr = await PR.findOne(buildFilter(req, { _id: req.params.id }));
+      if (!pr) return res.status(404).json({ success: false, message: 'الطلب غير موجود' });
+
+      const saved = await saveFileToGridFS(req.file, {
+        company: co,
+        uploadedBy: req.user._id,
+        module: 'purchase_request',
+        recordId: req.params.id,
+        docType: req.body.docType || 'other',
+      });
+
+      pr.attachments.push({
+        name: saved.filename, url: saved.url,
+        type: req.body.docType || 'other', uploadedBy: req.user._id,
+      });
+      await pr.save();
+
+      res.status(201).json({ success: true, data: saved, attachments: pr.attachments });
+    } catch (err) {
+      res.status(400).json({ success: false, message: err.message, detail: err.message });
+    }
+  });
+});
+
 module.exports = router;

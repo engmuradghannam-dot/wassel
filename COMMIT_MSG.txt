@@ -1,0 +1,112 @@
+feat: real file upload/download system (GridFS) + PDF export + 3 critical bugfixes
+
+NEW FILE STORAGE INFRASTRUCTURE (server/middleware/fileStorage.js):
+- MongoDB GridFS-based storage, not local disk. Render's free tier uses
+  an ephemeral filesystem, so anything written to uploads/ on disk is
+  lost on every redeploy or restart. GridFS persists inside the same
+  MongoDB database already in use, requiring zero new credentials.
+- Accepts PDF, Word, Excel, CSV, and images (the previous multer config
+  in middleware/upload.js only accepted images, so a PDF quotation or
+  tax invoice would have been rejected outright). 15MB limit.
+- Lazy GridFSBucket initialization (same pattern proven necessary for
+  the Groq client in an earlier session) so a not-yet-connected DB
+  doesn't crash anything at module load time.
+
+NEW GENERIC FILE API (server/routes/fileRoutes.js), mounted at /api/files:
+  POST   /upload                       - upload any file, tagged with
+                                          company/module/recordId/docType
+  GET    /:id                          - stream file back, enforces
+                                          company-level access control
+  GET    /list/:module/:recordId       - list every attachment for one
+                                          specific record
+  DELETE /:id                          - delete, same access control
+
+PDF GENERATION (server/services/pdfService.js, using pdfkit):
+- Generates real, verified PDF documents for quotations, tax invoices,
+  and purchase orders (single shared layout, different title/fields per
+  docType). Actually executed this and inspected output via pdftotext,
+  not just confirmed it loads -- verified correct totals math, item
+  rows, and CR/VAT numbers render.
+- Documented and partially mitigated a real limitation: pdfkit's
+  standard fonts have no Arabic glyph coverage, so Arabic company names
+  render as corrupted symbols. Fixed by preferring nameEn for the
+  primary header when available, with the Arabic name shown only as a
+  small secondary reference line. Full Arabic support would need an
+  embedded Unicode font (e.g. Amiri/Noto Naskh) -- left as a follow-up,
+  not silently left broken.
+- GET /api/sales-orders/:id/pdf   (covers both quotation and invoice,
+                                   since they share one model with a
+                                   type field, per earlier sessions)
+- GET /api/purchase-orders/:id/pdf
+
+DOCUMENT FIELDS ADDED:
+- Company.documents[]  (commercial_reg, vat_certificate, license,
+  bank_letter, other) -- new POST/DELETE /api/company/documents
+- Employee.documents[] (national_id, iqama, passport, contract,
+  certificate, cv, photo, other) -- new POST/DELETE
+  /api/employees/:id/documents
+
+PAYMENT GATE (the user's explicit requirement: "عند الدفع يجب رفع
+الفاتورة"): PUT /api/purchase-orders/:id/request-payment now actually
+refuses the request with a clear message unless a tax_invoice
+attachment has already been uploaded to that order -- this is an
+enforced rule, not just an optional field.
+
+FRONTEND (client/src/components/FileUploader.jsx, new reusable
+component): doc-type dropdown, upload button with progress, file list
+with type-specific icons, download and delete actions. Wired into:
+- PurchaseOrdersPage (attachments + PDF export button + Request
+  Payment button enforcing the new backend gate)
+- PurchaseRequestsPage (BOQ/quotation attachments -- this also
+  activates an AttachFile icon that was imported but never actually
+  used anywhere in the file)
+- EmployeesPage (the existing "Documents" tab already had a label and
+  ID/passport number text fields, but no actual file upload at all --
+  added FileUploader there)
+- CompanySettings (new Official Documents card in the legal step)
+
+THREE INDEPENDENT BUGS FOUND AND FIXED WHILE BUILDING THE ABOVE (none
+related to file uploads, found incidentally while editing these files):
+
+1. salesOrderRoutes.js called getCompany(req) without ever importing
+   getCompany -- would throw ReferenceError at runtime the first time
+   anyone created a sales order through that code path. Fixed the
+   import and removed a redundant inline require() of the same
+   function elsewhere in the file.
+
+2. Systematic sweep across all 32 route files found module.exports
+   placed mid-file (not at the true end) in THREE separate files:
+   - salesOrderRoutes.js: silently dead-coded the quotation-to-invoice
+     conversion endpoint and the customer search endpoint
+   - companyRoutes.js: dead-coded an unused duplicate countries router
+     (harmless dead code, removed entirely since /api/countries is
+     already correctly registered independently in server.js)
+   - chatRoutes.js: dead-coded what looked like a missing
+     cross-company chat feature, but turned out to be an exact
+     duplicate of logic the existing getOrCreateDirectRoom controller
+     already implements correctly -- removed the duplicate rather than
+     resurrecting it
+   Re-swept all 32 files after fixing to confirm zero remaining
+   instances of this pattern.
+
+3. CompanySettings.jsx initialized state with a dead taxNumber field
+   (never read anywhere else in the file) while seven separate places
+   in the same file read/wrote vatNumber, which was never initialized
+   in state at all. Fixed by replacing taxNumber with vatNumber in the
+   initial state, matching the actual Company model field name -- this
+   also fixes the PUT /api/company save payload, which was previously
+   sending a useless taxNumber key the backend schema doesn't even
+   define, instead of the real vatNumber value.
+
+VERIFICATION PERFORMED:
+- Actually executed generateDocumentPDF() and confirmed valid PDF
+  output via pdftotext content inspection, not just a syntax check
+- Full systematic sweep of all 32 route files for the mid-file-export
+  bug pattern, confirmed zero remaining instances after fixes
+- Re-ran the full server file load test (routes + controllers + models
+  + middleware + services) after every change
+- Full client npm run build succeeded with zero errors after each
+  page edit (caught and fixed one missing FileUploader import this way
+  in EmployeesPage.jsx)
+- pdfkit actually installed and exercised, not just added to
+  package.json

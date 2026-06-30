@@ -8,11 +8,12 @@ import {
 } from '@mui/material';
 import {
   Add, Visibility, Search, Refresh, Delete, ShoppingCart,
-  Close, Save, AddCircle, Business, Receipt, Phone, CheckCircle
+  Close, Save, AddCircle, Business, Receipt, Phone, CheckCircle, PictureAsPdf
 } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
 import Layout from '../../components/Layout';
+import FileUploader from '../../components/FileUploader';
 
 const EMPTY_FORM = {
   supplier: null,
@@ -397,7 +398,16 @@ export default function PurchaseOrdersPage() {
                   <Typography fontWeight={800}>{AR?'أمر الشراء':'Purchase Order'}: {viewItem.orderNumber}</Typography>
                   <Chip label={SL[viewItem.status]} color={STATUS_COLOR[viewItem.status]} size="small" sx={{ mt:0.5 }}/>
                 </Box>
-                <IconButton onClick={()=>setViewItem(null)} size="small"><Close sx={{ fontSize:18 }}/></IconButton>
+                <Box sx={{ display:'flex', alignItems:'center', gap:0.5 }}>
+                  <Tooltip title={AR?'تصدير PDF':'Export PDF'}>
+                    <IconButton size="small" component="a"
+                      href={`${api.defaults.baseURL}/api/purchase-orders/${viewItem._id}/pdf`}
+                      target="_blank" rel="noreferrer">
+                      <PictureAsPdf sx={{ fontSize:18, color:'#d32f2f' }}/>
+                    </IconButton>
+                  </Tooltip>
+                  <IconButton onClick={()=>setViewItem(null)} size="small"><Close sx={{ fontSize:18 }}/></IconButton>
+                </Box>
               </Box>
             </DialogTitle>
             <DialogContent sx={{ pt:2 }}>
@@ -456,6 +466,44 @@ export default function PurchaseOrdersPage() {
                   <Typography fontWeight={800}>{AR?'الإجمالي:':'Total:'}</Typography>
                   <Typography fontWeight={800} color="#f57c00">{fmt(viewItem.totalAmount||viewItem.total)} {CUR}</Typography>
                 </Box>
+              </Box>
+
+              {/* ── المرفقات (عرض السعر عند الإنشاء، الفاتورة الضريبية عند الدفع) ── */}
+              <FileUploader
+                uploadUrl={`/api/purchase-orders/${viewItem._id}/documents`}
+                deleteUrlBuilder={(fileId) => `/api/files/${fileId}`}
+                existingFiles={(viewItem.attachments || []).map(a => ({ ...a, fileId: a.url?.split('/').pop() }))}
+                onChange={(updated) => setViewItem(p => ({ ...p, attachments: updated }))}
+                docTypeOptions={[
+                  { value:'quotation',   label:'Quotation',   labelAr:'عرض سعر' },
+                  { value:'tax_invoice', label:'Tax Invoice', labelAr:'فاتورة ضريبية' },
+                  { value:'pro_forma',   label:'Pro Forma',   labelAr:'فاتورة مبدئية' },
+                  { value:'boq',         label:'BOQ',         labelAr:'جدول كميات' },
+                  { value:'contract',    label:'Contract',    labelAr:'عقد' },
+                  { value:'other',       label:'Other',       labelAr:'أخرى' },
+                ]}
+                label={AR?'المرفقات':'Attachments'}
+              />
+
+              {/* ── طلب الدفع — يُمنع بدون فاتورة ضريبية مرفوعة فعلياً ── */}
+              <Box sx={{ mt:2, pt:2, borderTop:'1px dashed #ddd', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                <Typography variant="caption" color="text.secondary">
+                  {viewItem.paymentRequest?.requested
+                    ? (AR?`تم طلب الدفع — الحالة: ${viewItem.paymentRequest.paymentStatus}`:`Payment requested — status: ${viewItem.paymentRequest.paymentStatus}`)
+                    : (AR?'لم يُطلب الدفع بعد':'Payment not requested yet')}
+                </Typography>
+                {!viewItem.paymentRequest?.requested && (
+                  <Button size="small" variant="outlined" color="warning"
+                    onClick={async ()=>{
+                      try {
+                        const r = await api.put(`/api/purchase-orders/${viewItem._id}/request-payment`);
+                        setViewItem(r.data.data);
+                        setSnack(r.data.message);
+                      } catch(e){ setError(e.response?.data?.message || (AR?'فشل طلب الدفع':'Request failed')); }
+                    }}>
+                    {AR?'طلب الدفع':'Request Payment'}
+                  </Button>
+                )}
               </Box>
 
               {viewItem.notes && (

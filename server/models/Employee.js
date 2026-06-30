@@ -23,7 +23,17 @@ const employeeSchema = new mongoose.Schema({
   iqama:          { type: String },
   iqamaExpiry:    { type: Date },
   passportNumber: { type: String },
-  passportExpiry: { type: Date }
+  passportExpiry: { type: Date },
+
+  // ─── مستندات الموظف (هوية/إقامة، العقد، الشهادات...) ──────────────
+  documents: [{
+    fileId:     { type: String },   // معرّف GridFS
+    name:       { type: String },
+    url:        { type: String },
+    docType:    { type: String, enum: ['national_id','iqama','passport','contract','certificate','cv','photo','other'], default: 'other' },
+    uploadedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    uploadedAt: { type: Date, default: Date.now },
+  }],
 }, { timestamps: true });
 employeeSchema.index({ company: 1, employeeId: 1 }, { unique: true, sparse: true });
 employeeSchema.index({ company: 1, email: 1 },      { unique: true, sparse: true });

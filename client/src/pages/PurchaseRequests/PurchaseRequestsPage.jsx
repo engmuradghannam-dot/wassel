@@ -7,10 +7,11 @@ import {
   Avatar, Divider, MenuItem, Badge, Stepper, Step, StepLabel
 } from '@mui/material';
 import { Add, Refresh, Visibility, Check, Close, Send,
-  AttachFile, Warning, ShoppingCart, Description, Search } from '@mui/icons-material';
+  Warning, ShoppingCart, Description, Search } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
 import Layout from '../../components/Layout';
+import FileUploader from '../../components/FileUploader';
 
 const STATUS_COLOR = {
   draft:'default', submitted:'info', manager_review:'warning',
@@ -308,6 +309,19 @@ export default function PurchaseRequestsPage() {
                 <Typography fontWeight={800}>{AR?'الإجمالي:':'Total:'}</Typography>
                 <Typography fontWeight={800} color="#1a73e8">{fmt(viewItem.estimatedTotal)} {CUR}</Typography>
               </Box>
+              {/* ── المرفقات (BOQ، عرض سعر) ── */}
+              <FileUploader
+                uploadUrl={`/api/purchase-requests/${viewItem._id}/documents`}
+                existingFiles={viewItem.attachments || []}
+                onChange={(updated) => setViewItem(p => ({ ...p, attachments: updated }))}
+                docTypeOptions={[
+                  { value:'boq',       label:'BOQ',       labelAr:'جدول كميات' },
+                  { value:'quotation', label:'Quotation', labelAr:'عرض سعر' },
+                  { value:'invoice',   label:'Invoice',   labelAr:'فاتورة' },
+                  { value:'other',     label:'Other',     labelAr:'أخرى' },
+                ]}
+                label={AR?'المرفقات':'Attachments'}
+              />
               {viewItem.notes&&<Box sx={{mt:1.5,p:1.5,bgcolor:'#f5f5f5',borderRadius:2}}><Typography variant="caption" color="text.secondary">{AR?'ملاحظات:':'Notes:'} </Typography><Typography variant="body2">{viewItem.notes}</Typography></Box>}
             </DialogContent>
             <DialogActions sx={{px:3,py:2,borderTop:'1px solid',borderColor:'divider'}}>
