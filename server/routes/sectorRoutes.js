@@ -1,40 +1,129 @@
 const express     = require('express');
-const { protect } = require('../middleware/auth');
-const { getCompany } = require('../middleware/auth');
+const { protect, getCompany } = require('../middleware/auth');
 
 /**
- * Generic CRUD router factory — used for all sector-specific models
- * POST   /api/sector/:model       → create
- * GET    /api/sector/:model       → list (filtered by company)
- * GET    /api/sector/:model/:id   → single
- * PUT    /api/sector/:model/:id   → update
- * DELETE /api/sector/:model/:id   → delete
+ * ═══════════════════════════════════════════════════════════════════════════
+ * makeSectorRouter — factory صانعة لراوتر CRUD مخصص لموديل واحد محدد
+ * تُستخدم في server.js لإنشاء مسارات مباشرة مثل /api/rooms /api/bookings
+ * (بخلاف /api/sector/:model أدناه وهو راوتر عام موحّد لكل الموديلات معاً)
+ *
+ * @param {mongoose.Model} Model  - الموديل المستهدف
+ * @param {Object} opts
+ * @param {String} opts.field     - اسم الحقل المستخدم للترقيم التلقائي (مثلاً 'number')
+ * @param {String} opts.prefix    - بادئة الترقيم التلقائي (مثلاً 'RM-')
+ * @returns {express.Router}
+ * ═══════════════════════════════════════════════════════════════════════════
  */
+function makeSectorRouter(Model, opts = {}) {
+  const router = express.Router();
+  const { field, prefix } = opts;
 
-// Model registry — maps API name → Mongoose model
+  // GET all (مع بحث وتصفية اختيارية)
+  router.get('/', protect, async (req, res) => {
+    try {
+      const co = getCompany(req);
+      if (!co) return res.status(400).json({ success:false, message:'الحساب غير مرتبط بشركة' });
+
+      const filter = { company: co };
+      const RESERVED = ['search','limit','skip','sort','page'];
+      Object.entries(req.query).forEach(([k,v]) => {
+        if (!RESERVED.includes(k)) filter[k] = v === 'true' ? true : v === 'false' ? false : v;
+      });
+      if (req.query.search && field) {
+        filter[field] = new RegExp(req.query.search, 'i');
+      }
+
+      const limit = Math.min(parseInt(req.query.limit)||200, 500);
+      const skip  = parseInt(req.query.skip)||0;
+      const sort  = req.query.sort || '-createdAt';
+
+      const [docs, total] = await Promise.all([
+        Model.find(filter).sort(sort).skip(skip).limit(limit),
+        Model.countDocuments(filter),
+      ]);
+      res.json({ success:true, count:docs.length, total, data:docs });
+    } catch (err) { res.status(500).json({ success:false, message:err.message }); }
+  });
+
+  // GET single
+  router.get('/:id', protect, async (req, res) => {
+    try {
+      const co  = getCompany(req);
+      const doc = await Model.findOne({ _id:req.params.id, company:co });
+      if (!doc) return res.status(404).json({ success:false, message:'السجل غير موجود' });
+      res.json({ success:true, data:doc });
+    } catch (err) { res.status(500).json({ success:false, message:err.message }); }
+  });
+
+  // POST create — مع ترقيم تلقائي عبر field/prefix إن لم يُرسل العميل قيمة
+  router.post('/', protect, async (req, res) => {
+    const co = getCompany(req);
+    if (!co) return res.status(400).json({ success:false, message:'الحساب غير مرتبط بشركة' });
+
+    const MAX_RETRIES = 5;
+    let lastErr = null;
+    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+      try {
+        const body = { ...req.body, company: co, createdBy: req.user._id };
+        if (field && prefix && !body[field]) {
+          body[field] = `${prefix}${Date.now().toString(36).toUpperCase()}${Math.floor(Math.random()*100)}`;
+        }
+        const doc = await Model.create(body);
+        return res.status(201).json({ success:true, data:doc });
+      } catch (err) {
+        lastErr = err;
+        // إعادة محاولة فقط عند تصادم الترقيم التلقائي (duplicate key على نفس الحقل)
+        if (err.code === 11000 && field && Object.keys(err.keyPattern||{}).includes(field)) continue;
+        return res.status(400).json({ success:false, message:err.message, detail:err.message });
+      }
+    }
+    res.status(400).json({ success:false, message:'فشل الإنشاء بعد عدة محاولات: ' + (lastErr?.message||'') });
+  });
+
+  // PUT update
+  router.put('/:id', protect, async (req, res) => {
+    try {
+      const co  = getCompany(req);
+      const doc = await Model.findOneAndUpdate(
+        { _id:req.params.id, company:co }, req.body, { new:true, runValidators:true }
+      );
+      if (!doc) return res.status(404).json({ success:false, message:'السجل غير موجود' });
+      res.json({ success:true, data:doc });
+    } catch (err) { res.status(400).json({ success:false, message:err.message }); }
+  });
+
+  // DELETE
+  router.delete('/:id', protect, async (req, res) => {
+    try {
+      const co  = getCompany(req);
+      const doc = await Model.findOneAndDelete({ _id:req.params.id, company:co });
+      if (!doc) return res.status(404).json({ success:false, message:'السجل غير موجود' });
+      res.json({ success:true, message:'تم الحذف' });
+    } catch (err) { res.status(500).json({ success:false, message:err.message }); }
+  });
+
+  return router;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// راوتر عام موحّد — يخدم كل الموديلات القطاعية عبر /api/sector/:model
+// (مستقل تماماً عن makeSectorRouter أعلاه؛ يبقى كما كان يعمل سابقاً)
+// ═══════════════════════════════════════════════════════════════════════════
 const MODEL_REGISTRY = {
-  // Hotel / Hospitality
   'rooms':               () => require('../models/hotel/Room'),
   'bookings':            () => require('../models/hotel/Booking'),
-  // Clinic / Hospital
   'patients':            () => require('../models/clinic/Patient'),
   'appointments':        () => require('../models/clinic/Appointment'),
-  // Education
   'students':            () => require('../models/education/Student'),
   'grades':              () => require('../models/education/Grade'),
-  // Restaurant
   'tables':              () => require('../models/restaurant/Table'),
   'restaurant-orders':   () => require('../models/restaurant/Order'),
-  // Gym
   'memberships':         () => require('../models/gym/Membership'),
-  // Real Estate
   'properties':          () => require('../models/real_estate/Property'),
   'leases':              () => require('../models/real_estate/Lease'),
-  // Salon
   'salon-appointments':  () => require('../models/salon/SalonAppointment'),
 };
 
-// Search fields per model
 const SEARCH_FIELDS = {
   'rooms':              ['number','type','description'],
   'bookings':           ['guest.name','guest.phone','bookingNo'],
@@ -50,7 +139,6 @@ const SEARCH_FIELDS = {
   'salon-appointments': ['customer.name','customer.phone','apptNo'],
 };
 
-// Auto-populate per model
 const POPULATE = {
   'bookings':       'room',
   'appointments':   'patient doctor',
@@ -59,22 +147,18 @@ const POPULATE = {
   'restaurant-orders':'table',
 };
 
-const router = express.Router();
+const genericRouter = express.Router();
 
-// Middleware: resolve model from params
-router.use('/:model', (req, res, next) => {
+genericRouter.use('/:model', (req, res, next) => {
   const loader = MODEL_REGISTRY[req.params.model];
-  if (!loader) {
-    return res.status(404).json({ success:false, message:`Model '${req.params.model}' not found` });
-  }
+  if (!loader) return res.status(404).json({ success:false, message:`Model '${req.params.model}' not found` });
   try { req.Model = loader(); } catch(e) {
     return res.status(500).json({ success:false, message:`Error loading model: ${e.message}` });
   }
   next();
 });
 
-// GET all
-router.get('/:model', protect, async (req, res) => {
+genericRouter.get('/:model', protect, async (req, res) => {
   try {
     const co = getCompany(req);
     if (!co) return res.status(400).json({ success:false, message:'الحساب غير مرتبط بشركة' });
@@ -82,18 +166,14 @@ router.get('/:model', protect, async (req, res) => {
     const filter = { company: co };
     const key    = req.params.model;
 
-    // Search
     if (req.query.search) {
       const q      = new RegExp(req.query.search, 'i');
       const fields = SEARCH_FIELDS[key] || ['name'];
       filter.$or   = fields.map(f => ({ [f]: q }));
     }
-    // Extra filters
     const RESERVED = ['search','limit','skip','sort','page'];
     Object.entries(req.query).forEach(([k,v]) => {
-      if (!RESERVED.includes(k)) {
-        filter[k] = v === 'true' ? true : v === 'false' ? false : v;
-      }
+      if (!RESERVED.includes(k)) filter[k] = v === 'true' ? true : v === 'false' ? false : v;
     });
 
     const limit = Math.min(parseInt(req.query.limit)||200, 500);
@@ -109,8 +189,7 @@ router.get('/:model', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ success:false, message:err.message }); }
 });
 
-// GET single
-router.get('/:model/:id', protect, async (req, res) => {
+genericRouter.get('/:model/:id', protect, async (req, res) => {
   try {
     const co  = getCompany(req);
     const pop = POPULATE[req.params.model] || '';
@@ -122,8 +201,7 @@ router.get('/:model/:id', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ success:false, message:err.message }); }
 });
 
-// POST create
-router.post('/:model', protect, async (req, res) => {
+genericRouter.post('/:model', protect, async (req, res) => {
   try {
     const co = getCompany(req);
     if (!co) return res.status(400).json({ success:false, message:'الحساب غير مرتبط بشركة' });
@@ -132,22 +210,18 @@ router.post('/:model', protect, async (req, res) => {
   } catch (err) { res.status(400).json({ success:false, message:err.message }); }
 });
 
-// PUT update
-router.put('/:model/:id', protect, async (req, res) => {
+genericRouter.put('/:model/:id', protect, async (req, res) => {
   try {
     const co  = getCompany(req);
     const doc = await req.Model.findOneAndUpdate(
-      { _id:req.params.id, company:co },
-      req.body,
-      { new:true, runValidators:true }
+      { _id:req.params.id, company:co }, req.body, { new:true, runValidators:true }
     );
     if (!doc) return res.status(404).json({ success:false, message:'السجل غير موجود' });
     res.json({ success:true, data:doc });
   } catch (err) { res.status(400).json({ success:false, message:err.message }); }
 });
 
-// DELETE
-router.delete('/:model/:id', protect, async (req, res) => {
+genericRouter.delete('/:model/:id', protect, async (req, res) => {
   try {
     const co  = getCompany(req);
     const doc = await req.Model.findOneAndDelete({ _id:req.params.id, company:co });
@@ -156,4 +230,5 @@ router.delete('/:model/:id', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ success:false, message:err.message }); }
 });
 
-module.exports = router;
+module.exports = genericRouter;
+module.exports.makeSectorRouter = makeSectorRouter;

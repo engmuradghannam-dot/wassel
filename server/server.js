@@ -14,6 +14,19 @@ const mongoSanitize = require('express-mongo-sanitize');
 
 dotenv.config();
 
+// ── حارس عام ضد الأخطاء غير المُلتقطة (Unhandled Rejections / Exceptions) ──
+// مكتبات الطرف الثالث (مثل connect-mongo عند فشل اتصال MongoDB المنفصل عن
+// mongoose.connect الرئيسي) قد تُطلق رفضاً غير مُلتقط في لحظات نادرة حتى مع
+// وجود .catch()/.on('error') صريح على كل مصدر بمفرده. هذا الحارس يضمن أن
+// أي خطأ غير متوقع من أي مكتبة لا يُسقط العملية بالكامل بصمت، بل يُسجَّل
+// بوضوح ليبقى التشخيص ممكناً دون توقف الخدمة عن العمل لبقية المستخدمين.
+process.on('unhandledRejection', (reason) => {
+  console.error('⚠️ Unhandled Rejection (تم اعتراضه، الخدمة مستمرة):', reason?.message || reason);
+});
+process.on('uncaughtException', (err) => {
+  console.error('⚠️ Uncaught Exception (تم اعتراضه، الخدمة مستمرة):', err?.message || err);
+});
+
 // ─── Passport Config ──────────────────────────────────────────────────────
 require('./middleware/passport');
 
@@ -154,11 +167,20 @@ io.on('connection', (socket) => {
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
 
+// ── متجر الجلسات: اتصال MongoDB مستقل عن mongoose.connect أعلاه ────────────
+// (connect-mongo يستخدم سائق MongoDB مباشرة، فلا يشارك معالجة الأخطاء مع
+// mongoose). يُضاف معالج 'error' صريح هنا حتى لا يتسبب فشل اتصاله في
+// unhandled rejection يُسقط العملية كلها بصمت أو بشكل غير واضح.
+const sessionStore = MongoStore.create({
+  mongoUrl: process.env.MONGODB_URI,
+  ttl: 14 * 24 * 60 * 60,
+});
+sessionStore.on('error', (err) => {
+  console.error('❌ Session store (MongoDB) error:', err.message);
+});
+
 app.use(session({
-  store: MongoStore.create({
-    mongoUrl: process.env.MONGODB_URI,
-    ttl: 14 * 24 * 60 * 60
-  }),
+  store: sessionStore,
   secret: process.env.JWT_SECRET || 'dev-secret',
   resave: false,
   saveUninitialized: false,

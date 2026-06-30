@@ -1,54 +1,49 @@
 const express = require('express');
-const bcrypt = require('bcryptjs');
-const User = require('../models/User');
-const router = express.Router();
+const bcrypt  = require('bcryptjs');
+const User    = require('../models/User');
+const { protect, authorize } = require('../middleware/auth');
+const router  = express.Router();
 
-// Direct registration endpoint - no auth required
-// WARNING: Remove this after first use in production!
-router.post('/setup-admin', async (req, res) => {
+/**
+ * ⚠️ أمان حرج: هذا المسار كان مفتوحاً بالكامل بدون أي مصادقة (Account Takeover
+ * ممكن لأي شخص في العالم — يمكنه تغيير كلمة مرور أي بريد إلكتروني موجود في
+ * النظام أو إنشاء حساب admin جديد). تم إغلاقه الآن خلف صلاحية superadmin فقط.
+ */
+router.post('/setup-admin', protect, authorize('superadmin'), async (req, res) => {
   try {
     const { name, email, password } = req.body;
-
-    // Check if user exists
-    let user = await User.findOne({ email });
-    if (user) {
-      // Update password
-      const salt = await bcrypt.genSalt(10);
-      user.password = await bcrypt.hash(password, salt);
-      user.isActive = true;
-      await user.save();
-      return res.json({ success: true, message: 'User updated', user: { email: user.email, name: user.name } });
+    if (!email || !password) {
+      return res.status(400).json({ success:false, message:'البريد وكلمة المرور مطلوبان' });
     }
 
-    // Create new user
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
+    let user = await User.findOne({ email: email.toLowerCase().trim() });
+    if (user) {
+      user.password = await bcrypt.hash(password, 12);
+      user.isActive = true;
+      await user.save();
+      return res.json({ success:true, message:'تم تحديث المستخدم', user:{ email:user.email, name:user.name } });
+    }
 
-    user = new User({
+    user = await User.create({
       name: name || 'Admin User',
-      email,
-      password: hashedPassword,
+      email: email.toLowerCase().trim(),
+      password: await bcrypt.hash(password, 12),
       role: 'admin',
       isOnline: false,
       isActive: true,
       language: 'ar',
-      permissions: ['all']
     });
 
-    await user.save();
-    res.json({ success: true, message: 'Admin created', user: { email: user.email, name: user.name } });
-
+    res.json({ success:true, message:'تم إنشاء المستخدم', user:{ email:user.email, name:user.name } });
   } catch (error) {
     console.error('Setup error:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success:false, message:error.message });
   }
 });
 
-// ── Fix superadmin users who have a company → they should be 'owner' ────────
-router.post('/fix-owner-role', async (req, res) => {
+// ── إصلاح أدوار superadmin الذين يملكون شركة → يجب أن يكونوا owner ──────────
+router.post('/fix-owner-role', protect, authorize('superadmin'), async (req, res) => {
   try {
-    const User = require('../models/User');
-    // Find superadmin users who HAVE a company — they are company owners, not system admins
     const users = await User.find({
       role: 'superadmin',
       company: { $exists: true, $ne: null }
@@ -61,13 +56,9 @@ router.post('/fix-owner-role', async (req, res) => {
       fixed.push({ email: u.email, company: u.company });
     }
 
-    res.json({
-      success: true,
-      message: `تم تحديث ${fixed.length} مستخدم`,
-      fixed
-    });
+    res.json({ success:true, message:`تم تحديث ${fixed.length} مستخدم`, fixed });
   } catch (e) {
-    res.status(500).json({ success: false, message: e.message });
+    res.status(500).json({ success:false, message:e.message });
   }
 });
 

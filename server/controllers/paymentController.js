@@ -73,7 +73,7 @@ exports.initiatePayment = async (req, res) => {
     periodEnd.setMonth(periodEnd.getMonth() + durationMonths);
 
     const payment = await Payment.create({
-      company:        req.company,
+      company:        getCompany(req),
       amount, taxAmount, totalAmount, currency: 'SAR',
       plan, durationMonths, periodStart, periodEnd,
       method, gateway, status: 'pending',

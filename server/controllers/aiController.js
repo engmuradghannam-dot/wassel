@@ -12,7 +12,20 @@ const Groq       = require('groq-sdk');
 const { getCompany } = require('../middleware/auth');
 const { buildERPContext, ERP_SYSTEM_PROMPT } = require('../middleware/aiContext');
 
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+// ── تهيئة كسولة (lazy init) ─────────────────────────────────────────────────
+// لا نُنشئ Groq client عند تحميل الملف، بل عند أول استخدام فعلي فقط.
+// هذا يمنع تعطّل السيرفر بالكامل لو غاب GROQ_API_KEY مؤقتاً أو لم يُضبط بعد —
+// بدلاً من ذلك يفشل فقط طلب الذكاء الاصطناعي نفسه برسالة واضحة، وكل بقية
+// النظام (المخزون، المبيعات، البريد، إلخ) يستمر بالعمل طبيعياً.
+let _groq = null;
+function getGroqClient() {
+  if (_groq) return _groq;
+  if (!process.env.GROQ_API_KEY) {
+    throw new Error('مساعد الذكاء الاصطناعي غير مُفعَّل — لم يتم ضبط GROQ_API_KEY بعد');
+  }
+  _groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+  return _groq;
+}
 
 // ─── Conversation Memory (in-memory, يمكن ترقيته لـ Redis) ──────────────
 const conversationMemory = new Map(); // userId -> [{role, content}]
@@ -62,7 +75,7 @@ ${erpContext.stats ? `
     const systemPrompt = ERP_SYSTEM_PROMPT + '\n\n' + contextStr;
 
     // ─── AI Call ───────────────────────────────────────────────
-    const completion = await groq.chat.completions.create({
+    const completion = await getGroqClient().chat.completions.create({
       model: 'llama-3.1-70b-versatile',
       messages: [
         { role: 'system', content: systemPrompt },
@@ -134,7 +147,7 @@ ${JSON.stringify(analysisData, null, 2).slice(0, 3000)}
 
 كن محدداً وعملياً، لا تكتر الكلام.`;
 
-    const completion = await groq.chat.completions.create({
+    const completion = await getGroqClient().chat.completions.create({
       model: 'llama-3.1-70b-versatile',
       messages: [
         { role: 'system', content: ERP_SYSTEM_PROMPT },
@@ -188,7 +201,7 @@ exports.develop = async (req, res) => {
 
 اكتب كوداً نظيفاً وموثقاً بالتعليقات العربية.`;
 
-    const completion = await groq.chat.completions.create({
+    const completion = await getGroqClient().chat.completions.create({
       model: 'llama-3.1-70b-versatile',
       messages: [
         { role: 'user', content: devPrompt }
@@ -238,7 +251,7 @@ ${employeeData ? `بيانات الموظف: ${JSON.stringify(employeeData).slic
 - حساب مالي إن احتاج الأمر
 - توصية عملية`;
 
-    const completion = await groq.chat.completions.create({
+    const completion = await getGroqClient().chat.completions.create({
       model: 'llama-3.1-70b-versatile',
       messages: [{ role: 'user', content: hrPrompt }],
       temperature: 0.2,
@@ -272,7 +285,7 @@ exports.suggestions = async (req, res) => {
 كل سؤال في سطر واحد، بدون ترقيم، بالعربية، مباشر وعملي.
 مثال: "ما هي المنتجات التي ستنفد قريباً؟"`;
 
-    const completion = await groq.chat.completions.create({
+    const completion = await getGroqClient().chat.completions.create({
       model: 'llama-3.1-8b-instant',
       messages: [{ role: 'user', content: suggPrompt }],
       temperature: 0.8,
