@@ -9,7 +9,7 @@ import {
 import {
   Add, Visibility, Search, Refresh, Delete, Receipt, Close,
   Save, AddCircle, Business, Phone, SwapHoriz, CheckCircle,
-  Description
+  Description, PictureAsPdf
 } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
@@ -529,6 +529,17 @@ export default function SalesOrdersPage() {
               </Box>
             </DialogTitle>
             <DialogContent sx={{ pt:2 }}>
+              {/* PDF export action */}
+              <Box sx={{ display:'flex', justifyContent:'flex-end', mb:1.5 }}>
+                <Button size="small" variant="outlined" startIcon={<PictureAsPdf sx={{ fontSize:16, color:'#d32f2f' }}/>}
+                  component="a"
+                  href={`${api.defaults.baseURL}/api/sales-orders/${viewItem._id}/pdf`}
+                  target="_blank" rel="noreferrer"
+                  sx={{ color:'#d32f2f', borderColor:'#d32f2f40' }}>
+                  {AR?'تصدير PDF':'Export PDF'}
+                </Button>
+              </Box>
+
               {/* Customer info */}
               <Paper variant="outlined" sx={{ p:2, borderRadius:2, mb:2, bgcolor:activeTab===0?'#f9f0ff':'#f0f5ff', borderColor:`${tabColor}40` }}>
                 <Typography variant="caption" color={tabColor} fontWeight={700} display="block" sx={{ mb:1 }}>

@@ -10,6 +10,7 @@ import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
 import CountrySelector, { BUILT_IN_COUNTRIES } from '../../components/CountrySelector';
 import TaxInfo from '../../components/TaxInfo';
+import FileUploader from '../../components/FileUploader';
 import LanguageSelector from '../../components/LanguageSelector';
 
 // ── Industry groups ─────────────────────────────────────────────────────────
@@ -120,6 +121,7 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [error,   setError]   = useState('');
   const [success, setSuccess] = useState(false); // ← NEW: show success screen
+  const [regDocuments, setRegDocuments] = useState([]); // company documents uploaded right after registration
   const [showPw,  setShowPw]  = useState(false);
   const [indSearch,setIndSearch]=useState('');
   const [form, setForm] = useState({
@@ -234,6 +236,25 @@ export default function RegisterPage() {
                   <Typography variant="caption" fontWeight={700}>{v||'—'}</Typography>
                 </Box>
               ))}
+            </Box>
+
+            {/* Optional: upload company documents right now */}
+            <Box sx={{bgcolor:'#f8f9fa',borderRadius:2,p:2,mb:3,textAlign:AR?'right':'left'}}>
+              <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{display:'block',mb:0.5}}>
+                {AR?'📎 رفع المستندات الرسمية (اختياري — يمكنك إضافتها لاحقاً)':'📎 Upload Official Documents (optional — can be added later)'}
+              </Typography>
+              <FileUploader
+                uploadUrl="/api/company/documents"
+                deleteUrlBuilder={(fileId) => `/api/company/documents/${fileId}`}
+                existingFiles={regDocuments}
+                onChange={setRegDocuments}
+                docTypeOptions={[
+                  { value:'commercial_reg',  label:'Commercial Registration', labelAr:'السجل التجاري' },
+                  { value:'vat_certificate', label:'VAT Certificate',         labelAr:'الشهادة الضريبية' },
+                  { value:'license',         label:'License',                 labelAr:'رخصة' },
+                  { value:'other',           label:'Other',                   labelAr:'أخرى' },
+                ]}
+              />
             </Box>
 
             <Typography variant="body2" color="text.secondary" sx={{mb:3}}>

@@ -12,6 +12,7 @@ import api from '../../services/api';
 import CountrySelector, { BUILT_IN_COUNTRIES } from '../../components/CountrySelector';
 import TaxInfo from '../../components/TaxInfo';
 import LanguageSelector from '../../components/LanguageSelector';
+import FileUploader from '../../components/FileUploader';
 
 // Re-use same groups/plans from RegisterPage
 const GROUPS = [
@@ -81,6 +82,7 @@ export default function GoogleSetupPage() {
   const [error,   setError]   = useState('');
   const [search,  setSearch]  = useState('');
   const [success, setSuccess] = useState(false);
+  const [regDocuments, setRegDocuments] = useState([]);
   const [form, setForm] = useState({
     country:'SA', city:'الرياض', industry:'',
     companyName:'', companyNameEn:'', phone:'',
@@ -121,6 +123,7 @@ export default function GoogleSetupPage() {
       });
       if(res.data.success){
         const u=res.data.data?.user||{};
+        if (res.data.token) localStorage.setItem('token', res.data.token);
         localStorage.setItem('userRole',u.role||'owner');
         localStorage.setItem('userIndustry',form.industry);
         localStorage.setItem('userCompany',form.companyName);
@@ -141,6 +144,25 @@ export default function GoogleSetupPage() {
           <Typography sx={{fontSize:64,mb:2}}>✅</Typography>
           <Typography variant="h5" fontWeight={800} gutterBottom>{AR?`مرحباً ${userName.split(' ')[0]}!`:`Welcome ${userName.split(' ')[0]}!`}</Typography>
           <Typography color="text.secondary" sx={{mb:3}}>{AR?`تم إنشاء شركة "${form.companyName}" بنجاح. أنت الآن مالك الشركة.`:`Company "${form.companyName}" created. You are now the Owner.`}</Typography>
+
+          <Box sx={{bgcolor:'#f8f9fa',borderRadius:2,p:2,mb:3,textAlign:AR?'right':'left'}}>
+            <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{display:'block',mb:0.5}}>
+              {AR?'📎 رفع المستندات الرسمية (اختياري)':'📎 Upload Official Documents (optional)'}
+            </Typography>
+            <FileUploader
+              uploadUrl="/api/company/documents"
+              deleteUrlBuilder={(fileId) => `/api/company/documents/${fileId}`}
+              existingFiles={regDocuments}
+              onChange={setRegDocuments}
+              docTypeOptions={[
+                { value:'commercial_reg',  label:'Commercial Registration', labelAr:'السجل التجاري' },
+                { value:'vat_certificate', label:'VAT Certificate',         labelAr:'الشهادة الضريبية' },
+                { value:'license',         label:'License',                 labelAr:'رخصة' },
+                { value:'other',           label:'Other',                   labelAr:'أخرى' },
+              ]}
+            />
+          </Box>
+
           <Box sx={{display:'flex',flexDirection:'column',gap:1.5}}>
             <Button variant="contained" size="large" fullWidth onClick={()=>navigate('/roles')} sx={{py:1.5,fontWeight:700,borderRadius:2,background:'linear-gradient(135deg,#7b1fa2,#9c27b0)'}}>
               🔐 {AR?'إعداد الأدوار والصلاحيات':'Setup Roles & Permissions'}
