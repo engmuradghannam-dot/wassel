@@ -53,14 +53,18 @@ const Layout = ({ children }) => {
           px: mini?1.2:2.5, py:1.8,
           borderBottom:'1px solid rgba(255,255,255,0.07)', minHeight:62,
         }}>
-          <Box sx={{
-            width:34, height:34, borderRadius:'9px', flexShrink:0,
-            background:`linear-gradient(135deg,${sectorColor},${sectorColor}99)`,
-            display:'flex', alignItems:'center', justifyContent:'center',
-            boxShadow:`0 0 16px ${sectorColor}55`,
-          }}>
-            <Typography sx={{ fontSize:17, fontWeight:900, color:'#fff', fontFamily:'Georgia,serif' }}>W</Typography>
-          </Box>
+          <Tooltip title={isRTL ? 'لوحة التحكم الدائرية' : 'Wheel Dashboard'} placement="right">
+            <Box onClick={() => navigate('/wheel')} sx={{
+              width:34, height:34, borderRadius:'9px', flexShrink:0,
+              background:`linear-gradient(135deg,${sectorColor},${sectorColor}99)`,
+              display:'flex', alignItems:'center', justifyContent:'center',
+              boxShadow:`0 0 16px ${sectorColor}55`,
+              cursor:'pointer', transition:'transform .2s',
+              '&:hover': { transform:'scale(1.08) rotate(8deg)' },
+            }}>
+              <Typography sx={{ fontSize:17, fontWeight:900, color:'#fff', fontFamily:'Georgia,serif' }}>W</Typography>
+            </Box>
+          </Tooltip>
           {!mini && (
             <Box sx={{ flex:1, minWidth:0 }}>
               <Typography sx={{ color:'#fff', fontWeight:800, fontSize:14 }}>Wassel ERP</Typography>

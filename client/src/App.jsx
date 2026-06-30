@@ -60,6 +60,7 @@ const LegalPage             = React.lazy(() => import('./pages/Legal/LegalPage')
 const ContractsPage         = React.lazy(() => import('./pages/Contracts/ContractsPage'));
 const GoogleSetupPage        = React.lazy(() => import('./pages/GoogleSetup/GoogleSetupPage'));
 const MailPage               = React.lazy(() => import('./pages/Mail/MailPage'));
+const WheelDashboardPage      = React.lazy(() => import('./pages/WheelDashboard/WheelDashboardPage'));
 
 const Loader = () => (
   <Box sx={{ display:'flex', justifyContent:'center', alignItems:'center', height:'100vh', flexDirection:'column', gap:2 }}>
@@ -138,6 +139,7 @@ function AppInner() {
           <Route path="/company-settings"  element={<PrivateRoute><CompanySettings/></PrivateRoute>}/>
           <Route path="/chat"              element={<PrivateRoute><ChatPage/></PrivateRoute>}/>
           <Route path="/mail"              element={<PrivateRoute><MailPage/></PrivateRoute>}/>
+          <Route path="/wheel"             element={<PrivateRoute><WheelDashboardPage/></PrivateRoute>}/>
           <Route path="/roles"             element={<PrivateRoute><RolesPage/></PrivateRoute>}/>
           <Route path="/users"             element={<PrivateRoute><UsersPage/></PrivateRoute>}/>
           <Route path="/accounting"        element={<PrivateRoute><AccountingPage/></PrivateRoute>}/>
