@@ -87,6 +87,10 @@ export default function EmployeesPage() {
 
   const handleSave = async () => {
     if (!form.name?.trim()) { setError(AR?'الاسم مطلوب':'Name required'); return; }
+    if (form.createLogin && !form.email) { setError(AR?'البريد الإلكتروني مطلوب لإنشاء حساب دخول':'Email required to create login'); return; }
+    if (form.createLogin && (!form.loginPassword || form.loginPassword.length < 6)) {
+      setError(AR?'كلمة المرور 6 أحرف على الأقل':'Password must be at least 6 characters'); return;
+    }
     setSaving(true); setError('');
     try {
       const payload = { ...form };
@@ -95,34 +99,20 @@ export default function EmployeesPage() {
       if (!payload.director)  delete payload.director;
       if (!payload.hireDate)  delete payload.hireDate;
       if (!payload.contractEnd) delete payload.contractEnd;
+      if (!payload.customRole) delete payload.customRole;
+      delete payload.loginEmail; delete payload.systemRole;
 
-      let empId = editId;
+      let res;
       if (editId) {
-        await api.put(`/api/employees/${editId}`, payload);
+        res = await api.put(`/api/employees/${editId}`, payload);
       } else {
-        const r = await api.post('/api/employees', payload);
-        empId = r.data.data?._id;
+        res = await api.post('/api/employees', payload);
       }
 
-      // Create system login if requested
-      if (form.createLogin && form.loginEmail && form.loginPassword && empId) {
-        try {
-          await api.post('/api/users', {
-            name:     form.name,
-            email:    form.loginEmail,
-            password: form.loginPassword,
-            role:     form.systemRole || 'employee',
-            phone:    form.phone,
-          });
-          // Link employee to user — handled server-side
-        } catch (loginErr) {
-          console.warn('Login creation warning:', loginErr.response?.data?.message);
-        }
-      }
-
-      setSnack(editId ? (AR?'تم التحديث':'Updated') : (AR?'تم إضافة الموظف':'Employee added'));
+      const loginMsg = res.data.loginCreated ? ` — ${res.data.message}` : '';
+      setSnack((editId ? (AR?'تم التحديث':'Updated') : (AR?'تم إضافة الموظف':'Employee added')) + loginMsg);
       close(); load();
-    } catch (e) { setError(e.response?.data?.message || t('common.error')); }
+    } catch (e) { setError(e.response?.data?.detail || e.response?.data?.message || t('common.error')); }
     finally { setSaving(false); }
   };
 
@@ -187,14 +177,15 @@ export default function EmployeesPage() {
                 <TableCell sx={{ fontWeight:700 }}>{AR?'المدير المباشر':'Manager'}</TableCell>
                 <TableCell sx={{ fontWeight:700 }}>{AR?'الراتب':'Salary'}</TableCell>
                 <TableCell sx={{ fontWeight:700 }}>{AR?'الحالة':'Status'}</TableCell>
+                <TableCell sx={{ fontWeight:700 }}>{AR?'حساب الدخول':'Login'}</TableCell>
                 <TableCell align="center" sx={{ fontWeight:700 }}>—</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {loading ? (
-                <TableRow><TableCell colSpan={8} align="center" sx={{ py:5 }}><CircularProgress size={28}/></TableCell></TableRow>
+                <TableRow><TableCell colSpan={9} align="center" sx={{ py:5 }}><CircularProgress size={28}/></TableCell></TableRow>
               ) : filtered.length === 0 ? (
-                <TableRow><TableCell colSpan={8} align="center" sx={{ py:5, color:'text.secondary' }}>
+                <TableRow><TableCell colSpan={9} align="center" sx={{ py:5, color:'text.secondary' }}>
                   {AR?'لا يوجد موظفون':'No employees found'}
                 </TableCell></TableRow>
               ) : filtered.map(emp => (
@@ -224,6 +215,19 @@ export default function EmployeesPage() {
                   </TableCell>
                   <TableCell>
                     <Chip label={AR?STATUS_AR[emp.status]:emp.status} color={STATUS_COLOR[emp.status]||'default'} size="small" sx={{ fontSize:'0.7rem' }}/>
+                  </TableCell>
+                  <TableCell>
+                    {emp.user ? (
+                      <Tooltip title={emp.user.email}>
+                        <Chip
+                          label={emp.user.isOnline ? (AR?'متصل الآن':'Online') : (AR?'له حساب':'Has login')}
+                          color={emp.user.isOnline?'success':'info'} size="small"
+                          icon={<Email sx={{ fontSize:'14px!important' }}/>}
+                          sx={{ fontSize:'0.65rem' }}/>
+                      </Tooltip>
+                    ) : (
+                      <Chip label={AR?'بدون حساب':'No login'} size="small" variant="outlined" sx={{ fontSize:'0.65rem', color:'text.disabled' }}/>
+                    )}
                   </TableCell>
                   <TableCell align="center">
                     <Tooltip title={t('common.edit')}>
@@ -323,7 +327,8 @@ export default function EmployeesPage() {
                     </Grid>
                     <Grid item xs={12} sm={4}>
                       <TextField fullWidth label={AR?'البريد الإلكتروني للدخول *':'Login Email *'} type="email"
-                        value={form.loginEmail||form.email||''} onChange={set('loginEmail')}
+                        value={form.email||''} onChange={set('email')}
+                        helperText={AR?'نفس بريد الموظف — يُستخدم للدخول':'Same as employee email — used for login'}
                         InputProps={{ startAdornment:<InputAdornment position="start"><Email sx={{ fontSize:16 }}/></InputAdornment> }}/>
                     </Grid>
                     <Grid item xs={12} sm={4}>

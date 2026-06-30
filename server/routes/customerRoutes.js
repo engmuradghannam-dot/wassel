@@ -23,27 +23,46 @@ router.get('/', protect, async (req, res) => {
   } catch (e) { res.status(500).json({ success:false, message:e.message }); }
 });
 
-// POST create
+// POST create — collision-proof code generation with retry
 router.post('/', protect, async (req, res) => {
-  try {
-    const co = getCompany(req);
-    if (!co) return res.status(400).json({ success:false, message:'الحساب غير مرتبط بشركة' });
+  const co = getCompany(req);
+  if (!co) return res.status(400).json({ success:false, message:'الحساب غير مرتبط بشركة' });
 
-    // Auto-generate code
-    const count = await Customer.countDocuments({ company: co });
-    const code  = req.body.code || `CUS-${String(count+1).padStart(4,'0')}`;
+  const MAX_RETRIES = 5;
+  let lastErr = null;
 
-    const customer = await Customer.create({
-      ...req.body,
-      company:   co,
-      code,
-      createdBy: req.user._id
-    });
-    res.status(201).json({ success:true, data:customer });
-  } catch (e) { 
-    console.error('Customer create error:', e.message, '| company:', getCompany(req));
-    res.status(400).json({ success:false, message:e.message, detail: e.message }); 
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    try {
+      // Unique code: timestamp-based suffix avoids race conditions entirely
+      const code = req.body.code ||
+        `CUS-${Date.now().toString(36).toUpperCase()}${Math.floor(Math.random()*100)}`;
+
+      const customer = await Customer.create({
+        ...req.body,
+        company:   co,
+        code,
+        createdBy: req.user._id
+      });
+      return res.status(201).json({ success:true, data:customer });
+    } catch (e) {
+      lastErr = e;
+      // Duplicate key on code → retry with a new code
+      if (e.code === 11000 && Object.keys(e.keyPattern||{}).includes('code')) {
+        continue;
+      }
+      // Any other error → fail immediately with real reason
+      console.error('Customer create error:', e.message, '| company:', co, '| body:', JSON.stringify(req.body));
+      return res.status(400).json({
+        success:false,
+        message: e.message,
+        detail:  e.message,
+        code:    e.code || null,
+      });
+    }
   }
+
+  console.error('Customer create failed after retries:', lastErr?.message);
+  res.status(400).json({ success:false, message:'فشل إنشاء العميل بعد عدة محاولات: ' + (lastErr?.message||''), detail: lastErr?.message });
 });
 
 // GET single
@@ -65,7 +84,7 @@ router.put('/:id', protect, async (req, res) => {
     );
     if (!customer) return res.status(404).json({ success:false, message:'العميل غير موجود' });
     res.json({ success:true, data:customer });
-  } catch (e) { res.status(400).json({ success:false, message:e.message }); }
+  } catch (e) { res.status(400).json({ success:false, message:e.message, detail:e.message }); }
 });
 
 // DELETE (soft delete)
@@ -77,5 +96,3 @@ router.delete('/:id', protect, authorize('owner','admin','superadmin'), async (r
 });
 
 module.exports = router;
-
-// Version: 2025-fix-getcompany

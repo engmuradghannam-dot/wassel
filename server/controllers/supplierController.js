@@ -28,29 +28,37 @@ exports.getSupplier = async (req, res) => {
 };
 
 exports.createSupplier = async (req, res) => {
-  try {
-    const co = getCompany(req);
-    if (!co) return res.status(400).json({ success:false, message:'الحساب غير مرتبط بشركة. يرجى التحقق من تسجيل الدخول' });
+  const co = getCompany(req);
+  if (!co) return res.status(400).json({ success:false, message:'الحساب غير مرتبط بشركة. يرجى التحقق من تسجيل الدخول' });
 
-    // Auto-generate supplier code
-    const count = await Supplier.countDocuments({ company: co });
-    const code  = req.body.code?.trim() || `SUP-${String(count+1).padStart(4,'0')}`;
+  const body = { ...req.body };
+  if (!body.rating || body.rating < 1) delete body.rating;
 
-    // Strip invalid rating value (0 causes validation error on old schema)
-    const body = { ...req.body };
-    if (!body.rating || body.rating < 1) delete body.rating;
-    
-    const supplier = await Supplier.create({
-      ...body,
-      company:   co,
-      code,
-      createdBy: req.user._id
-    });
-    res.status(201).json({ success:true, data:supplier });
-  } catch (err) {
-    console.error('createSupplier error:', err.message);
-    res.status(400).json({ success:false, message:err.message });
+  const MAX_RETRIES = 5;
+  let lastErr = null;
+
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    try {
+      const code = body.code?.trim() ||
+        `SUP-${Date.now().toString(36).toUpperCase()}${Math.floor(Math.random()*100)}`;
+
+      const supplier = await Supplier.create({
+        ...body,
+        company:   co,
+        code,
+        createdBy: req.user._id
+      });
+      return res.status(201).json({ success:true, data:supplier });
+    } catch (err) {
+      lastErr = err;
+      if (err.code === 11000 && Object.keys(err.keyPattern||{}).includes('code')) {
+        continue;
+      }
+      console.error('createSupplier error:', err.message, '| body:', JSON.stringify(body));
+      return res.status(400).json({ success:false, message:err.message, detail:err.message, code:err.code||null });
+    }
   }
+  res.status(400).json({ success:false, message:'فشل إنشاء المورد بعد عدة محاولات: '+(lastErr?.message||''), detail:lastErr?.message });
 };
 
 exports.updateSupplier = async (req, res) => {

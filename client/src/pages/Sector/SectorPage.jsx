@@ -113,7 +113,7 @@ const SectorPage = ({
       if (editId) await api.put(`/api/sector/${model}/${editId}`, payload);
       else        await api.post(`/api/sector/${model}`, payload);
       setSnack(t('common.success')); close(); load();
-    } catch(e) { setError(e.response?.data?.message || t('common.error')); }
+    } catch(e) { setError(e.response?.data?.detail || e.response?.data?.message || t('common.error')); }
     finally { setSaving(false); }
   };
 

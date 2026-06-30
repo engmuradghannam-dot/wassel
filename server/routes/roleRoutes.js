@@ -121,16 +121,39 @@ router.post('/seed-defaults', protect, authorize('owner','admin','superadmin'), 
 // ── Assign role to user ────────────────────────────────────────────────────
 router.post('/assign', protect, authorize('owner','admin','superadmin'), async (req, res) => {
   try {
-    const { userId, roleId, permissionOverrides } = req.body;
-    const user = await User.findOne({ _id: userId, company: getCompany(req) });
-    if (!user) return res.status(404).json({ success: false, message: 'المستخدم غير موجود' });
+    const { userId, employeeId, roleId, permissionOverrides } = req.body;
+    const co = getCompany(req);
+    if (!roleId) return res.status(400).json({ success:false, message:'الدور مطلوب' });
 
-    user.customRole = roleId;
-    if (permissionOverrides) user.permissionOverrides = permissionOverrides;
-    await user.save();
+    const role = await Role.findOne({ _id: roleId, company: co });
+    if (!role) return res.status(404).json({ success:false, message:'الدور غير موجود' });
 
-    const updated = await User.findById(userId).populate('customRole');
-    res.json({ success: true, data: updated });
+    let result = null;
+
+    // Assign to a User account (if they have a login)
+    if (userId) {
+      const user = await User.findOne({ _id: userId, company: co });
+      if (!user) return res.status(404).json({ success: false, message: 'المستخدم غير موجود' });
+      user.customRole = roleId;
+      if (permissionOverrides) user.permissionOverrides = permissionOverrides;
+      await user.save();
+      result = await User.findById(userId).populate('customRole');
+    }
+
+    // Also (or instead) assign to the Employee record — works even without login
+    if (employeeId) {
+      const Employee = require('../models/Employee');
+      const emp = await Employee.findOneAndUpdate(
+        { _id: employeeId, company: co },
+        { customRole: roleId },
+        { new: true }
+      ).populate('customRole');
+      if (!result) result = emp;
+    }
+
+    if (!result) return res.status(400).json({ success:false, message:'يجب تحديد مستخدم أو موظف' });
+
+    res.json({ success: true, data: result });
   } catch (e) { res.status(400).json({ success: false, message: e.message }); }
 });
 

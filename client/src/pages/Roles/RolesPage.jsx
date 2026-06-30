@@ -261,9 +261,15 @@ const RolesPage = () => {
   const handleAssign = async () => {
     if (!assignUserId || !assignRoleId) return;
     try {
-      await api.post('/api/roles/assign', { userId: assignUserId, roleId: assignRoleId });
+      const selectedEmp = employees.find(e => e._id === assignUserId);
+      await api.post('/api/roles/assign', {
+        employeeId: assignUserId,
+        userId: selectedEmp?.user?._id || selectedEmp?.user || undefined,
+        roleId: assignRoleId,
+      });
       setSnack('تم تعيين الدور بنجاح');
       setAssignDialog(false);
+      setAssignUserId(''); setAssignRoleId('');
       load();
     } catch (e) { setError(e.response?.data?.message || 'فشل تعيين الدور'); }
   };
@@ -376,25 +382,31 @@ const RolesPage = () => {
                     </Box>
 
                     {/* Users with this role */}
-                    <Box sx={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                    <Box sx={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', mb: (() => {
+                        const cnt = employees.filter(e=>e.customRole===role._id||e.customRole?._id===role._id).length;
+                        return cnt > 0 ? 1 : 0;
+                      })() }}>
                       <Box sx={{ display:'flex', alignItems:'center', gap: 0.5 }}>
                         <People sx={{ fontSize: 14, color:'text.secondary' }} />
                         <Typography variant="caption" color="text.secondary">
                           {role.userCount || 0} مستخدم
-                          {employees.filter(e=>e.customRole===role._id||e.customRole?._id===role._id).length > 0 && (
-                            <Box sx={{mt:0.5}}>
-                              {employees.filter(e=>e.customRole===role._id||e.customRole?._id===role._id).slice(0,3).map(e=>(
-                                <Chip key={e._id} label={e.name} size="small" avatar={<Avatar sx={{fontSize:'0.6rem!important'}}>{e.name?.[0]}</Avatar>} sx={{fontSize:'0.65rem',mr:0.3,mb:0.3}}/>
-                              ))}
-                              {employees.filter(e=>e.customRole===role._id||e.customRole?._id===role._id).length > 3 &&
-                                <Chip label={`+${employees.filter(e=>e.customRole===role._id||e.customRole?._id===role._id).length-3}`} size="small" sx={{fontSize:'0.65rem'}}/>}
-                            </Box>
-                          )}
                         </Typography>
                       </Box>
                       <Chip label={`مستوى ${role.level || 5}`} size="small" variant="outlined"
                         sx={{ fontSize:'0.65rem', height: 18 }} />
                     </Box>
+                    {employees.filter(e=>e.customRole===role._id||e.customRole?._id===role._id).length > 0 && (
+                      <Box sx={{ display:'flex', flexWrap:'wrap', gap:0.4 }}>
+                        {employees.filter(e=>e.customRole===role._id||e.customRole?._id===role._id).slice(0,4).map(e=>(
+                          <Chip key={e._id} label={e.name} size="small"
+                            avatar={<Avatar sx={{fontSize:'0.6rem!important'}}>{e.name?.[0]}</Avatar>}
+                            sx={{fontSize:'0.65rem'}}/>
+                        ))}
+                        {employees.filter(e=>e.customRole===role._id||e.customRole?._id===role._id).length > 4 && (
+                          <Chip label={`+${employees.filter(e=>e.customRole===role._id||e.customRole?._id===role._id).length-4}`} size="small" sx={{fontSize:'0.65rem'}}/>
+                        )}
+                      </Box>
+                    )}
                   </CardContent>
                 </Card>
               </Grid>
@@ -494,27 +506,33 @@ const RolesPage = () => {
 
         {/* ── Assign Role Dialog ── */}
         <Dialog open={assignDialog} onClose={() => setAssignDialog(false)} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
-          <DialogTitle fontWeight={800}>تعيين دور لمستخدم</DialogTitle>
+          <DialogTitle fontWeight={800}>تعيين دور لموظف</DialogTitle>
           <DialogContent>
             <Box sx={{ display:'flex', flexDirection:'column', gap: 2, mt: 1 }}>
-              <TextField label="الموظف / المستخدم" value={assignUserId} onChange={e => setAssignUserId(e.target.value)} fullWidth select helperText="اختر الموظف أو المستخدم الذي تريد تعيين الدور له">
-                {users.map(u => {
-                  const emp = employees.find(e=>e.user===u._id||e.user?._id===u._id);
-                  return (
-                    <MenuItem key={u._id} value={u._id}>
-                      <Box sx={{ display:'flex', alignItems:'center', gap: 1, width:'100%' }}>
-                        <Avatar sx={{ width:28, height:28, fontSize:12, bgcolor:'#1a73e8' }}>{u.name?.[0]}</Avatar>
-                        <Box sx={{flex:1}}>
-                          <Typography variant="body2" fontWeight={600}>{u.name}</Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            {emp ? `${emp.position||''} · ${emp.department||''}` : u.role}
-                          </Typography>
-                        </Box>
-                        {u.customRole && <Chip label="له دور" size="small" color="primary" sx={{fontSize:'0.6rem'}}/>}
+              <TextField label="الموظف" value={assignUserId} onChange={e => setAssignUserId(e.target.value)} fullWidth select
+                helperText="تظهر جميع موظفي الشركة — مع حساب دخول أو بدونه">
+                {employees.map(emp => (
+                  <MenuItem key={emp._id} value={emp._id}>
+                    <Box sx={{ display:'flex', alignItems:'center', gap: 1, width:'100%' }}>
+                      <Avatar sx={{ width:28, height:28, fontSize:12, bgcolor:'#1a73e8' }}>{emp.name?.[0]}</Avatar>
+                      <Box sx={{flex:1}}>
+                        <Typography variant="body2" fontWeight={600}>{emp.name}</Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {[emp.position, emp.department].filter(Boolean).join(' · ') || 'بدون منصب'}
+                        </Typography>
                       </Box>
-                    </MenuItem>
-                  );
-                })}
+                      {emp.user ? (
+                        <Chip label="له حساب دخول" size="small" color="success" sx={{fontSize:'0.6rem'}}/>
+                      ) : (
+                        <Chip label="بدون حساب" size="small" variant="outlined" sx={{fontSize:'0.6rem'}}/>
+                      )}
+                      {emp.customRole && <Chip label="له دور" size="small" color="primary" sx={{fontSize:'0.6rem'}}/>}
+                    </Box>
+                  </MenuItem>
+                ))}
+                {employees.length === 0 && (
+                  <MenuItem disabled><Typography variant="caption" color="text.secondary">لا يوجد موظفون — أضف من قسم الموظفين أولاً</Typography></MenuItem>
+                )}
               </TextField>
               <TextField label="الدور" value={assignRoleId} onChange={e => setAssignRoleId(e.target.value)} fullWidth select>
                 {roles.map(r => (
