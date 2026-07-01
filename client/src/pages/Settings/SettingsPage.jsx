@@ -2,25 +2,31 @@ import React, { useState } from 'react';
 import {
   Box, Typography, Paper, Divider, List, ListItemButton,
   ListItemIcon, ListItemText, Button, Alert, Snackbar, Grid,
-  TextField, Switch
+  TextField, Switch, Tooltip
 } from '@mui/material';
 import {
-  Language, Notifications, VolumeUp, Security, Person, Check
+  Language, Notifications, VolumeUp, Security, Person, Check, Palette,
+  LightMode, DarkMode, SettingsBrightness
 } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
 import Layout from '../../components/Layout';
 import LanguageSelector from '../../components/LanguageSelector';
 import SoundSettings from '../../components/SoundSettings';
 import { getCurrentLang } from '../../i18n/index';
+import { useThemeSettings } from '../../contexts/ThemeSettingsContext';
+import { ACCENT_COLORS } from '../../theme/appTheme';
 
 export default function SettingsPage() {
   const { t, i18n } = useTranslation();
   const [section, setSection] = useState('language');
   const [snack,   setSnack]   = useState('');
+  const { mode, setMode, accent, setAccent } = useThemeSettings();
+  const AR = i18n.language === 'ar';
 
   const currentLang = getCurrentLang();
 
   const SECTIONS = [
+    { id:'theme',        icon:<Palette/>,       label: AR ? 'المظهر والثيم' : 'Appearance & Theme' },
     { id:'language',      icon:<Language/>,      label: t('settings.language')      || 'اللغة' },
     { id:'sounds',        icon:<VolumeUp/>,      label: t('settings.sounds')        || 'الأصوات' },
     { id:'notifications', icon:<Notifications/>, label: t('settings.notifications') || 'الإشعارات' },
@@ -65,6 +71,127 @@ export default function SettingsPage() {
           {/* Content */}
           <Grid item xs={12} md={9}>
             <Paper sx={{ borderRadius:3, p:3 }}>
+
+              {/* ── THEME / APPEARANCE ── */}
+              {section==='theme' && (
+                <Box>
+                  <Box sx={{ display:'flex', alignItems:'center', gap:1.5, mb:1 }}>
+                    <Palette sx={{ color:'#1a73e8' }}/>
+                    <Box>
+                      <Typography variant="h6" fontWeight={700}>
+                        {AR ? 'المظهر والثيم' : 'Appearance & Theme'}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {AR ? 'مستوحى من تصميم Dynamics 365 و Windows 11' : 'Inspired by Dynamics 365 & Windows 11 design'}
+                      </Typography>
+                    </Box>
+                  </Box>
+
+                  <Divider sx={{ my:2.5 }}/>
+
+                  {/* Mode: Light / Dark / Auto */}
+                  <Typography variant="subtitle2" fontWeight={700} sx={{ mb:1.5 }}>
+                    {AR ? 'وضع العرض' : 'Display mode'}
+                  </Typography>
+                  <Grid container spacing={2} sx={{ mb:3.5 }}>
+                    {[
+                      { id:'light', label: AR?'فاتح':'Light',  icon:<LightMode/>,
+                        bg:'#faf9f8', fg:'#1f1f1f' },
+                      { id:'dark',  label: AR?'داكن':'Dark',    icon:<DarkMode/>,
+                        bg:'#1f1f1f', fg:'#ffffff' },
+                      { id:'auto',  label: AR?'تلقائي (النظام)':'Auto (System)', icon:<SettingsBrightness/>,
+                        bg:'linear-gradient(135deg,#faf9f8 50%,#1f1f1f 50%)', fg:'#1a73e8' },
+                    ].map(opt => (
+                      <Grid item xs={12} sm={4} key={opt.id}>
+                        <Paper
+                          onClick={() => { setMode(opt.id); setSnack(AR?'تم تحديث الثيم':'Theme updated'); }}
+                          sx={{
+                            cursor:'pointer', borderRadius:3, overflow:'hidden',
+                            border:'2px solid', borderColor: mode===opt.id ? accent : 'divider',
+                            transition:'all .15s', position:'relative',
+                            '&:hover':{ borderColor: accent, transform:'translateY(-2px)' },
+                          }}>
+                          <Box sx={{ height:64, background:opt.bg, display:'flex',
+                            alignItems:'center', justifyContent:'center' }}>
+                            <Box sx={{ color:opt.fg, display:'flex' }}>{opt.icon}</Box>
+                          </Box>
+                          <Box sx={{ p:1.2, display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                            <Typography variant="body2" fontWeight={600}>{opt.label}</Typography>
+                            {mode===opt.id && <Check sx={{ fontSize:16, color:accent }}/>}
+                          </Box>
+                        </Paper>
+                      </Grid>
+                    ))}
+                  </Grid>
+
+                  <Divider sx={{ mb:2.5 }}/>
+
+                  {/* Accent color */}
+                  <Typography variant="subtitle2" fontWeight={700} sx={{ mb:0.5 }}>
+                    {AR ? 'لون التمييز (Accent Color)' : 'Accent color'}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ display:'block', mb:1.5 }}>
+                    {AR
+                      ? 'نفس نظام ألوان Windows 11 — يُستخدم في الأزرار والنوافذ والعناصر النشطة'
+                      : 'Same accent-color system as Windows 11 — used across buttons, windows and active elements'}
+                  </Typography>
+                  <Box sx={{ display:'flex', flexWrap:'wrap', gap:1.5, mb:3.5 }}>
+                    {ACCENT_COLORS.map(c => (
+                      <Tooltip key={c.id} title={AR ? c.nameAr : c.name}>
+                        <Box
+                          onClick={() => { setAccent(c.hex); setSnack(AR?'تم تحديث اللون':'Accent color updated'); }}
+                          sx={{
+                            width:40, height:40, borderRadius:'50%', bgcolor:c.hex,
+                            cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center',
+                            border:'2px solid', borderColor: accent===c.hex ? '#000' : 'transparent',
+                            outline: accent===c.hex ? `2px solid ${c.hex}` : 'none',
+                            outlineOffset:2,
+                            transition:'transform .15s',
+                            '&:hover':{ transform:'scale(1.1)' },
+                          }}>
+                          {accent===c.hex && <Check sx={{ color:'#fff', fontSize:18 }}/>}
+                        </Box>
+                      </Tooltip>
+                    ))}
+                  </Box>
+
+                  <Divider sx={{ mb:2.5 }}/>
+
+                  {/* Live "window" preview — mimics a Windows 11 / Fluent dialog */}
+                  <Typography variant="subtitle2" fontWeight={700} sx={{ mb:1.5 }}>
+                    {AR ? 'معاينة مباشرة' : 'Live preview'}
+                  </Typography>
+                  <Box sx={{
+                    borderRadius:2, overflow:'hidden', border:'1px solid', borderColor:'divider',
+                    borderTop: `2px solid ${accent}`, boxShadow:'0 6.4px 14.4px rgba(0,0,0,0.18)',
+                    maxWidth:420,
+                  }}>
+                    <Box sx={{
+                      px:2, py:1.2, bgcolor: mode==='dark' ? '#282828' : '#f3f2f1',
+                      display:'flex', alignItems:'center', justifyContent:'space-between',
+                      borderBottom:'1px solid', borderColor:'divider',
+                    }}>
+                      <Typography variant="body2" fontWeight={700} sx={{ color: mode==='dark' ? '#fff' : '#1f1f1f' }}>
+                        {AR ? 'أمر شراء جديد' : 'New Purchase Order'}
+                      </Typography>
+                      <Box sx={{ width:14, height:14, borderRadius:'50%', bgcolor: mode==='dark'?'rgba(255,255,255,0.15)':'rgba(0,0,0,0.1)' }}/>
+                    </Box>
+                    <Box sx={{ p:2, bgcolor: mode==='dark' ? '#2b2b2b' : '#fff' }}>
+                      <Typography variant="caption" sx={{ color: mode==='dark' ? 'rgba(255,255,255,0.6)' : 'text.secondary' }}>
+                        {AR ? 'هذا مثال لشكل النوافذ في النظام' : 'This is how dialogs will look across the system'}
+                      </Typography>
+                      <Box sx={{ display:'flex', gap:1, mt:2, justifyContent:'flex-end' }}>
+                        <Button size="small" sx={{ color: mode==='dark'?'rgba(255,255,255,0.7)':'inherit' }}>
+                          {AR?'إلغاء':'Cancel'}
+                        </Button>
+                        <Button size="small" variant="contained" sx={{ bgcolor:accent, '&:hover':{ bgcolor:accent } }}>
+                          {AR?'حفظ':'Save'}
+                        </Button>
+                      </Box>
+                    </Box>
+                  </Box>
+                </Box>
+              )}
 
               {/* ── LANGUAGE ── */}
               {section==='language' && (

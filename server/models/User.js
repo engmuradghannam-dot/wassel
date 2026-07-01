@@ -41,6 +41,7 @@ const userSchema = new mongoose.Schema({
   language:   { type: String, default: 'ar' },
   timezone:   { type: String, default: 'Asia/Riyadh' },
   theme:      { type: String, enum: ['light','dark','auto'], default: 'light' },
+  accentColor:{ type: String, default: '#6264A7' }, // Fluent/Windows-11 accent color hex
   bio:        { type: String },
   department: { type: String },
   position:   { type: String },

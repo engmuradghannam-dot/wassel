@@ -1,6 +1,6 @@
 import React, { Suspense, useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { ThemeProvider, createTheme } from '@mui/material/styles';
+import { ThemeProvider } from '@mui/material/styles';
 import { CacheProvider }    from '@emotion/react';
 import createCache          from '@emotion/cache';
 import { prefixer }         from 'stylis';
@@ -10,6 +10,8 @@ import { Box, CircularProgress, Typography } from '@mui/material';
 import { useTranslation }   from 'react-i18next';
 import './i18n/index';
 import WasselAI             from './components/AI/WasselAI';
+import { ThemeSettingsProvider, useThemeSettings } from './contexts/ThemeSettingsContext';
+import { buildAppTheme }    from './theme/appTheme';
 
 const RTL_LANGS = ['ar','ur'];
 
@@ -76,26 +78,8 @@ const Loader = () => (
 const rtlCache = createCache({ key:'muirtl', stylisPlugins:[prefixer, rtlPlugin] });
 const ltrCache = createCache({ key:'muiltr', stylisPlugins:[prefixer] });
 
-const buildTheme = (dir) => createTheme({
-  direction: dir,
-  palette: {
-    mode:'light',
-    primary:{ main:'#1a73e8' },
-    secondary:{ main:'#34a853' },
-    background:{ default:'#f5f7fa', paper:'#ffffff' }
-  },
-  typography: {
-    fontFamily: dir==='rtl'
-      ? '"Segoe UI","Tahoma","Arial",sans-serif'
-      : '"Segoe UI","Helvetica Neue","Arial",sans-serif',
-    h4:{ fontWeight:800 }, h5:{ fontWeight:700 }, h6:{ fontWeight:600 }
-  },
-  shape:{ borderRadius:10 },
-  components:{
-    MuiButton:{ styleOverrides:{ root:{ textTransform:'none', borderRadius:8, fontWeight:600 } } },
-    MuiTextField:{ defaultProps:{ size:'small' } },
-  }
-});
+// Theme is now built dynamically per render from ThemeSettingsContext
+// (light/dark/auto mode + user-selected accent color) — see ./theme/appTheme.js
 
 const AIWrapper = () => {
   const token    = localStorage.getItem('token');
@@ -107,6 +91,7 @@ const AIWrapper = () => {
 
 function AppInner() {
   const { i18n } = useTranslation();
+  const { resolvedMode, accent } = useThemeSettings();
   const getDir   = (lng) => RTL_LANGS.includes(lng) ? 'rtl' : 'ltr';
   const [dir, setDir] = useState(() => getDir(i18n.language));
 
@@ -122,7 +107,7 @@ function AppInner() {
     return () => i18n.off('languageChanged', h);
   }, [i18n]);
 
-  const theme = buildTheme(dir);
+  const theme = buildAppTheme(dir, resolvedMode, accent);
   const cache = dir==='rtl' ? rtlCache : ltrCache;
 
   return (
@@ -205,10 +190,12 @@ function AppInner() {
 
 export default function App() {
   return (
-    <Router>
-      <Suspense fallback={<Loader/>}>
-        <AppInner/>
-      </Suspense>
-    </Router>
+    <ThemeSettingsProvider>
+      <Router>
+        <Suspense fallback={<Loader/>}>
+          <AppInner/>
+        </Suspense>
+      </Router>
+    </ThemeSettingsProvider>
   );
 }
