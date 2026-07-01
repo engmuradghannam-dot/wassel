@@ -44,6 +44,15 @@ router.post('/', protect, authorize('admin','manager','superadmin'), async (req,
       remainingAmount: totals.total,
       createdBy: req.user.id
     });
+
+    // ── الترابط المحاسبي: إذا أُنشئت كفاتورة مباشرة (وليست عرض سعر) نُرحّل
+    // قيد الإيراد فوراً — Dr ذمم مدينة | Cr إيرادات + ضريبة مخرجات
+    if (order.type === 'invoice') {
+      const Acct = require('../services/accountingPosting');
+      Acct.postSalesInvoice({ company: order.company, so: order, userId: req.user.id })
+        .catch(err => console.error('[SalesOrder] فشل ترحيل قيد الفاتورة:', err.message));
+    }
+
     res.status(201).json({ success: true, data: order });
   } catch (e) { res.status(400).json({ success: false, message: e.message }); }
 });
@@ -117,8 +126,28 @@ router.put('/:id/convert-to-invoice', protect, authorize('admin','manager','supe
     if (req.body.dueDate) order.dueDate = req.body.dueDate;
     await order.save();
 
+    // ── الترابط المحاسبي: تحويل عرض السعر لفاتورة يُرحّل قيد الإيراد تلقائياً
+    const Acct = require('../services/accountingPosting');
+    Acct.postSalesInvoice({ company: order.company, so: order, userId: req.user.id })
+      .catch(err => console.error('[SalesOrder] فشل ترحيل قيد تحويل عرض السعر لفاتورة:', err.message));
+
     res.json({ success: true, data: order, message: `تم تحويل عرض السعر إلى فاتورة رقم ${invoiceNum}` });
   } catch (e) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+// ── Record customer payment (تحصيل دفعة من عميل) ──────────────────────────
+router.put('/:id/record-payment', protect, authorize('admin','manager','superadmin'), async (req, res) => {
+  try {
+    const { amount, method } = req.body;
+    if (!amount || amount <= 0) return res.status(400).json({ success:false, message:'المبلغ غير صحيح' });
+
+    const order = await SalesOrder.findOne(buildFilter(req, { _id: req.params.id }));
+    if (!order) return res.status(404).json({ success:false, message:'الطلب غير موجود' });
+
+    const updated = await BL.updateSalesPaymentStatus(order._id, +amount, { userId: req.user.id, method: method || 'bank' });
+
+    res.json({ success:true, data:updated, message:'تم تسجيل تحصيل الدفعة وترحيلها محاسبياً' });
+  } catch (e) { res.status(500).json({ success:false, message:e.message }); }
 });
 
 // ── Search customers (for autocomplete) ───────────────────────────────────

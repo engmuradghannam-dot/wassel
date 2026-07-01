@@ -131,4 +131,21 @@ router.put('/:id/request-payment', protect, authorize('owner','admin','manager')
   }
 });
 
+// ── تسجيل سداد دفعة للمورد (Dr ذمم دائنة | Cr نقدية/بنك) ───────────────────
+router.put('/:id/record-payment', protect, authorize('owner','admin','manager'), async (req, res) => {
+  try {
+    const { amount, method } = req.body;
+    if (!amount || amount <= 0) return res.status(400).json({ success:false, message:'المبلغ غير صحيح' });
+
+    const PurchaseOrder = require('../models/PurchaseOrder');
+    const order = await PurchaseOrder.findOne(buildFilter(req, { _id: req.params.id }));
+    if (!order) return res.status(404).json({ success:false, message:'أمر الشراء غير موجود' });
+
+    const BL = require('../services/businessLogic');
+    const updated = await BL.updatePurchasePaymentStatus(order._id, +amount, { userId: req.user.id, method: method || 'bank' });
+
+    res.json({ success:true, data:updated, message:'تم تسجيل سداد الدفعة وترحيلها محاسبياً' });
+  } catch (e) { res.status(500).json({ success:false, message:e.message, detail:e.message }); }
+});
+
 module.exports = router;
