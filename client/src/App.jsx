@@ -186,9 +186,6 @@ function AppInner() {
           <Route path="/properties"        element={<PrivateRoute><PropertiesPage/></PrivateRoute>}/>
           <Route path="/leases"            element={<PrivateRoute><LeasesPage/></PrivateRoute>}/>
 
-const PurchaseRequestsPage = React.lazy(() => import('./pages/PurchaseRequests/PurchaseRequestsPage'));
-const LegalPage            = React.lazy(() => import('./pages/Legal/LegalPage'));
-
           {/* Salon */}
           <Route path="/salon-appointments" element={<PrivateRoute><SalonAppointmentsPage/></PrivateRoute>}/>
 
