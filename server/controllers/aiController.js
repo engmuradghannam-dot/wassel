@@ -17,7 +17,7 @@ const { getCompany } = require('../middleware/auth');
 const { buildERPContext, ERP_SYSTEM_PROMPT } = require('../middleware/aiContext');
 const User = require('../models/User');
 const { encrypt, decrypt, maskKey } = require('../services/crypto');
-const { PROVIDERS, getUserProviderKeys, askEnsemble, callClaude, callGemini, callOpenAI, callGroq, callDeepSeek } = require('../services/multiAI');
+const { PROVIDERS, getUserProviderKeys, askEnsemble, callClaude, callGemini, callOpenAI, callGroq, callDeepSeek, callGrok } = require('../services/multiAI');
 
 // رسالة موحّدة تُرجَع لكل نقطة نهاية عندما لا يوجد ولا مفتاح واحد محفوظ —
 // الواجهة الأمامية تتعرف عليها عبر code:'NO_AI_KEY' وتوجّه المستخدم للإعدادات
@@ -364,6 +364,7 @@ const TEST_CALL = {
   openai:   (key) => callOpenAI(key,   { userMessage: 'hi', maxTokens: 5, light: true }),
   groq:     (key) => callGroq(key,     { userMessage: 'hi', maxTokens: 5, light: true }),
   deepseek: (key) => callDeepSeek(key, { userMessage: 'hi', maxTokens: 5, light: true }),
+  grok:     (key) => callGrok(key,     { userMessage: 'hi', maxTokens: 5, light: true }),
 };
 
 exports.setKey = async (req, res) => {

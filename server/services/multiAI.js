@@ -120,12 +120,32 @@ async function callDeepSeek(apiKey, { system, history = [], userMessage, maxToke
   return res.choices?.[0]?.message?.content || '';
 }
 
+// ── Grok (xAI) ─────────────────────────────────────────────────────────
+const _grokCache = new Map();
+function grokClient(apiKey) {
+  if (!_grokCache.has(apiKey)) _grokCache.set(apiKey, new OpenAI({ apiKey, baseURL: 'https://api.x.ai/v1' }));
+  return _grokCache.get(apiKey);
+}
+async function callGrok(apiKey, { system, history = [], userMessage, maxTokens, temperature, light }) {
+  const model = light ? 'grok-4-fast' : 'grok-4';
+  const res = await grokClient(apiKey).chat.completions.create({
+    model, max_tokens: maxTokens, temperature,
+    messages: [
+      ...(system ? [{ role: 'system', content: system }] : []),
+      ...history.map(h => ({ role: h.role, content: h.content })),
+      { role: 'user', content: userMessage },
+    ],
+  });
+  return res.choices?.[0]?.message?.content || '';
+}
+
 const PROVIDERS = {
   claude:   { label: 'Claude',   call: callClaude,   keyField: 'aiApiKey',       prefix: 'sk-ant-' },
   gemini:   { label: 'Gemini',   call: callGemini,   keyField: 'geminiApiKey',   prefix: 'AIzaSy'  },
   openai:   { label: 'ChatGPT',  call: callOpenAI,   keyField: 'openaiApiKey',   prefix: 'sk-'     },
   groq:     { label: 'Groq',     call: callGroq,     keyField: 'groqApiKey',     prefix: 'gsk_'    },
   deepseek: { label: 'DeepSeek', call: callDeepSeek, keyField: 'deepseekApiKey', prefix: 'sk-'     },
+  grok:     { label: 'Grok',     call: callGrok,     keyField: 'grokApiKey',     prefix: 'xai-'    },
 };
 
 /**
@@ -133,8 +153,8 @@ const PROVIDERS = {
  * أي مفتاح غير مضبوط يرجع null.
  */
 async function getUserProviderKeys(userId) {
-  const user = await User.findById(userId)
-    .select('+aiApiKey +geminiApiKey +openaiApiKey +groqApiKey +deepseekApiKey');
+  const selectFields = Object.values(PROVIDERS).map(p => `+${p.keyField}`).join(' ');
+  const user = await User.findById(userId).select(selectFields);
   const out = {};
   for (const [id, p] of Object.entries(PROVIDERS)) {
     out[id] = user?.[p.keyField] ? decrypt(user[p.keyField]) : null;
@@ -199,4 +219,4 @@ ${successes.map((s, i) => `── إجابة ${i + 1} ──\n${s.text}`).join('
   }
 }
 
-module.exports = { PROVIDERS, getUserProviderKeys, askEnsemble, callClaude, callGemini, callOpenAI, callGroq, callDeepSeek };
+module.exports = { PROVIDERS, getUserProviderKeys, askEnsemble, callClaude, callGemini, callOpenAI, callGroq, callDeepSeek, callGrok };

@@ -54,6 +54,7 @@ const userSchema = new mongoose.Schema({
   openaiApiKey: { type: String, select: false }, // ChatGPT (OpenAI)
   groqApiKey:     { type: String, select: false }, // Groq (مجاني إلى حد كبير)
   deepseekApiKey: { type: String, select: false }, // DeepSeek
+  grokApiKey:     { type: String, select: false }, // Grok (xAI)
   position:   { type: String },
   employeeId: { type: String },
 

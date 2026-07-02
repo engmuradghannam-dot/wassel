@@ -49,9 +49,11 @@ export default function SettingsPage() {
       keysUrl:'https://console.groq.com/keys', free:true },
     { id:'deepseek', name:'DeepSeek', vendor:'DeepSeek (رصيد تجريبي مجاني)', prefix:'sk-',
       keysUrl:'https://platform.deepseek.com/api_keys', free:true },
+    { id:'grok', name:'Grok', vendor:'xAI', prefix:'xai-',
+      keysUrl:'https://console.x.ai' },
   ];
   const [aiKeyStatus, setAiKeyStatus]   = useState(null); // { claude:{configured,maskedKey}, gemini:{...}, ... } | null (loading)
-  const [aiKeyInputs, setAiKeyInputs]   = useState({ claude:'', gemini:'', openai:'', groq:'', deepseek:'' });
+  const [aiKeyInputs, setAiKeyInputs]   = useState({ claude:'', gemini:'', openai:'', groq:'', deepseek:'', grok:'' });
   const [aiKeySaving, setAiKeySaving]   = useState(''); // provider id currently saving/removing, or ''
   const [aiKeyErrors, setAiKeyErrors]   = useState({});
   const [showAiKey,   setShowAiKey]     = useState({});
