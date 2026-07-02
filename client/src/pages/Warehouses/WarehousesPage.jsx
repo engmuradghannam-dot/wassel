@@ -27,6 +27,7 @@ const WarehousesPage = () => {
   const [error, setError]           = useState('');
   const [dialog, setDialog]         = useState(false);
   const [editing, setEditing]       = useState(null);
+  const [seeding, setSeeding]       = useState(false);
   const [form, setForm]             = useState(empty);
   const [saving, setSaving]         = useState(false);
   const [snack, setSnack]           = useState('');
@@ -39,6 +40,24 @@ const WarehousesPage = () => {
     } catch (e) {
       setError(e.response?.data?.message || 'فشل تحميل المستودعات');
     } finally { setLoading(false); }
+  };
+
+  const handleSeedDemo = async () => {
+    setSeeding(true); setError('');
+    try {
+      const r = await api.post('/api/setup/seed-demo-data');
+      const d = r.data.data || {};
+      const parts = [];
+      if (d.branches)  parts.push(`${d.branches} فرع`);
+      if (d.warehouses) parts.push(`${d.warehouses} مستودع`);
+      if (d.inventory) parts.push(`${d.inventory} صنف مخزون`);
+      setError(parts.length
+        ? `تم إنشاء: ${parts.join('، ')}. حدّث الصفحة.`
+        : (d.skipped?.[0] || 'البيانات موجودة مسبقاً بالفعل'));
+      load();
+    } catch (e) {
+      setError(e.response?.data?.message || 'فشل توليد البيانات التجريبية');
+    } finally { setSeeding(false); }
   };
 
   useEffect(() => { load(); }, []);
@@ -103,9 +122,15 @@ const WarehousesPage = () => {
           <Paper sx={{ p: 6, textAlign: 'center' }}>
             <WarehouseIcon sx={{ fontSize: 64, color: 'text.disabled', mb: 2 }} />
             <Typography variant="h6" color="text.secondary">لا توجد مستودعات</Typography>
-            <Button startIcon={<Add />} onClick={() => openDialog()} variant="contained" sx={{ mt: 2 }}>
-              إضافة أول مستودع
-            </Button>
+            <Box sx={{ display: 'flex', gap: 1.5, justifyContent: 'center', mt: 2 }}>
+              <Button startIcon={<Add />} onClick={() => openDialog()} variant="contained">
+                إضافة أول مستودع
+              </Button>
+              <Button onClick={handleSeedDemo} disabled={seeding} variant="outlined"
+                startIcon={seeding ? <CircularProgress size={16}/> : undefined}>
+                {seeding ? 'جارٍ التوليد...' : 'توليد فروع ومستودعات ومخزون تجريبي'}
+              </Button>
+            </Box>
           </Paper>
         ) : (
           <TableContainer component={Paper}>

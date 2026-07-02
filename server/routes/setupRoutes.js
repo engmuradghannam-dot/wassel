@@ -62,4 +62,89 @@ router.post('/fix-owner-role', protect, authorize('superadmin'), async (req, res
   }
 });
 
+// ── إعداد بيانات تجريبية (فروع + مستودعات + مخزون) ──────────────────────────
+// ملاحظة: توليد الموظفين والمناصب حسب نشاط الشركة له مساره الخاص فعلاً —
+// POST /api/employees/seed-sector (مربوط بزر "توليد فريق مقترح الآن" في
+// صفحة الموظفين) — فلا داعي لتكراره هنا.
+// آمن للتكرار: كل قسم يتفحّص أولاً هل عنده بيانات موجودة، ولو فيه يتخطاه.
+router.post('/seed-demo-data', protect, authorize('owner','admin','superadmin'), async (req, res) => {
+  try {
+    const { getCompany } = require('../middleware/auth');
+    const co = getCompany(req);
+    if (!co) return res.status(400).json({ success:false, message:'الحساب غير مرتبط بشركة' });
+
+    const Company   = require('../models/Company');
+    const Branch    = require('../models/Branch');
+    const Warehouse = require('../models/Warehouse');
+    const Inventory = require('../models/Inventory');
+
+    const company = await Company.findById(co);
+    if (!company) return res.status(404).json({ success:false, message:'الشركة غير موجودة' });
+
+    const summary = { branches:0, warehouses:0, inventory:0, skipped:[] };
+
+    // ── 1. الفروع (فرعان: رئيسي + ثانوي) ───────────────────────────────
+    const existingBranches = await Branch.countDocuments({ company: co });
+    let branches = [];
+    if (existingBranches === 0) {
+      branches = await Branch.insertMany([
+        { company: co, name: `${company.name} — الفرع الرئيسي`, nameEn: 'Main Branch', code: 'BR-01', isMain: true, address: company.city || '' },
+        { company: co, name: `${company.name} — فرع ٢`,        nameEn: 'Branch 2',    code: 'BR-02', isMain: false },
+      ]);
+      summary.branches = branches.length;
+    } else {
+      branches = await Branch.find({ company: co }).limit(2);
+      summary.skipped.push(`الفروع: يوجد ${existingBranches} فرع مسبقاً`);
+    }
+
+    // ── 2. المستودعات (ثلاثة، موزّعة على الفروع) ────────────────────────
+    const existingWarehouses = await Warehouse.countDocuments({ company: co });
+    let warehouses = [];
+    if (existingWarehouses === 0 && branches.length) {
+      warehouses = await Warehouse.insertMany([
+        { company: co, name: 'المستودع الرئيسي',   nameEn: 'Main Warehouse',   code: 'WH-01', branch: branches[0]?._id, capacity: 5000 },
+        { company: co, name: 'مستودع التوزيع',     nameEn: 'Distribution WH',  code: 'WH-02', branch: branches[0]?._id, capacity: 3000 },
+        { company: co, name: 'مستودع الفرع الثاني', nameEn: 'Branch 2 WH',      code: 'WH-03', branch: branches[1]?._id || branches[0]?._id, capacity: 2000 },
+      ]);
+      summary.warehouses = warehouses.length;
+    } else {
+      warehouses = await Warehouse.find({ company: co }).limit(3);
+      summary.skipped.push(`المستودعات: يوجد ${existingWarehouses} مستودع مسبقاً`);
+    }
+
+    // ── 3. أصناف مخزون تجريبية (10 أصناف عامة تناسب أي نشاط تجاري) ──────
+    const existingInventory = await Inventory.countDocuments({ company: co });
+    if (existingInventory === 0 && warehouses.length) {
+      const DEMO_ITEMS = [
+        { name:'كرتون تغليف مقوى (كبير)', category:'مواد تغليف',  unit:'قطعة', cost:8,   sale:15,  qty:500, min:100 },
+        { name:'شريط لاصق تغليف',         category:'مواد تغليف',  unit:'لفة',  cost:3,   sale:6,   qty:800, min:150 },
+        { name:'طبقة تغليف بلاستيك',      category:'مواد تغليف',  unit:'رول',  cost:25,  sale:45,  qty:120, min:30  },
+        { name:'قفازات عمل جلد',          category:'معدات سلامة', unit:'زوج',  cost:12,  sale:22,  qty:200, min:50  },
+        { name:'خوذة سلامة',              category:'معدات سلامة', unit:'قطعة', cost:35,  sale:60,  qty:80,  min:20  },
+        { name:'طفاية حريق 6كجم',         category:'معدات سلامة', unit:'قطعة', cost:120, sale:190, qty:40,  min:10  },
+        { name:'طاولة مكتب خشبية',        category:'أثاث مكتبي',  unit:'قطعة', cost:350, sale:550, qty:25,  min:5   },
+        { name:'كرسي مكتب دوّار',         category:'أثاث مكتبي',  unit:'قطعة', cost:280, sale:450, qty:35,  min:8   },
+        { name:'ورق طباعة A4 (كرتون)',    category:'مستلزمات مكتبية', unit:'كرتون', cost:90, sale:140, qty:60, min:15 },
+        { name:'حبر طابعة ليزر',          category:'مستلزمات مكتبية', unit:'علبة',  cost:150,sale:240, qty:45, min:10 },
+      ];
+      const inserted = await Inventory.insertMany(DEMO_ITEMS.map((it, i) => ({
+        company: co, name: it.name, category: it.category,
+        sku: `DEMO-${String(i + 1).padStart(3, '0')}`,
+        unit: it.unit, costPrice: it.cost, salePrice: it.sale,
+        quantity: it.qty, minQuantity: it.min,
+        warehouse: warehouses[i % warehouses.length]._id,
+        branch: warehouses[i % warehouses.length].branch,
+        isActive: true, taxRate: 15,
+      })));
+      summary.inventory = inserted.length;
+    } else {
+      summary.skipped.push(`المخزون: يوجد ${existingInventory} صنف مسبقاً`);
+    }
+
+    res.json({ success: true, message: 'تم إعداد البيانات التجريبية', data: summary });
+  } catch (err) {
+    res.status(500).json({ success:false, message: err.message, detail: err.message });
+  }
+});
+
 module.exports = router;
