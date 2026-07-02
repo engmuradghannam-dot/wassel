@@ -8,23 +8,56 @@
  * 4. نظام التعلم الذاتي
  */
 
-const Groq       = require('groq-sdk');
+const Anthropic   = require('@anthropic-ai/sdk');
 const { getCompany } = require('../middleware/auth');
 const { buildERPContext, ERP_SYSTEM_PROMPT } = require('../middleware/aiContext');
 
 // ── تهيئة كسولة (lazy init) ─────────────────────────────────────────────────
-// لا نُنشئ Groq client عند تحميل الملف، بل عند أول استخدام فعلي فقط.
-// هذا يمنع تعطّل السيرفر بالكامل لو غاب GROQ_API_KEY مؤقتاً أو لم يُضبط بعد —
-// بدلاً من ذلك يفشل فقط طلب الذكاء الاصطناعي نفسه برسالة واضحة، وكل بقية
-// النظام (المخزون، المبيعات، البريد، إلخ) يستمر بالعمل طبيعياً.
-let _groq = null;
-function getGroqClient() {
-  if (_groq) return _groq;
-  if (!process.env.GROQ_API_KEY) {
-    throw new Error('مساعد الذكاء الاصطناعي غير مُفعَّل — لم يتم ضبط GROQ_API_KEY بعد');
+// لا نُنشئ Anthropic client عند تحميل الملف، بل عند أول استخدام فعلي فقط.
+// هذا يمنع تعطّل السيرفر بالكامل لو غاب ANTHROPIC_API_KEY مؤقتاً أو لم يُضبط
+// بعد — بدلاً من ذلك يفشل فقط طلب الذكاء الاصطناعي نفسه برسالة واضحة، وكل
+// بقية النظام (المخزون، المبيعات، البريد، إلخ) يستمر بالعمل طبيعياً.
+//
+// كل مستخدم في النظام يستخدم Claude عبر مفتاح API واحد مضبوط على مستوى
+// السيرفر (ANTHROPIC_API_KEY في متغيرات بيئة Render) — التكلفة على حساب
+// الشركة المالكة للنظام، وليس على كل مستخدم بمفتاحه الخاص.
+let _anthropic = null;
+function getClaudeClient() {
+  if (_anthropic) return _anthropic;
+  if (!process.env.ANTHROPIC_API_KEY) {
+    throw new Error('مساعد الذكاء الاصطناعي غير مُفعَّل — لم يتم ضبط ANTHROPIC_API_KEY بعد');
   }
-  _groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
-  return _groq;
+  _anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  return _anthropic;
+}
+
+// النماذج المستخدمة: Sonnet للمهام التي تحتاج جودة وفهم عميق (محادثة، تحليل،
+// كود، استشارات قانونية)، وHaiku للمهام الخفيفة السريعة (اقتراحات قصيرة) —
+// توفيراً بالتكلفة دون التأثير على جودة أهم الميزات.
+const MODEL_MAIN  = 'claude-sonnet-5';
+const MODEL_LIGHT = 'claude-haiku-4-5-20251001';
+
+/**
+ * askClaude — غلاف موحّد فوق Anthropic Messages API.
+ * يحوّل شكل الاستدعاء المعتاد (system + history + user) إلى الشكل الذي
+ * تتوقعه Claude API فعلياً: `system` كمعامل منفصل عن `messages`، ومصفوفة
+ * `messages` تحتوي فقط أدوار user/assistant (بدون system بداخلها).
+ */
+async function askClaude({ model = MODEL_MAIN, system, history = [], userMessage, maxTokens = 1500, temperature = 0.7 }) {
+  const client = getClaudeClient();
+  const response = await client.messages.create({
+    model,
+    max_tokens: maxTokens,
+    temperature,
+    system: system || undefined,
+    messages: [
+      ...history.map(h => ({ role: h.role, content: h.content })),
+      { role: 'user', content: userMessage },
+    ],
+  });
+  const text = response.content?.find(b => b.type === 'text')?.text || '';
+  const totalTokens = (response.usage?.input_tokens || 0) + (response.usage?.output_tokens || 0);
+  return { text, totalTokens };
 }
 
 // ─── Conversation Memory (in-memory, يمكن ترقيته لـ Redis) ──────────────
@@ -75,19 +108,13 @@ ${erpContext.stats ? `
     const systemPrompt = ERP_SYSTEM_PROMPT + '\n\n' + contextStr;
 
     // ─── AI Call ───────────────────────────────────────────────
-    const completion = await getGroqClient().chat.completions.create({
-      model: 'llama-3.1-70b-versatile',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        ...history.slice(-10),
-        { role: 'user', content: message }
-      ],
+    const { text: reply, totalTokens } = await askClaude({
+      system: systemPrompt,
+      history: history.slice(-10),
+      userMessage: message,
+      maxTokens: 1500,
       temperature: 0.7,
-      max_tokens: 1500,
-      stream: false
     });
-
-    const reply = completion.choices[0]?.message?.content || 'لم أتمكن من الإجابة';
 
     // ─── Save to History ───────────────────────────────────────
     addToHistory(userId, 'user', message);
@@ -101,7 +128,7 @@ ${erpContext.stats ? `
       data: {
         message: reply,
         context: { page, user: erpContext.user?.name },
-        tokens: completion.usage?.total_tokens
+        tokens: totalTokens
       }
     });
 
@@ -147,22 +174,19 @@ ${JSON.stringify(analysisData, null, 2).slice(0, 3000)}
 
 كن محدداً وعملياً، لا تكتر الكلام.`;
 
-    const completion = await getGroqClient().chat.completions.create({
-      model: 'llama-3.1-70b-versatile',
-      messages: [
-        { role: 'system', content: ERP_SYSTEM_PROMPT },
-        { role: 'user', content: prompt }
-      ],
+    const { text: analysis, totalTokens } = await askClaude({
+      system: ERP_SYSTEM_PROMPT,
+      userMessage: prompt,
+      maxTokens: 2000,
       temperature: 0.3,
-      max_tokens: 2000
     });
 
     res.json({
       success: true,
       data: {
-        analysis: completion.choices[0]?.message?.content,
+        analysis,
         type,
-        tokens: completion.usage?.total_tokens
+        tokens: totalTokens
       }
     });
 
@@ -201,19 +225,16 @@ exports.develop = async (req, res) => {
 
 اكتب كوداً نظيفاً وموثقاً بالتعليقات العربية.`;
 
-    const completion = await getGroqClient().chat.completions.create({
-      model: 'llama-3.1-70b-versatile',
-      messages: [
-        { role: 'user', content: devPrompt }
-      ],
+    const { text: code } = await askClaude({
+      userMessage: devPrompt,
+      maxTokens: 4000,
       temperature: 0.2,
-      max_tokens: 4000
     });
 
     res.json({
       success: true,
       data: {
-        code: completion.choices[0]?.message?.content,
+        code,
         request,
         warning: 'راجع الكود قبل التطبيق — المسؤولية على المستخدم'
       }
@@ -251,16 +272,15 @@ ${employeeData ? `بيانات الموظف: ${JSON.stringify(employeeData).slic
 - حساب مالي إن احتاج الأمر
 - توصية عملية`;
 
-    const completion = await getGroqClient().chat.completions.create({
-      model: 'llama-3.1-70b-versatile',
-      messages: [{ role: 'user', content: hrPrompt }],
+    const { text: advice } = await askClaude({
+      userMessage: hrPrompt,
+      maxTokens: 1500,
       temperature: 0.2,
-      max_tokens: 1500
     });
 
     res.json({
       success: true,
-      data: { advice: completion.choices[0]?.message?.content }
+      data: { advice }
     });
 
   } catch (err) {
@@ -285,15 +305,14 @@ exports.suggestions = async (req, res) => {
 كل سؤال في سطر واحد، بدون ترقيم، بالعربية، مباشر وعملي.
 مثال: "ما هي المنتجات التي ستنفد قريباً؟"`;
 
-    const completion = await getGroqClient().chat.completions.create({
-      model: 'llama-3.1-8b-instant',
-      messages: [{ role: 'user', content: suggPrompt }],
+    const { text: raw } = await askClaude({
+      model: MODEL_LIGHT,
+      userMessage: suggPrompt,
+      maxTokens: 200,
       temperature: 0.8,
-      max_tokens: 200
     });
 
-    const suggestions = completion.choices[0]?.message?.content
-      ?.split('\n').filter(s => s.trim().length > 5).slice(0, 4) || [];
+    const suggestions = raw?.split('\n').filter(s => s.trim().length > 5).slice(0, 4) || [];
 
     res.json({ success: true, data: { suggestions, page } });
 
