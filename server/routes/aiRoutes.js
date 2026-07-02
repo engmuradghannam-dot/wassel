@@ -19,4 +19,9 @@ router.post('/hr-advice',    protect, ai.hrAdvice);
 // ─── Smart Suggestions ─────────────────────────────────────────────────────
 router.get('/suggestions',   protect, ai.suggestions);
 
+// ─── مفتاح Claude API الخاص بالمستخدم ──────────────────────────────────────
+router.get('/key-status',    protect, ai.getKeyStatus);
+router.put('/key',           protect, ai.setKey);
+router.delete('/key',        protect, ai.removeKey);
+
 module.exports = router;

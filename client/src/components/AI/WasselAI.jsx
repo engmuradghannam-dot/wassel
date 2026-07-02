@@ -9,11 +9,11 @@ import {
   ExpandMore, ExpandLess, SmartToy, TipsAndUpdates,
   Code, Analytics, Person
 } from '@mui/icons-material';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 
 // ─── Message Bubble ───────────────────────────────────────────────────────
-const Bubble = ({ msg }) => {
+const Bubble = ({ msg, onGoToSettings }) => {
   const isUser = msg.role === 'user';
   return (
     <Box sx={{ display: 'flex', justifyContent: isUser ? 'flex-end' : 'flex-start', mb: 1.5 }}>
@@ -42,6 +42,11 @@ const Bubble = ({ msg }) => {
             وضع عدم الاتصال
           </Typography>
         )}
+        {msg.needsKey && (
+          <Button size="small" variant="outlined" onClick={onGoToSettings} sx={{ mt: 1 }}>
+            الذهاب للإعدادات
+          </Button>
+        )}
       </Box>
     </Box>
   );
@@ -50,6 +55,7 @@ const Bubble = ({ msg }) => {
 // ─── Main WasselAI Component ──────────────────────────────────────────────
 const WasselAI = () => {
   const location   = useLocation();
+  const navigate    = useNavigate();
   const [open, setOpen]         = useState(false);
   const [mode, setMode]         = useState('chat'); // chat | analyze | develop | hr
   const [messages, setMessages] = useState([]);
@@ -103,23 +109,39 @@ const WasselAI = () => {
       switch (mode) {
         case 'analyze':
           res = await api.post('/api/ai/analyze', { question: msg, type: currentPage });
-          setMessages(prev => [...prev, { role: 'assistant', content: res.data.data.analysis }]);
+          if (res.data.success === false) {
+            setMessages(prev => [...prev, { role: 'assistant', content: res.data.message, needsKey: res.data.code === 'NO_AI_KEY' || res.data.code === 'INVALID_AI_KEY' }]);
+          } else {
+            setMessages(prev => [...prev, { role: 'assistant', content: res.data.data.analysis }]);
+          }
           break;
         case 'develop':
           res = await api.post('/api/ai/develop', { request: msg, context: currentPage });
-          setMessages(prev => [...prev, { role: 'assistant', content: res.data.data.code }]);
+          if (res.data.success === false) {
+            setMessages(prev => [...prev, { role: 'assistant', content: res.data.message, needsKey: res.data.code === 'NO_AI_KEY' || res.data.code === 'INVALID_AI_KEY' }]);
+          } else {
+            setMessages(prev => [...prev, { role: 'assistant', content: res.data.data.code }]);
+          }
           break;
         case 'hr':
           res = await api.post('/api/ai/hr-advice', { question: msg });
-          setMessages(prev => [...prev, { role: 'assistant', content: res.data.data.advice }]);
+          if (res.data.success === false) {
+            setMessages(prev => [...prev, { role: 'assistant', content: res.data.message, needsKey: res.data.code === 'NO_AI_KEY' || res.data.code === 'INVALID_AI_KEY' }]);
+          } else {
+            setMessages(prev => [...prev, { role: 'assistant', content: res.data.data.advice }]);
+          }
           break;
         default:
           res = await api.post('/api/ai/chat', { message: msg, page: currentPage });
-          setMessages(prev => [...prev, {
-            role: 'assistant',
-            content: res.data.data.message,
-            fallback: res.data.data.fallback
-          }]);
+          if (res.data.success === false) {
+            setMessages(prev => [...prev, { role: 'assistant', content: res.data.message, needsKey: res.data.code === 'NO_AI_KEY' || res.data.code === 'INVALID_AI_KEY' }]);
+          } else {
+            setMessages(prev => [...prev, {
+              role: 'assistant',
+              content: res.data.data.message,
+              fallback: res.data.data.fallback
+            }]);
+          }
       }
       setTimeout(loadSuggestions, 500);
     } catch (e) {
@@ -217,7 +239,7 @@ const WasselAI = () => {
 
           {/* Messages */}
           <Box sx={{ flex: 1, overflow: 'auto', p: 2, bgcolor: 'background.default' }}>
-            {messages.map((msg, i) => <Bubble key={i} msg={msg} />)}
+            {messages.map((msg, i) => <Bubble key={i} msg={msg} onGoToSettings={() => navigate('/settings')} />)}
             {loading && (
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, ml: 1 }}>
                 <Avatar sx={{ width: 28, height: 28, bgcolor: '#6c47ff', fontSize: 14 }}>

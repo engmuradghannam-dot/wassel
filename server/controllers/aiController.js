@@ -11,25 +11,42 @@
 const Anthropic   = require('@anthropic-ai/sdk');
 const { getCompany } = require('../middleware/auth');
 const { buildERPContext, ERP_SYSTEM_PROMPT } = require('../middleware/aiContext');
+const User = require('../models/User');
+const { encrypt, decrypt, maskKey } = require('../services/crypto');
 
-// ── تهيئة كسولة (lazy init) ─────────────────────────────────────────────────
-// لا نُنشئ Anthropic client عند تحميل الملف، بل عند أول استخدام فعلي فقط.
-// هذا يمنع تعطّل السيرفر بالكامل لو غاب ANTHROPIC_API_KEY مؤقتاً أو لم يُضبط
-// بعد — بدلاً من ذلك يفشل فقط طلب الذكاء الاصطناعي نفسه برسالة واضحة، وكل
-// بقية النظام (المخزون، المبيعات، البريد، إلخ) يستمر بالعمل طبيعياً.
+// ── مفتاح Claude API لكل مستخدم على حدة ─────────────────────────────────────
+// كل مستخدم يجلب مفتاح Claude API الخاص به من console.anthropic.com ويحفظه
+// من الإعدادات → الذكاء الاصطناعي. لا يوجد مفتاح مشترك على مستوى السيرفر —
+// كل مستخدم يستخدم رصيده الخاص بحسابه في Anthropic.
 //
-// كل مستخدم في النظام يستخدم Claude عبر مفتاح API واحد مضبوط على مستوى
-// السيرفر (ANTHROPIC_API_KEY في متغيرات بيئة Render) — التكلفة على حساب
-// الشركة المالكة للنظام، وليس على كل مستخدم بمفتاحه الخاص.
-let _anthropic = null;
-function getClaudeClient() {
-  if (_anthropic) return _anthropic;
-  if (!process.env.ANTHROPIC_API_KEY) {
-    throw new Error('مساعد الذكاء الاصطناعي غير مُفعَّل — لم يتم ضبط ANTHROPIC_API_KEY بعد');
-  }
-  _anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-  return _anthropic;
+// كاش خفيف لعملاء Anthropic (مفتاح واحد → عميل واحد مُعاد استخدامه) بدل
+// إنشاء عميل جديد بكل طلب — بدون أي تخزين للمفتاح بصيغته الأصلية في الذاكرة
+// لمدة أطول من عمر السيرفر نفسه.
+const _clientCache = new Map(); // apiKey -> Anthropic client
+function getClaudeClientForKey(apiKey) {
+  if (_clientCache.has(apiKey)) return _clientCache.get(apiKey);
+  const client = new Anthropic({ apiKey });
+  _clientCache.set(apiKey, client);
+  return client;
 }
+
+/**
+ * getUserApiKey — يجلب ويفكّ تشفير مفتاح Claude الخاص بالمستخدم من قاعدة
+ * البيانات. يرجع null لو المستخدم ما ضبط مفتاحه بعد.
+ */
+async function getUserApiKey(userId) {
+  const user = await User.findById(userId).select('+aiApiKey');
+  if (!user?.aiApiKey) return null;
+  return decrypt(user.aiApiKey);
+}
+
+// رسالة موحّدة تُرجَع لكل نقطة نهاية عندما لا يوجد مفتاح محفوظ بعد —
+// الواجهة الأمامية تتعرف عليها عبر code:'NO_AI_KEY' وتوجّه المستخدم للإعدادات
+const NO_KEY_RESPONSE = {
+  success: false,
+  code: 'NO_AI_KEY',
+  message: 'لم تُضِف مفتاح Claude API الخاص بك بعد. أضِفه من الإعدادات ← الذكاء الاصطناعي لتفعيل المساعد.',
+};
 
 // النماذج المستخدمة: Sonnet للمهام التي تحتاج جودة وفهم عميق (محادثة، تحليل،
 // كود، استشارات قانونية)، وHaiku للمهام الخفيفة السريعة (اقتراحات قصيرة) —
@@ -43,8 +60,8 @@ const MODEL_LIGHT = 'claude-haiku-4-5-20251001';
  * تتوقعه Claude API فعلياً: `system` كمعامل منفصل عن `messages`، ومصفوفة
  * `messages` تحتوي فقط أدوار user/assistant (بدون system بداخلها).
  */
-async function askClaude({ model = MODEL_MAIN, system, history = [], userMessage, maxTokens = 1500, temperature = 0.7 }) {
-  const client = getClaudeClient();
+async function askClaude({ apiKey, model = MODEL_MAIN, system, history = [], userMessage, maxTokens = 1500, temperature = 0.7 }) {
+  const client = getClaudeClientForKey(apiKey);
   const response = await client.messages.create({
     model,
     max_tokens: maxTokens,
@@ -82,6 +99,9 @@ exports.chat = async (req, res) => {
 
     if (!message) return res.status(400).json({ success: false, message: 'الرسالة مطلوبة' });
 
+    const apiKey = await getUserApiKey(userId);
+    if (!apiKey) return res.status(200).json(NO_KEY_RESPONSE);
+
     if (clearHistory) conversationMemory.delete(userId);
 
     // ─── Build ERP Context ─────────────────────────────────────
@@ -109,6 +129,7 @@ ${erpContext.stats ? `
 
     // ─── AI Call ───────────────────────────────────────────────
     const { text: reply, totalTokens } = await askClaude({
+      apiKey,
       system: systemPrompt,
       history: history.slice(-10),
       userMessage: message,
@@ -134,7 +155,15 @@ ${erpContext.stats ? `
 
   } catch (err) {
     console.error('AI Chat error:', err);
-    // Fallback response if API fails
+    // مفتاح غير صالح/مرفوض من Anthropic → رسالة واضحة توجّه للإعدادات،
+    // بدل إخفاء الخطأ خلف رد احتياطي عام يوحي بأن كل شيء تمام
+    if (err.status === 401 || err.status === 403) {
+      return res.status(200).json({
+        success: false, code: 'INVALID_AI_KEY',
+        message: 'مفتاح Claude API المحفوظ غير صالح أو مرفوض. تحقق منه من الإعدادات ← الذكاء الاصطناعي.',
+      });
+    }
+    // أخطاء أخرى (شبكة، تحميل زائد على Anthropic...) → رد احتياطي عام
     res.json({
       success: true,
       data: {
@@ -152,6 +181,9 @@ exports.analyze = async (req, res) => {
   try {
     const { type, data, question } = req.body;
     const companyId = getCompany(req);
+
+    const apiKey = await getUserApiKey(req.user.id);
+    if (!apiKey) return res.status(200).json(NO_KEY_RESPONSE);
 
     // Gather data based on type
     let analysisData = data;
@@ -175,6 +207,7 @@ ${JSON.stringify(analysisData, null, 2).slice(0, 3000)}
 كن محدداً وعملياً، لا تكتر الكلام.`;
 
     const { text: analysis, totalTokens } = await askClaude({
+      apiKey,
       system: ERP_SYSTEM_PROMPT,
       userMessage: prompt,
       maxTokens: 2000,
@@ -206,6 +239,9 @@ exports.develop = async (req, res) => {
       return res.status(403).json({ success: false, message: 'هذه الميزة للمشرف العام فقط' });
     }
 
+    const apiKey = await getUserApiKey(req.user.id);
+    if (!apiKey) return res.status(200).json(NO_KEY_RESPONSE);
+
     const devPrompt = `أنت مطور full-stack خبير في بناء أنظمة ERP.
     
 تقنيات المشروع:
@@ -226,6 +262,7 @@ exports.develop = async (req, res) => {
 اكتب كوداً نظيفاً وموثقاً بالتعليقات العربية.`;
 
     const { text: code } = await askClaude({
+      apiKey,
       userMessage: devPrompt,
       maxTokens: 4000,
       temperature: 0.2,
@@ -252,6 +289,9 @@ exports.hrAdvice = async (req, res) => {
   try {
     const { question, employeeData } = req.body;
 
+    const apiKey = await getUserApiKey(req.user.id);
+    if (!apiKey) return res.status(200).json(NO_KEY_RESPONSE);
+
     const hrPrompt = `أنت مستشار موارد بشرية خبير في قوانين العمل السعودية.
 
 تعرف تفصيلياً:
@@ -273,6 +313,7 @@ ${employeeData ? `بيانات الموظف: ${JSON.stringify(employeeData).slic
 - توصية عملية`;
 
     const { text: advice } = await askClaude({
+      apiKey,
       userMessage: hrPrompt,
       maxTokens: 1500,
       temperature: 0.2,
@@ -295,6 +336,10 @@ exports.suggestions = async (req, res) => {
   try {
     const { page } = req.query;
     const companyId = getCompany(req);
+
+    const apiKey = await getUserApiKey(req.user.id);
+    if (!apiKey) return res.json({ success: true, data: { suggestions: [], page } });
+
     const erpContext = await buildERPContext(req.user.id, companyId, page);
 
     const suggPrompt = `بناءً على هذا السياق:
@@ -306,6 +351,7 @@ exports.suggestions = async (req, res) => {
 مثال: "ما هي المنتجات التي ستنفد قريباً؟"`;
 
     const { text: raw } = await askClaude({
+      apiKey,
       model: MODEL_LIGHT,
       userMessage: suggPrompt,
       maxTokens: 200,
@@ -317,7 +363,8 @@ exports.suggestions = async (req, res) => {
     res.json({ success: true, data: { suggestions, page } });
 
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    // ميزة خلفية غير حرجة — فشلها لا يجب أن يظهر كخطأ مزعج للمستخدم
+    res.json({ success: true, data: { suggestions: [], page: req.query.page } });
   }
 };
 
@@ -327,6 +374,71 @@ exports.suggestions = async (req, res) => {
 exports.clearHistory = (req, res) => {
   conversationMemory.delete(req.user.id);
   res.json({ success: true, message: 'تم مسح سجل المحادثة' });
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// 7. مفتاح Claude API الخاص بالمستخدم
+// ═══════════════════════════════════════════════════════════════════
+
+// يرجع فقط: هل يوجد مفتاح محفوظ؟ + آخر 4 خانات منه للعرض — لا يُرجع
+// المفتاح كاملاً أبداً في أي استجابة API
+exports.getKeyStatus = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select('+aiApiKey');
+    const plain = user?.aiApiKey ? decrypt(user.aiApiKey) : null;
+    res.json({
+      success: true,
+      data: { configured: !!plain, maskedKey: plain ? maskKey(plain) : null },
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+exports.setKey = async (req, res) => {
+  try {
+    const { apiKey } = req.body;
+    if (!apiKey || typeof apiKey !== 'string' || !apiKey.trim()) {
+      return res.status(400).json({ success: false, message: 'المفتاح مطلوب' });
+    }
+    const trimmed = apiKey.trim();
+    if (!trimmed.startsWith('sk-ant-')) {
+      return res.status(400).json({
+        success: false,
+        message: 'هذا لا يبدو مفتاح Claude API صحيح — يجب أن يبدأ بـ sk-ant-',
+      });
+    }
+
+    // تحقق فعلي من صلاحية المفتاح قبل حفظه — استدعاء صغير جداً ورخيص
+    // (Haiku + رسالة قصيرة) بدل حفظ مفتاح قد يكون خاطئاً بدون علم المستخدم
+    try {
+      const testClient = getClaudeClientForKey(trimmed);
+      await testClient.messages.create({
+        model: MODEL_LIGHT, max_tokens: 5,
+        messages: [{ role: 'user', content: 'hi' }],
+      });
+    } catch (testErr) {
+      _clientCache.delete(trimmed); // لا نُبقي عميلاً مرتبطاً بمفتاح فشل التحقق منه
+      if (testErr.status === 401 || testErr.status === 403) {
+        return res.status(400).json({ success: false, message: 'المفتاح غير صالح أو مرفوض من Anthropic. تأكد من نسخه كاملاً.' });
+      }
+      // أخطاء غير متعلقة بصحة المفتاح (شبكة، تحميل زائد) لا تمنع الحفظ
+    }
+
+    await User.findByIdAndUpdate(req.user.id, { aiApiKey: encrypt(trimmed) });
+    res.json({ success: true, message: 'تم حفظ المفتاح بنجاح', data: { maskedKey: maskKey(trimmed) } });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+exports.removeKey = async (req, res) => {
+  try {
+    await User.findByIdAndUpdate(req.user.id, { $unset: { aiApiKey: 1 } });
+    res.json({ success: true, message: 'تم حذف المفتاح' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
 };
 
 // ═══════════════════════════════════════════════════════════════════

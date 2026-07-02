@@ -44,6 +44,11 @@ const userSchema = new mongoose.Schema({
   accentColor:{ type: String, default: '#6264A7' }, // Fluent/Windows-11 accent color hex
   bio:        { type: String },
   department: { type: String },
+  // ─── الذكاء الاصطناعي (WasselAI) ────────────────────────────────
+  // كل مستخدم يستخدم مفتاح Claude API الخاص به — مُشفَّر عند التخزين
+  // (services/crypto.js)، ومُستبعد افتراضياً من كل استعلام (select:false)
+  // حتى لا يظهر بأي استجابة API عادية عن طريق الخطأ.
+  aiApiKey:   { type: String, select: false },
   position:   { type: String },
   employeeId: { type: String },
 

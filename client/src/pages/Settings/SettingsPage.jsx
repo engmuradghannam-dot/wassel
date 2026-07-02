@@ -1,12 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box, Typography, Paper, Divider, List, ListItemButton,
   ListItemIcon, ListItemText, Button, Alert, Snackbar, Grid,
-  TextField, Switch, Tooltip
+  TextField, Switch, Tooltip, CircularProgress, IconButton, Link as MuiLink
 } from '@mui/material';
 import {
   Language, Notifications, VolumeUp, Security, Person, Check, Palette,
-  LightMode, DarkMode, SettingsBrightness
+  LightMode, DarkMode, SettingsBrightness, SmartToy, Visibility, VisibilityOff,
+  DeleteOutline, OpenInNew, VerifiedUser
 } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
 import Layout from '../../components/Layout';
@@ -15,6 +16,7 @@ import SoundSettings from '../../components/SoundSettings';
 import { getCurrentLang } from '../../i18n/index';
 import { useThemeSettings } from '../../contexts/ThemeSettingsContext';
 import { ACCENT_COLORS } from '../../theme/appTheme';
+import api from '../../services/api';
 
 export default function SettingsPage() {
   const { t, i18n } = useTranslation();
@@ -27,12 +29,51 @@ export default function SettingsPage() {
 
   const SECTIONS = [
     { id:'theme',        icon:<Palette/>,       label: AR ? 'المظهر والثيم' : 'Appearance & Theme' },
+    { id:'ai',           icon:<SmartToy/>,      label: AR ? 'الذكاء الاصطناعي' : 'AI Assistant' },
     { id:'language',      icon:<Language/>,      label: t('settings.language')      || 'اللغة' },
     { id:'sounds',        icon:<VolumeUp/>,      label: t('settings.sounds')        || 'الأصوات' },
     { id:'notifications', icon:<Notifications/>, label: t('settings.notifications') || 'الإشعارات' },
     { id:'profile',       icon:<Person/>,        label: t('settings.profile')       || 'الملف الشخصي' },
     { id:'security',      icon:<Security/>,      label: t('settings.security')      || 'الأمان' },
   ];
+
+  // ── مفتاح Claude API الخاص بالمستخدم ──────────────────────────────
+  const [aiKeyStatus, setAiKeyStatus]   = useState(null); // { configured, maskedKey } | null (loading)
+  const [aiKeyInput,  setAiKeyInput]    = useState('');
+  const [aiKeySaving, setAiKeySaving]   = useState(false);
+  const [aiKeyError,  setAiKeyError]    = useState('');
+  const [showAiKey,   setShowAiKey]     = useState(false);
+
+  useEffect(() => {
+    if (section !== 'ai' || aiKeyStatus !== null) return;
+    api.get('/api/ai/key-status')
+      .then(r => setAiKeyStatus(r.data.data))
+      .catch(() => setAiKeyStatus({ configured: false, maskedKey: null }));
+  }, [section, aiKeyStatus]);
+
+  const saveAiKey = async () => {
+    if (!aiKeyInput.trim()) return;
+    setAiKeySaving(true); setAiKeyError('');
+    try {
+      const r = await api.put('/api/ai/key', { apiKey: aiKeyInput.trim() });
+      setAiKeyStatus({ configured: true, maskedKey: r.data.data.maskedKey });
+      setAiKeyInput('');
+      setSnack(AR ? 'تم حفظ مفتاح الذكاء الاصطناعي' : 'AI key saved');
+    } catch (e) {
+      setAiKeyError(e.response?.data?.message || (AR ? 'فشل حفظ المفتاح' : 'Failed to save key'));
+    } finally { setAiKeySaving(false); }
+  };
+
+  const removeAiKey = async () => {
+    setAiKeySaving(true);
+    try {
+      await api.delete('/api/ai/key');
+      setAiKeyStatus({ configured: false, maskedKey: null });
+      setSnack(AR ? 'تم حذف المفتاح' : 'Key removed');
+    } catch (e) {
+      setAiKeyError(e.response?.data?.message || (AR ? 'فشل حذف المفتاح' : 'Failed to remove key'));
+    } finally { setAiKeySaving(false); }
+  };
 
   return (
     <Layout>
@@ -190,6 +231,118 @@ export default function SettingsPage() {
                       </Box>
                     </Box>
                   </Box>
+                </Box>
+              )}
+
+              {/* ── AI ASSISTANT (Claude API key) ── */}
+              {section==='ai' && (
+                <Box>
+                  <Box sx={{ display:'flex', alignItems:'center', gap:1.5, mb:1 }}>
+                    <SmartToy sx={{ color:'#1a73e8' }}/>
+                    <Box>
+                      <Typography variant="h6" fontWeight={700}>
+                        {AR ? 'الذكاء الاصطناعي — WasselAI' : 'AI Assistant — WasselAI'}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {AR
+                          ? 'مدعوم بـ Claude من Anthropic — كل مستخدم يستخدم مفتاحه الخاص'
+                          : 'Powered by Claude from Anthropic — each user brings their own key'}
+                      </Typography>
+                    </Box>
+                  </Box>
+
+                  <Divider sx={{ my:2.5 }}/>
+
+                  {aiKeyStatus === null ? (
+                    <Box sx={{ display:'flex', justifyContent:'center', py:4 }}><CircularProgress size={28}/></Box>
+                  ) : (
+                    <>
+                      {aiKeyStatus.configured ? (
+                        <Paper variant="outlined" sx={{ p:2, borderRadius:2, mb:3, display:'flex',
+                          alignItems:'center', justifyContent:'space-between', bgcolor:'success.50',
+                          borderColor:'success.main' }}>
+                          <Box sx={{ display:'flex', alignItems:'center', gap:1.5 }}>
+                            <VerifiedUser sx={{ color:'success.main' }}/>
+                            <Box>
+                              <Typography variant="body2" fontWeight={700}>
+                                {AR ? 'المفتاح مفعّل' : 'Key active'}
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary" fontFamily="monospace">
+                                {aiKeyStatus.maskedKey}
+                              </Typography>
+                            </Box>
+                          </Box>
+                          <Button size="small" color="error" startIcon={<DeleteOutline/>}
+                            disabled={aiKeySaving} onClick={removeAiKey}>
+                            {AR ? 'حذف' : 'Remove'}
+                          </Button>
+                        </Paper>
+                      ) : (
+                        <Alert severity="info" sx={{ mb:3, borderRadius:2 }}>
+                          {AR
+                            ? 'لم تُفعَّل بعد. أضف مفتاحك أدناه لتشغيل المساعد الذكي في كل صفحات النظام.'
+                            : 'Not activated yet. Add your key below to enable the AI assistant across the system.'}
+                        </Alert>
+                      )}
+
+                      {/* ── شرح كيفية الحصول على المفتاح ── */}
+                      <Typography variant="subtitle2" fontWeight={700} sx={{ mb:1 }}>
+                        {AR ? 'كيف تجلب مفتاح Claude API؟' : 'How to get a Claude API key'}
+                      </Typography>
+                      <Box component="ol" sx={{ pl:3, mb:1, '& li': { mb:0.8 } }}>
+                        <Typography component="li" variant="body2">
+                          {AR ? 'ادخل على ' : 'Go to '}
+                          <MuiLink href="https://console.anthropic.com/settings/keys" target="_blank" rel="noreferrer"
+                            sx={{ display:'inline-flex', alignItems:'center', gap:0.3 }}>
+                            console.anthropic.com/settings/keys <OpenInNew sx={{ fontSize:14 }}/>
+                          </MuiLink>
+                          {AR ? ' وسجّل دخول أو أنشئ حساب جديد' : ' and sign in or create an account'}
+                        </Typography>
+                        <Typography component="li" variant="body2">
+                          {AR ? 'من نفس الصفحة اضغط "Create Key" وأعطه اسم (مثلاً Wassel ERP)' : 'Click "Create Key" and name it (e.g. Wassel ERP)'}
+                        </Typography>
+                        <Typography component="li" variant="body2">
+                          {AR ? 'انسخ المفتاح فورًا — يبدأ بـ ' : 'Copy it immediately — it starts with '}
+                          <Typography component="span" fontFamily="monospace" fontWeight={700}>sk-ant-</Typography>
+                          {AR ? ' (لن يُعرض مرة ثانية بعد إغلاق الصفحة)' : ' (it won\'t be shown again)'}
+                        </Typography>
+                        <Typography component="li" variant="body2">
+                          {AR ? 'الصقه هنا واضغط حفظ' : 'Paste it below and click Save'}
+                        </Typography>
+                      </Box>
+                      <Alert severity="warning" variant="outlined" sx={{ mb:3, borderRadius:2 }}>
+                        {AR
+                          ? 'استخدامك للمساعد يُحتسب من رصيدك الخاص في حساب Anthropic — راجع الأسعار من موقعهم. المفتاح يُخزَّن مشفّرًا ولا يظهر لأي شخص آخر، حتى مدير النظام.'
+                          : 'Usage is billed to your own Anthropic account balance — check their pricing page. Your key is stored encrypted and never visible to anyone else, including system admins.'}
+                      </Alert>
+
+                      <Box sx={{ display:'flex', gap:1, alignItems:'flex-start' }}>
+                        <TextField
+                          fullWidth size="small"
+                          type={showAiKey ? 'text' : 'password'}
+                          label={AR ? 'مفتاح Claude API' : 'Claude API key'}
+                          placeholder="sk-ant-api03-..."
+                          value={aiKeyInput}
+                          onChange={e => { setAiKeyInput(e.target.value); setAiKeyError(''); }}
+                          error={!!aiKeyError}
+                          helperText={aiKeyError}
+                          InputProps={{
+                            endAdornment: (
+                              <IconButton size="small" onClick={() => setShowAiKey(s => !s)} tabIndex={-1}>
+                                {showAiKey ? <VisibilityOff sx={{ fontSize:18 }}/> : <Visibility sx={{ fontSize:18 }}/>}
+                              </IconButton>
+                            ),
+                          }}
+                        />
+                        <Button
+                          variant="contained" sx={{ mt:0.2, minWidth:100 }}
+                          disabled={aiKeySaving || !aiKeyInput.trim()}
+                          onClick={saveAiKey}>
+                          {aiKeySaving ? <CircularProgress size={20} color="inherit"/> : (AR ? 'حفظ' : 'Save')}
+                        </Button>
+                      </Box>
+                    </>
+                  )}
                 </Box>
               )}
 
