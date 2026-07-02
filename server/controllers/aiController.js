@@ -6,76 +6,26 @@
  * 2. محلل البيانات (insights)
  * 3. مطور الكود (self-improvement)
  * 4. نظام التعلم الذاتي
+ *
+ * كل مستخدم يضبط مفاتيحه الخاصة لأي عدد من مزودي الذكاء الاصطناعي الثلاثة
+ * (Claude، Gemini، ChatGPT) من الإعدادات. لو ضبط أكثر من واحد، يُستدعون
+ * كلهم بالتوازي على نفس السؤال ثم تُدمج إجاباتهم في إجابة واحدة نهائية —
+ * راجع services/multiAI.js لتفاصيل آلية الدمج.
  */
 
-const Anthropic   = require('@anthropic-ai/sdk');
 const { getCompany } = require('../middleware/auth');
 const { buildERPContext, ERP_SYSTEM_PROMPT } = require('../middleware/aiContext');
 const User = require('../models/User');
 const { encrypt, decrypt, maskKey } = require('../services/crypto');
+const { PROVIDERS, getUserProviderKeys, askEnsemble, callClaude, callGemini, callOpenAI } = require('../services/multiAI');
 
-// ── مفتاح Claude API لكل مستخدم على حدة ─────────────────────────────────────
-// كل مستخدم يجلب مفتاح Claude API الخاص به من console.anthropic.com ويحفظه
-// من الإعدادات → الذكاء الاصطناعي. لا يوجد مفتاح مشترك على مستوى السيرفر —
-// كل مستخدم يستخدم رصيده الخاص بحسابه في Anthropic.
-//
-// كاش خفيف لعملاء Anthropic (مفتاح واحد → عميل واحد مُعاد استخدامه) بدل
-// إنشاء عميل جديد بكل طلب — بدون أي تخزين للمفتاح بصيغته الأصلية في الذاكرة
-// لمدة أطول من عمر السيرفر نفسه.
-const _clientCache = new Map(); // apiKey -> Anthropic client
-function getClaudeClientForKey(apiKey) {
-  if (_clientCache.has(apiKey)) return _clientCache.get(apiKey);
-  const client = new Anthropic({ apiKey });
-  _clientCache.set(apiKey, client);
-  return client;
-}
-
-/**
- * getUserApiKey — يجلب ويفكّ تشفير مفتاح Claude الخاص بالمستخدم من قاعدة
- * البيانات. يرجع null لو المستخدم ما ضبط مفتاحه بعد.
- */
-async function getUserApiKey(userId) {
-  const user = await User.findById(userId).select('+aiApiKey');
-  if (!user?.aiApiKey) return null;
-  return decrypt(user.aiApiKey);
-}
-
-// رسالة موحّدة تُرجَع لكل نقطة نهاية عندما لا يوجد مفتاح محفوظ بعد —
+// رسالة موحّدة تُرجَع لكل نقطة نهاية عندما لا يوجد ولا مفتاح واحد محفوظ —
 // الواجهة الأمامية تتعرف عليها عبر code:'NO_AI_KEY' وتوجّه المستخدم للإعدادات
 const NO_KEY_RESPONSE = {
   success: false,
   code: 'NO_AI_KEY',
-  message: 'لم تُضِف مفتاح Claude API الخاص بك بعد. أضِفه من الإعدادات ← الذكاء الاصطناعي لتفعيل المساعد.',
+  message: 'لم تُضِف أي مفتاح ذكاء اصطناعي بعد (Claude / Gemini / ChatGPT). أضِف واحداً على الأقل من الإعدادات ← الذكاء الاصطناعي لتفعيل المساعد.',
 };
-
-// النماذج المستخدمة: Sonnet للمهام التي تحتاج جودة وفهم عميق (محادثة، تحليل،
-// كود، استشارات قانونية)، وHaiku للمهام الخفيفة السريعة (اقتراحات قصيرة) —
-// توفيراً بالتكلفة دون التأثير على جودة أهم الميزات.
-const MODEL_MAIN  = 'claude-sonnet-5';
-const MODEL_LIGHT = 'claude-haiku-4-5-20251001';
-
-/**
- * askClaude — غلاف موحّد فوق Anthropic Messages API.
- * يحوّل شكل الاستدعاء المعتاد (system + history + user) إلى الشكل الذي
- * تتوقعه Claude API فعلياً: `system` كمعامل منفصل عن `messages`، ومصفوفة
- * `messages` تحتوي فقط أدوار user/assistant (بدون system بداخلها).
- */
-async function askClaude({ apiKey, model = MODEL_MAIN, system, history = [], userMessage, maxTokens = 1500, temperature = 0.7 }) {
-  const client = getClaudeClientForKey(apiKey);
-  const response = await client.messages.create({
-    model,
-    max_tokens: maxTokens,
-    temperature,
-    system: system || undefined,
-    messages: [
-      ...history.map(h => ({ role: h.role, content: h.content })),
-      { role: 'user', content: userMessage },
-    ],
-  });
-  const text = response.content?.find(b => b.type === 'text')?.text || '';
-  const totalTokens = (response.usage?.input_tokens || 0) + (response.usage?.output_tokens || 0);
-  return { text, totalTokens };
-}
 
 // ─── Conversation Memory (in-memory, يمكن ترقيته لـ Redis) ──────────────
 const conversationMemory = new Map(); // userId -> [{role, content}]
@@ -98,9 +48,6 @@ exports.chat = async (req, res) => {
     const companyId = getCompany(req);
 
     if (!message) return res.status(400).json({ success: false, message: 'الرسالة مطلوبة' });
-
-    const apiKey = await getUserApiKey(userId);
-    if (!apiKey) return res.status(200).json(NO_KEY_RESPONSE);
 
     if (clearHistory) conversationMemory.delete(userId);
 
@@ -127,9 +74,9 @@ ${erpContext.stats ? `
 
     const systemPrompt = ERP_SYSTEM_PROMPT + '\n\n' + contextStr;
 
-    // ─── AI Call ───────────────────────────────────────────────
-    const { text: reply, totalTokens } = await askClaude({
-      apiKey,
+    // ─── AI Call (كل المزودين المضبوطين معاً) ─────────────────
+    const { text: reply, providers, synthesized } = await askEnsemble({
+      userId,
       system: systemPrompt,
       history: history.slice(-10),
       userMessage: message,
@@ -149,21 +96,24 @@ ${erpContext.stats ? `
       data: {
         message: reply,
         context: { page, user: erpContext.user?.name },
-        tokens: totalTokens
+        providers, synthesized,
       }
     });
 
   } catch (err) {
     console.error('AI Chat error:', err);
-    // مفتاح غير صالح/مرفوض من Anthropic → رسالة واضحة توجّه للإعدادات،
-    // بدل إخفاء الخطأ خلف رد احتياطي عام يوحي بأن كل شيء تمام
-    if (err.status === 401 || err.status === 403) {
+
+    if (err.code === 'NO_KEY') return res.status(200).json(NO_KEY_RESPONSE);
+
+    if (err.code === 'ALL_FAILED') {
+      // كل المزودين المضبوطين رفضوا الطلب — على الأغلب مفاتيح غير صالحة
       return res.status(200).json({
         success: false, code: 'INVALID_AI_KEY',
-        message: 'مفتاح Claude API المحفوظ غير صالح أو مرفوض. تحقق منه من الإعدادات ← الذكاء الاصطناعي.',
+        message: 'كل المفاتيح المحفوظة فشلت في الرد. تحقق منها من الإعدادات ← الذكاء الاصطناعي.',
       });
     }
-    // أخطاء أخرى (شبكة، تحميل زائد على Anthropic...) → رد احتياطي عام
+
+    // أخطاء أخرى (شبكة، تحميل زائد...) → رد احتياطي عام بدل فشل كامل
     res.json({
       success: true,
       data: {
@@ -181,9 +131,6 @@ exports.analyze = async (req, res) => {
   try {
     const { type, data, question } = req.body;
     const companyId = getCompany(req);
-
-    const apiKey = await getUserApiKey(req.user.id);
-    if (!apiKey) return res.status(200).json(NO_KEY_RESPONSE);
 
     // Gather data based on type
     let analysisData = data;
@@ -206,8 +153,8 @@ ${JSON.stringify(analysisData, null, 2).slice(0, 3000)}
 
 كن محدداً وعملياً، لا تكتر الكلام.`;
 
-    const { text: analysis, totalTokens } = await askClaude({
-      apiKey,
+    const { text: analysis, providers, synthesized } = await askEnsemble({
+      userId: req.user.id,
       system: ERP_SYSTEM_PROMPT,
       userMessage: prompt,
       maxTokens: 2000,
@@ -216,14 +163,17 @@ ${JSON.stringify(analysisData, null, 2).slice(0, 3000)}
 
     res.json({
       success: true,
-      data: {
-        analysis,
-        type,
-        tokens: totalTokens
-      }
+      data: { analysis, type, providers, synthesized }
     });
 
   } catch (err) {
+    if (err.code === 'NO_KEY') return res.status(200).json(NO_KEY_RESPONSE);
+    if (err.code === 'ALL_FAILED') {
+      return res.status(200).json({
+        success: false, code: 'INVALID_AI_KEY',
+        message: 'كل المفاتيح المحفوظة فشلت في الرد. تحقق منها من الإعدادات ← الذكاء الاصطناعي.',
+      });
+    }
     res.status(500).json({ success: false, message: err.message });
   }
 };
@@ -238,9 +188,6 @@ exports.develop = async (req, res) => {
     if (req.user.role !== 'superadmin') {
       return res.status(403).json({ success: false, message: 'هذه الميزة للمشرف العام فقط' });
     }
-
-    const apiKey = await getUserApiKey(req.user.id);
-    if (!apiKey) return res.status(200).json(NO_KEY_RESPONSE);
 
     const devPrompt = `أنت مطور full-stack خبير في بناء أنظمة ERP.
     
@@ -261,8 +208,8 @@ exports.develop = async (req, res) => {
 
 اكتب كوداً نظيفاً وموثقاً بالتعليقات العربية.`;
 
-    const { text: code } = await askClaude({
-      apiKey,
+    const { text: code, providers, synthesized } = await askEnsemble({
+      userId: req.user.id,
       userMessage: devPrompt,
       maxTokens: 4000,
       temperature: 0.2,
@@ -273,11 +220,19 @@ exports.develop = async (req, res) => {
       data: {
         code,
         request,
+        providers, synthesized,
         warning: 'راجع الكود قبل التطبيق — المسؤولية على المستخدم'
       }
     });
 
   } catch (err) {
+    if (err.code === 'NO_KEY') return res.status(200).json(NO_KEY_RESPONSE);
+    if (err.code === 'ALL_FAILED') {
+      return res.status(200).json({
+        success: false, code: 'INVALID_AI_KEY',
+        message: 'كل المفاتيح المحفوظة فشلت في الرد. تحقق منها من الإعدادات ← الذكاء الاصطناعي.',
+      });
+    }
     res.status(500).json({ success: false, message: err.message });
   }
 };
@@ -288,9 +243,6 @@ exports.develop = async (req, res) => {
 exports.hrAdvice = async (req, res) => {
   try {
     const { question, employeeData } = req.body;
-
-    const apiKey = await getUserApiKey(req.user.id);
-    if (!apiKey) return res.status(200).json(NO_KEY_RESPONSE);
 
     const hrPrompt = `أنت مستشار موارد بشرية خبير في قوانين العمل السعودية.
 
@@ -312,8 +264,8 @@ ${employeeData ? `بيانات الموظف: ${JSON.stringify(employeeData).slic
 - حساب مالي إن احتاج الأمر
 - توصية عملية`;
 
-    const { text: advice } = await askClaude({
-      apiKey,
+    const { text: advice, providers, synthesized } = await askEnsemble({
+      userId: req.user.id,
       userMessage: hrPrompt,
       maxTokens: 1500,
       temperature: 0.2,
@@ -321,10 +273,17 @@ ${employeeData ? `بيانات الموظف: ${JSON.stringify(employeeData).slic
 
     res.json({
       success: true,
-      data: { advice }
+      data: { advice, providers, synthesized }
     });
 
   } catch (err) {
+    if (err.code === 'NO_KEY') return res.status(200).json(NO_KEY_RESPONSE);
+    if (err.code === 'ALL_FAILED') {
+      return res.status(200).json({
+        success: false, code: 'INVALID_AI_KEY',
+        message: 'كل المفاتيح المحفوظة فشلت في الرد. تحقق منها من الإعدادات ← الذكاء الاصطناعي.',
+      });
+    }
     res.status(500).json({ success: false, message: err.message });
   }
 };
@@ -336,10 +295,6 @@ exports.suggestions = async (req, res) => {
   try {
     const { page } = req.query;
     const companyId = getCompany(req);
-
-    const apiKey = await getUserApiKey(req.user.id);
-    if (!apiKey) return res.json({ success: true, data: { suggestions: [], page } });
-
     const erpContext = await buildERPContext(req.user.id, companyId, page);
 
     const suggPrompt = `بناءً على هذا السياق:
@@ -350,12 +305,12 @@ exports.suggestions = async (req, res) => {
 كل سؤال في سطر واحد، بدون ترقيم، بالعربية، مباشر وعملي.
 مثال: "ما هي المنتجات التي ستنفد قريباً؟"`;
 
-    const { text: raw } = await askClaude({
-      apiKey,
-      model: MODEL_LIGHT,
+    const { text: raw } = await askEnsemble({
+      userId: req.user.id,
       userMessage: suggPrompt,
       maxTokens: 200,
       temperature: 0.8,
+      light: true,
     });
 
     const suggestions = raw?.split('\n').filter(s => s.trim().length > 5).slice(0, 4) || [];
@@ -363,7 +318,8 @@ exports.suggestions = async (req, res) => {
     res.json({ success: true, data: { suggestions, page } });
 
   } catch (err) {
-    // ميزة خلفية غير حرجة — فشلها لا يجب أن يظهر كخطأ مزعج للمستخدم
+    // ميزة خلفية غير حرجة (لا مفتاح، أو فشل مؤقت) — فشلها لا يجب أن يظهر
+    // كخطأ مزعج للمستخدم؛ ترجع فقط قائمة فارغة بصمت
     res.json({ success: true, data: { suggestions: [], page: req.query.page } });
   }
 };
@@ -377,56 +333,61 @@ exports.clearHistory = (req, res) => {
 };
 
 // ═══════════════════════════════════════════════════════════════════
-// 7. مفتاح Claude API الخاص بالمستخدم
+// 7. مفاتيح مزودي الذكاء الاصطناعي الخاصة بالمستخدم (Claude/Gemini/ChatGPT)
 // ═══════════════════════════════════════════════════════════════════
 
-// يرجع فقط: هل يوجد مفتاح محفوظ؟ + آخر 4 خانات منه للعرض — لا يُرجع
-// المفتاح كاملاً أبداً في أي استجابة API
+// يرجع حالة كل المزودين الثلاثة دفعة واحدة: هل مضبوط؟ + آخر 4 خانات
+// للعرض — لا يُرجع أي مفتاح كاملاً في أي استجابة API على الإطلاق
 exports.getKeyStatus = async (req, res) => {
   try {
-    const user = await User.findById(req.user.id).select('+aiApiKey');
-    const plain = user?.aiApiKey ? decrypt(user.aiApiKey) : null;
-    res.json({
-      success: true,
-      data: { configured: !!plain, maskedKey: plain ? maskKey(plain) : null },
-    });
+    const keys = await getUserProviderKeys(req.user.id);
+    const data = {};
+    for (const id of Object.keys(PROVIDERS)) {
+      data[id] = { configured: !!keys[id], maskedKey: keys[id] ? maskKey(keys[id]) : null };
+    }
+    res.json({ success: true, data });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
 };
 
+const TEST_CALL = {
+  claude: (key) => callClaude(key, { userMessage: 'hi', maxTokens: 5, light: true }),
+  gemini: (key) => callGemini(key, { userMessage: 'hi', maxTokens: 5, light: true }),
+  openai: (key) => callOpenAI(key, { userMessage: 'hi', maxTokens: 5, light: true }),
+};
+
 exports.setKey = async (req, res) => {
   try {
-    const { apiKey } = req.body;
+    const { provider, apiKey } = req.body;
+    if (!PROVIDERS[provider]) {
+      return res.status(400).json({ success: false, message: 'مزود غير معروف — يجب أن يكون claude أو gemini أو openai' });
+    }
     if (!apiKey || typeof apiKey !== 'string' || !apiKey.trim()) {
       return res.status(400).json({ success: false, message: 'المفتاح مطلوب' });
     }
     const trimmed = apiKey.trim();
-    if (!trimmed.startsWith('sk-ant-')) {
+    const { prefix, label } = PROVIDERS[provider];
+    if (!trimmed.startsWith(prefix)) {
       return res.status(400).json({
         success: false,
-        message: 'هذا لا يبدو مفتاح Claude API صحيح — يجب أن يبدأ بـ sk-ant-',
+        message: `هذا لا يبدو مفتاح ${label} صحيح — يجب أن يبدأ بـ ${prefix}`,
       });
     }
 
     // تحقق فعلي من صلاحية المفتاح قبل حفظه — استدعاء صغير جداً ورخيص
-    // (Haiku + رسالة قصيرة) بدل حفظ مفتاح قد يكون خاطئاً بدون علم المستخدم
+    // بدل حفظ مفتاح قد يكون خاطئاً بدون علم المستخدم
     try {
-      const testClient = getClaudeClientForKey(trimmed);
-      await testClient.messages.create({
-        model: MODEL_LIGHT, max_tokens: 5,
-        messages: [{ role: 'user', content: 'hi' }],
-      });
+      await TEST_CALL[provider](trimmed);
     } catch (testErr) {
-      _clientCache.delete(trimmed); // لا نُبقي عميلاً مرتبطاً بمفتاح فشل التحقق منه
       if (testErr.status === 401 || testErr.status === 403) {
-        return res.status(400).json({ success: false, message: 'المفتاح غير صالح أو مرفوض من Anthropic. تأكد من نسخه كاملاً.' });
+        return res.status(400).json({ success: false, message: `المفتاح غير صالح أو مرفوض من ${label}. تأكد من نسخه كاملاً.` });
       }
       // أخطاء غير متعلقة بصحة المفتاح (شبكة، تحميل زائد) لا تمنع الحفظ
     }
 
-    await User.findByIdAndUpdate(req.user.id, { aiApiKey: encrypt(trimmed) });
-    res.json({ success: true, message: 'تم حفظ المفتاح بنجاح', data: { maskedKey: maskKey(trimmed) } });
+    await User.findByIdAndUpdate(req.user.id, { [PROVIDERS[provider].keyField]: encrypt(trimmed) });
+    res.json({ success: true, message: `تم حفظ مفتاح ${label} بنجاح`, data: { maskedKey: maskKey(trimmed) } });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -434,8 +395,12 @@ exports.setKey = async (req, res) => {
 
 exports.removeKey = async (req, res) => {
   try {
-    await User.findByIdAndUpdate(req.user.id, { $unset: { aiApiKey: 1 } });
-    res.json({ success: true, message: 'تم حذف المفتاح' });
+    const { provider } = req.params;
+    if (!PROVIDERS[provider]) {
+      return res.status(400).json({ success: false, message: 'مزود غير معروف' });
+    }
+    await User.findByIdAndUpdate(req.user.id, { $unset: { [PROVIDERS[provider].keyField]: 1 } });
+    res.json({ success: true, message: `تم حذف مفتاح ${PROVIDERS[provider].label}` });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }

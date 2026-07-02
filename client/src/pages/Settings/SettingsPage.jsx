@@ -37,42 +37,51 @@ export default function SettingsPage() {
     { id:'security',      icon:<Security/>,      label: t('settings.security')      || 'الأمان' },
   ];
 
-  // ── مفتاح Claude API الخاص بالمستخدم ──────────────────────────────
-  const [aiKeyStatus, setAiKeyStatus]   = useState(null); // { configured, maskedKey } | null (loading)
-  const [aiKeyInput,  setAiKeyInput]    = useState('');
-  const [aiKeySaving, setAiKeySaving]   = useState(false);
-  const [aiKeyError,  setAiKeyError]    = useState('');
-  const [showAiKey,   setShowAiKey]     = useState(false);
+  // ── مفاتيح مزودي الذكاء الاصطناعي (Claude / Gemini / ChatGPT) ─────
+  const AI_PROVIDERS = [
+    { id:'claude', name:'Claude',  vendor:'Anthropic', prefix:'sk-ant-',
+      keysUrl:'https://console.anthropic.com/settings/keys' },
+    { id:'gemini', name:'Gemini',  vendor:'Google',     prefix:'AIzaSy',
+      keysUrl:'https://aistudio.google.com/apikey' },
+    { id:'openai', name:'ChatGPT', vendor:'OpenAI',     prefix:'sk-',
+      keysUrl:'https://platform.openai.com/api-keys' },
+  ];
+  const [aiKeyStatus, setAiKeyStatus]   = useState(null); // { claude:{configured,maskedKey}, gemini:{...}, openai:{...} } | null (loading)
+  const [aiKeyInputs, setAiKeyInputs]   = useState({ claude:'', gemini:'', openai:'' });
+  const [aiKeySaving, setAiKeySaving]   = useState(''); // provider id currently saving/removing, or ''
+  const [aiKeyErrors, setAiKeyErrors]   = useState({});
+  const [showAiKey,   setShowAiKey]     = useState({});
 
   useEffect(() => {
     if (section !== 'ai' || aiKeyStatus !== null) return;
     api.get('/api/ai/key-status')
       .then(r => setAiKeyStatus(r.data.data))
-      .catch(() => setAiKeyStatus({ configured: false, maskedKey: null }));
+      .catch(() => setAiKeyStatus({ claude:{configured:false}, gemini:{configured:false}, openai:{configured:false} }));
   }, [section, aiKeyStatus]);
 
-  const saveAiKey = async () => {
-    if (!aiKeyInput.trim()) return;
-    setAiKeySaving(true); setAiKeyError('');
+  const saveAiKey = async (provider) => {
+    const value = aiKeyInputs[provider]?.trim();
+    if (!value) return;
+    setAiKeySaving(provider); setAiKeyErrors(p => ({ ...p, [provider]: '' }));
     try {
-      const r = await api.put('/api/ai/key', { apiKey: aiKeyInput.trim() });
-      setAiKeyStatus({ configured: true, maskedKey: r.data.data.maskedKey });
-      setAiKeyInput('');
-      setSnack(AR ? 'تم حفظ مفتاح الذكاء الاصطناعي' : 'AI key saved');
+      const r = await api.put('/api/ai/key', { provider, apiKey: value });
+      setAiKeyStatus(p => ({ ...p, [provider]: { configured: true, maskedKey: r.data.data.maskedKey } }));
+      setAiKeyInputs(p => ({ ...p, [provider]: '' }));
+      setSnack(AR ? 'تم حفظ المفتاح' : 'Key saved');
     } catch (e) {
-      setAiKeyError(e.response?.data?.message || (AR ? 'فشل حفظ المفتاح' : 'Failed to save key'));
-    } finally { setAiKeySaving(false); }
+      setAiKeyErrors(p => ({ ...p, [provider]: e.response?.data?.message || (AR ? 'فشل حفظ المفتاح' : 'Failed to save key') }));
+    } finally { setAiKeySaving(''); }
   };
 
-  const removeAiKey = async () => {
-    setAiKeySaving(true);
+  const removeAiKey = async (provider) => {
+    setAiKeySaving(provider);
     try {
-      await api.delete('/api/ai/key');
-      setAiKeyStatus({ configured: false, maskedKey: null });
+      await api.delete(`/api/ai/key/${provider}`);
+      setAiKeyStatus(p => ({ ...p, [provider]: { configured: false, maskedKey: null } }));
       setSnack(AR ? 'تم حذف المفتاح' : 'Key removed');
     } catch (e) {
-      setAiKeyError(e.response?.data?.message || (AR ? 'فشل حذف المفتاح' : 'Failed to remove key'));
-    } finally { setAiKeySaving(false); }
+      setAiKeyErrors(p => ({ ...p, [provider]: e.response?.data?.message || (AR ? 'فشل حذف المفتاح' : 'Failed to remove key') }));
+    } finally { setAiKeySaving(''); }
   };
 
   return (
@@ -234,7 +243,7 @@ export default function SettingsPage() {
                 </Box>
               )}
 
-              {/* ── AI ASSISTANT (Claude API key) ── */}
+              {/* ── AI ASSISTANT (Claude + Gemini + ChatGPT keys) ── */}
               {section==='ai' && (
                 <Box>
                   <Box sx={{ display:'flex', alignItems:'center', gap:1.5, mb:1 }}>
@@ -245,8 +254,8 @@ export default function SettingsPage() {
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
                         {AR
-                          ? 'مدعوم بـ Claude من Anthropic — كل مستخدم يستخدم مفتاحه الخاص'
-                          : 'Powered by Claude from Anthropic — each user brings their own key'}
+                          ? 'كل مستخدم يستخدم مفاتيحه الخاصة — أضف واحدًا أو أكثر من Claude وGemini وChatGPT، ولو أضفت أكثر من واحد يعملون معًا ويُدمَجون في إجابة واحدة'
+                          : 'Each user brings their own keys — add one or more of Claude, Gemini and ChatGPT. If you add more than one, they work together and get merged into a single answer'}
                       </Typography>
                     </Box>
                   </Box>
@@ -256,92 +265,80 @@ export default function SettingsPage() {
                   {aiKeyStatus === null ? (
                     <Box sx={{ display:'flex', justifyContent:'center', py:4 }}><CircularProgress size={28}/></Box>
                   ) : (
-                    <>
-                      {aiKeyStatus.configured ? (
-                        <Paper variant="outlined" sx={{ p:2, borderRadius:2, mb:3, display:'flex',
-                          alignItems:'center', justifyContent:'space-between', bgcolor:'success.50',
-                          borderColor:'success.main' }}>
-                          <Box sx={{ display:'flex', alignItems:'center', gap:1.5 }}>
-                            <VerifiedUser sx={{ color:'success.main' }}/>
-                            <Box>
-                              <Typography variant="body2" fontWeight={700}>
-                                {AR ? 'المفتاح مفعّل' : 'Key active'}
-                              </Typography>
-                              <Typography variant="caption" color="text.secondary" fontFamily="monospace">
-                                {aiKeyStatus.maskedKey}
-                              </Typography>
+                    <Box sx={{ display:'flex', flexDirection:'column', gap:2.5 }}>
+                      {AI_PROVIDERS.map(prov => {
+                        const status = aiKeyStatus[prov.id] || { configured:false };
+                        const saving = aiKeySaving === prov.id;
+                        return (
+                          <Paper key={prov.id} variant="outlined" sx={{ p:2.5, borderRadius:2 }}>
+                            <Box sx={{ display:'flex', alignItems:'center', justifyContent:'space-between', mb:1.5 }}>
+                              <Box>
+                                <Typography variant="subtitle1" fontWeight={700}>{prov.name}</Typography>
+                                <Typography variant="caption" color="text.secondary">{prov.vendor}</Typography>
+                              </Box>
+                              {status.configured && (
+                                <Box sx={{ display:'flex', alignItems:'center', gap:1 }}>
+                                  <VerifiedUser sx={{ color:'success.main', fontSize:20 }}/>
+                                  <Typography variant="caption" fontFamily="monospace" color="text.secondary">
+                                    {status.maskedKey}
+                                  </Typography>
+                                  <Button size="small" color="error" startIcon={<DeleteOutline/>}
+                                    disabled={saving} onClick={() => removeAiKey(prov.id)}>
+                                    {AR ? 'حذف' : 'Remove'}
+                                  </Button>
+                                </Box>
+                              )}
                             </Box>
-                          </Box>
-                          <Button size="small" color="error" startIcon={<DeleteOutline/>}
-                            disabled={aiKeySaving} onClick={removeAiKey}>
-                            {AR ? 'حذف' : 'Remove'}
-                          </Button>
-                        </Paper>
-                      ) : (
-                        <Alert severity="info" sx={{ mb:3, borderRadius:2 }}>
-                          {AR
-                            ? 'لم تُفعَّل بعد. أضف مفتاحك أدناه لتشغيل المساعد الذكي في كل صفحات النظام.'
-                            : 'Not activated yet. Add your key below to enable the AI assistant across the system.'}
-                        </Alert>
-                      )}
 
-                      {/* ── شرح كيفية الحصول على المفتاح ── */}
-                      <Typography variant="subtitle2" fontWeight={700} sx={{ mb:1 }}>
-                        {AR ? 'كيف تجلب مفتاح Claude API؟' : 'How to get a Claude API key'}
-                      </Typography>
-                      <Box component="ol" sx={{ pl:3, mb:1, '& li': { mb:0.8 } }}>
-                        <Typography component="li" variant="body2">
-                          {AR ? 'ادخل على ' : 'Go to '}
-                          <MuiLink href="https://console.anthropic.com/settings/keys" target="_blank" rel="noreferrer"
-                            sx={{ display:'inline-flex', alignItems:'center', gap:0.3 }}>
-                            console.anthropic.com/settings/keys <OpenInNew sx={{ fontSize:14 }}/>
-                          </MuiLink>
-                          {AR ? ' وسجّل دخول أو أنشئ حساب جديد' : ' and sign in or create an account'}
-                        </Typography>
-                        <Typography component="li" variant="body2">
-                          {AR ? 'من نفس الصفحة اضغط "Create Key" وأعطه اسم (مثلاً Wassel ERP)' : 'Click "Create Key" and name it (e.g. Wassel ERP)'}
-                        </Typography>
-                        <Typography component="li" variant="body2">
-                          {AR ? 'انسخ المفتاح فورًا — يبدأ بـ ' : 'Copy it immediately — it starts with '}
-                          <Typography component="span" fontFamily="monospace" fontWeight={700}>sk-ant-</Typography>
-                          {AR ? ' (لن يُعرض مرة ثانية بعد إغلاق الصفحة)' : ' (it won\'t be shown again)'}
-                        </Typography>
-                        <Typography component="li" variant="body2">
-                          {AR ? 'الصقه هنا واضغط حفظ' : 'Paste it below and click Save'}
-                        </Typography>
-                      </Box>
-                      <Alert severity="warning" variant="outlined" sx={{ mb:3, borderRadius:2 }}>
+                            {!status.configured && (
+                              <>
+                                <Typography variant="caption" color="text.secondary" sx={{ display:'block', mb:1.5 }}>
+                                  {AR ? 'ادخل على ' : 'Go to '}
+                                  <MuiLink href={prov.keysUrl} target="_blank" rel="noreferrer"
+                                    sx={{ display:'inline-flex', alignItems:'center', gap:0.3 }}>
+                                    {prov.keysUrl.replace('https://','')} <OpenInNew sx={{ fontSize:12 }}/>
+                                  </MuiLink>
+                                  {AR ? ` وأنشئ مفتاح API جديد — يبدأ بـ ` : ` and create a new API key — it starts with `}
+                                  <Typography component="span" fontFamily="monospace" fontWeight={700} variant="caption">{prov.prefix}</Typography>
+                                </Typography>
+
+                                <Box sx={{ display:'flex', gap:1, alignItems:'flex-start' }}>
+                                  <TextField
+                                    fullWidth size="small"
+                                    type={showAiKey[prov.id] ? 'text' : 'password'}
+                                    label={AR ? `مفتاح ${prov.name}` : `${prov.name} key`}
+                                    placeholder={`${prov.prefix}...`}
+                                    value={aiKeyInputs[prov.id]}
+                                    onChange={e => { setAiKeyInputs(p => ({ ...p, [prov.id]: e.target.value })); setAiKeyErrors(p => ({ ...p, [prov.id]: '' })); }}
+                                    error={!!aiKeyErrors[prov.id]}
+                                    helperText={aiKeyErrors[prov.id]}
+                                    InputProps={{
+                                      endAdornment: (
+                                        <IconButton size="small" onClick={() => setShowAiKey(s => ({ ...s, [prov.id]: !s[prov.id] }))} tabIndex={-1}>
+                                          {showAiKey[prov.id] ? <VisibilityOff sx={{ fontSize:18 }}/> : <Visibility sx={{ fontSize:18 }}/>}
+                                        </IconButton>
+                                      ),
+                                    }}
+                                  />
+                                  <Button
+                                    variant="contained" sx={{ mt:0.2, minWidth:100 }}
+                                    disabled={saving || !aiKeyInputs[prov.id]?.trim()}
+                                    onClick={() => saveAiKey(prov.id)}>
+                                    {saving ? <CircularProgress size={20} color="inherit"/> : (AR ? 'حفظ' : 'Save')}
+                                  </Button>
+                                </Box>
+                              </>
+                            )}
+                          </Paper>
+                        );
+                      })}
+
+                      <Alert severity="warning" variant="outlined" sx={{ borderRadius:2 }}>
                         {AR
-                          ? 'استخدامك للمساعد يُحتسب من رصيدك الخاص في حساب Anthropic — راجع الأسعار من موقعهم. المفتاح يُخزَّن مشفّرًا ولا يظهر لأي شخص آخر، حتى مدير النظام.'
-                          : 'Usage is billed to your own Anthropic account balance — check their pricing page. Your key is stored encrypted and never visible to anyone else, including system admins.'}
+                          ? 'استخدامك للمساعد يُحتسب من رصيدك الخاص بكل مزود — راجع الأسعار من موقع كل واحد. كل المفاتيح تُخزَّن مشفّرة ولا تظهر لأي شخص آخر، حتى مدير النظام.'
+                          : 'Usage is billed to your own account balance with each provider — check their pricing pages. All keys are stored encrypted and never visible to anyone else, including system admins.'}
                       </Alert>
-
-                      <Box sx={{ display:'flex', gap:1, alignItems:'flex-start' }}>
-                        <TextField
-                          fullWidth size="small"
-                          type={showAiKey ? 'text' : 'password'}
-                          label={AR ? 'مفتاح Claude API' : 'Claude API key'}
-                          placeholder="sk-ant-api03-..."
-                          value={aiKeyInput}
-                          onChange={e => { setAiKeyInput(e.target.value); setAiKeyError(''); }}
-                          error={!!aiKeyError}
-                          helperText={aiKeyError}
-                          InputProps={{
-                            endAdornment: (
-                              <IconButton size="small" onClick={() => setShowAiKey(s => !s)} tabIndex={-1}>
-                                {showAiKey ? <VisibilityOff sx={{ fontSize:18 }}/> : <Visibility sx={{ fontSize:18 }}/>}
-                              </IconButton>
-                            ),
-                          }}
-                        />
-                        <Button
-                          variant="contained" sx={{ mt:0.2, minWidth:100 }}
-                          disabled={aiKeySaving || !aiKeyInput.trim()}
-                          onClick={saveAiKey}>
-                          {aiKeySaving ? <CircularProgress size={20} color="inherit"/> : (AR ? 'حفظ' : 'Save')}
-                        </Button>
-                      </Box>
-                    </>
+                    </Box>
                   )}
                 </Box>
               )}

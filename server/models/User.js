@@ -45,10 +45,13 @@ const userSchema = new mongoose.Schema({
   bio:        { type: String },
   department: { type: String },
   // ─── الذكاء الاصطناعي (WasselAI) ────────────────────────────────
-  // كل مستخدم يستخدم مفتاح Claude API الخاص به — مُشفَّر عند التخزين
-  // (services/crypto.js)، ومُستبعد افتراضياً من كل استعلام (select:false)
-  // حتى لا يظهر بأي استجابة API عادية عن طريق الخطأ.
-  aiApiKey:   { type: String, select: false },
+  // كل مستخدم يستخدم مفاتيحه الخاصة — مُشفَّرة عند التخزين
+  // (services/crypto.js)، ومُستبعدة افتراضياً من كل استعلام (select:false)
+  // حتى لا تظهر بأي استجابة API عادية عن طريق الخطأ. المستخدم يمكنه ضبط
+  // أي عدد منها (واحد أو أكثر) — النظام يستخدم كل ما هو مضبوط معاً.
+  aiApiKey:     { type: String, select: false }, // Claude (Anthropic)
+  geminiApiKey: { type: String, select: false }, // Gemini (Google)
+  openaiApiKey: { type: String, select: false }, // ChatGPT (OpenAI)
   position:   { type: String },
   employeeId: { type: String },
 
