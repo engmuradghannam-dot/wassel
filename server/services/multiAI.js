@@ -40,7 +40,10 @@ function geminiClient(apiKey) {
   return _geminiCache.get(apiKey);
 }
 async function callGemini(apiKey, { system, history = [], userMessage, maxTokens, temperature, light }) {
-  const modelName = light ? 'gemini-2.5-flash' : 'gemini-2.5-pro';
+  // gemini-2.5-pro لها حصة مجانية = صفر تمامًا على حسابات Google AI Studio
+  // العادية (تأكدنا من هذا فعليًا من رسالة خطأ 429 حقيقية) — نستخدم flash
+  // دائمًا بدل pro حتى يشتغل المزود فعليًا على حساب مجاني بدون فوترة
+  const modelName = 'gemini-2.5-flash';
   const model = geminiClient(apiKey).getGenerativeModel({
     model: modelName,
     systemInstruction: system || undefined,
