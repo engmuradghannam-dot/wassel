@@ -168,136 +168,26 @@ export default function SalesOrdersPage() {
           </Box>
           <Box sx={{ display:'flex', gap:1 }}>
             <IconButton onClick={load} size="small"><Refresh/></IconButton>
-            <Button variant="contained" startIcon={<Add/>}
-              onClick={() => { setForm({...EMPTY_FORM, type: activeTab===0?'quotation':'invoice'}); setError(''); setDialog(true); }}
-              sx={{ bgcolor:tabColor, '&:hover':{filter:'brightness(0.9)'}, borderRadius:2 }}>
-              {activeTab===0 ? (AR?'+ عرض سعر جديد':'+ New Quotation') : (AR?'+ فاتورة جديدة':'+ New Invoice')}
-            </Button>
+            {!dialog && (
+              <Button variant="contained" startIcon={<Add/>}
+                onClick={() => { setForm({...EMPTY_FORM, type: activeTab===0?'quotation':'invoice'}); setError(''); setDialog(true); }}
+                sx={{ bgcolor:tabColor, '&:hover':{filter:'brightness(0.9)'}, borderRadius:2 }}>
+                {activeTab===0 ? (AR?'+ عرض سعر جديد':'+ New Quotation') : (AR?'+ فاتورة جديدة':'+ New Invoice')}
+              </Button>
+            )}
           </Box>
         </Box>
 
-        {/* Tabs */}
-        <Tabs value={activeTab} onChange={(_,v)=>setActiveTab(v)}
-          sx={{ mb:2, '& .MuiTab-root':{ fontWeight:700 },
-            '& .Mui-selected':{ color:tabColor },
-            '& .MuiTabs-indicator':{ bgcolor:tabColor } }}>
-          <Tab label={
-            <Box sx={{ display:'flex', alignItems:'center', gap:1 }}>
-              <Description sx={{ fontSize:18 }}/>
-              {AR ? 'عروض الأسعار' : 'Quotations'}
+        {/* ══ FULL-PAGE CREATE FORM (replaces the list while creating) ══ */}
+        {dialog ? (
+          <Box>
+            <Box sx={{ display:'flex', alignItems:'center', gap:1, mb:2.5 }}>
+              {activeTab===0 ? <Description sx={{ color:'#7b1fa2' }}/> : <Receipt sx={{ color:'#1a73e8' }}/>}
+              <Typography variant="h6" fontWeight={800}>
+                {activeTab===0 ? (AR?'عرض سعر جديد':'New Quotation') : (AR?'فاتورة جديدة':'New Invoice')}
+              </Typography>
             </Box>
-          }/>
-          <Tab label={
-            <Box sx={{ display:'flex', alignItems:'center', gap:1 }}>
-              <Receipt sx={{ fontSize:18 }}/>
-              {AR ? 'الفواتير' : 'Invoices'}
-            </Box>
-          }/>
-        </Tabs>
 
-        {error && <Alert severity="error" sx={{ mb:2, borderRadius:2 }} onClose={()=>setError('')}>{error}</Alert>}
-
-        {/* Search */}
-        <TextField size="small"
-          placeholder={AR
-            ? 'بحث برقم العرض أو اسم العميل أو السجل التجاري أو الرقم الضريبي...'
-            : 'Search by number, customer name, CR, VAT...'}
-          value={search} onChange={e=>setSearch(e.target.value)} sx={{ mb:2, width:500 }}
-          InputProps={{ startAdornment:<InputAdornment position="start"><Search sx={{ fontSize:18, color:'text.secondary' }}/></InputAdornment> }}/>
-
-        {/* Table */}
-        <TableContainer component={Paper} sx={{ borderRadius:3 }}>
-          <Table>
-            <TableHead>
-              <TableRow sx={{ bgcolor:'#f8f9fa' }}>
-                <TableCell sx={{ fontWeight:700 }}>{AR?(activeTab===0?'رقم العرض':'رقم الفاتورة'):(activeTab===0?'Quote#':'Invoice#')}</TableCell>
-                <TableCell sx={{ fontWeight:700 }}>{AR?'العميل':'Customer'}</TableCell>
-                <TableCell sx={{ fontWeight:700 }}>{AR?'السجل التجاري':'CR No.'}</TableCell>
-                <TableCell sx={{ fontWeight:700 }}>{AR?'الرقم الضريبي':'VAT No.'}</TableCell>
-                <TableCell sx={{ fontWeight:700 }}>{AR?'التاريخ':'Date'}</TableCell>
-                <TableCell sx={{ fontWeight:700 }}>{AR?'الإجمالي':'Total'}</TableCell>
-                <TableCell sx={{ fontWeight:700 }}>{AR?'الحالة':'Status'}</TableCell>
-                {activeTab===1 && <TableCell sx={{ fontWeight:700 }}>{AR?'الدفع':'Payment'}</TableCell>}
-                <TableCell align="center" sx={{ fontWeight:700 }}>{'—'}</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {loading ? (
-                <TableRow><TableCell colSpan={9} align="center" sx={{ py:5 }}><CircularProgress size={28}/></TableCell></TableRow>
-              ) : filtered.length === 0 ? (
-                <TableRow><TableCell colSpan={9} align="center" sx={{ py:5, color:'text.secondary' }}>
-                  {activeTab===0
-                    ? (AR?'لا توجد عروض أسعار — ابدأ بإنشاء عرض سعر جديد':'No quotations found')
-                    : (AR?'لا توجد فواتير':'No invoices found')}
-                </TableCell></TableRow>
-              ) : filtered.map(o => (
-                <TableRow key={o._id} hover>
-                  <TableCell>
-                    <Typography variant="body2" fontWeight={700} sx={{ fontFamily:'monospace', color:tabColor }}>
-                      {o.invoiceNumber || o.orderNumber || '—'}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>
-                    <Box sx={{ display:'flex', alignItems:'center', gap:1 }}>
-                      <Avatar sx={{ width:28, height:28, bgcolor:`${tabColor}18`, color:tabColor, fontSize:12, fontWeight:700 }}>
-                        {o.customer?.name?.[0]}
-                      </Avatar>
-                      <Box>
-                        <Typography variant="body2" fontWeight={600}>{o.customer?.name||'—'}</Typography>
-                        {o.customer?.phone && <Typography variant="caption" color="text.secondary">📞 {o.customer.phone}</Typography>}
-                      </Box>
-                    </Box>
-                  </TableCell>
-                  <TableCell><Typography variant="caption" sx={{ fontFamily:'monospace' }}>{o.customer?.commercialReg||'—'}</Typography></TableCell>
-                  <TableCell><Typography variant="caption" sx={{ fontFamily:'monospace' }}>{o.customer?.vatNumber||'—'}</Typography></TableCell>
-                  <TableCell><Typography variant="body2">{o.createdAt?new Date(o.createdAt).toLocaleDateString(AR?'ar-SA':'en-GB'):'—'}</Typography></TableCell>
-                  <TableCell><Typography variant="body2" fontWeight={700} color={tabColor}>{fmt(o.total)} {CUR}</Typography></TableCell>
-                  <TableCell><Chip label={SL[o.status]||o.status} color={STATUS_COLOR[o.status]||'default'} size="small" sx={{ fontSize:'0.7rem' }}/></TableCell>
-                  {activeTab===1 && (
-                    <TableCell><Chip label={PAY_LABEL[o.paymentStatus]||o.paymentStatus} color={PAY_COLOR[o.paymentStatus]||'default'} size="small" sx={{ fontSize:'0.7rem' }}/></TableCell>
-                  )}
-                  <TableCell align="center">
-                    <Tooltip title={AR?'عرض التفاصيل':'View'}>
-                      <IconButton size="small" onClick={()=>setViewItem(o)} sx={{ color:'#1a73e8' }}>
-                        <Visibility sx={{ fontSize:16 }}/>
-                      </IconButton>
-                    </Tooltip>
-                    {/* Convert button — only for quotations */}
-                    {activeTab===0 && o.status !== 'cancelled' && (
-                      <Tooltip title={AR?'تحويل إلى فاتورة':'Convert to Invoice'}>
-                        <IconButton size="small"
-                          onClick={() => convertToInvoice(o._id)}
-                          disabled={converting === o._id}
-                          sx={{ color:'#34a853', ml:0.5 }}>
-                          {converting===o._id
-                            ? <CircularProgress size={14}/>
-                            : <SwapHoriz sx={{ fontSize:16 }}/>}
-                        </IconButton>
-                      </Tooltip>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-
-        {/* ══ NEW QUOTATION/INVOICE DIALOG ══ */}
-        <Dialog open={dialog} onClose={()=>setDialog(false)} maxWidth="md" fullWidth
-          PaperProps={{ sx:{ borderRadius:3 } }}>
-          <DialogTitle sx={{ borderBottom:'1px solid', borderColor:'divider', pb:1.5, fontWeight:800 }}>
-            <Box sx={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-              <Box sx={{ display:'flex', alignItems:'center', gap:1 }}>
-                {activeTab===0 ? <Description sx={{ color:'#7b1fa2' }}/> : <Receipt sx={{ color:'#1a73e8' }}/>}
-                <Typography fontWeight={800}>
-                  {activeTab===0 ? (AR?'عرض سعر جديد':'New Quotation') : (AR?'فاتورة جديدة':'New Invoice')}
-                </Typography>
-              </Box>
-              <IconButton onClick={()=>setDialog(false)} size="small"><Close sx={{ fontSize:18 }}/></IconButton>
-            </Box>
-          </DialogTitle>
-
-          <DialogContent sx={{ pt:3 }}>
             {error && <Alert severity="error" sx={{ mb:2, borderRadius:2 }} onClose={()=>setError('')}>{error}</Alert>}
 
             <Grid container spacing={2} sx={{ mb:2 }}>
@@ -492,17 +382,125 @@ export default function SalesOrdersPage() {
                 </Box>
               </Paper>
             </Box>
-          </DialogContent>
 
-          <DialogActions sx={{ px:3, py:2, borderTop:'1px solid', borderColor:'divider' }}>
-            <Button onClick={()=>setDialog(false)}>{AR?'إلغاء':'Cancel'}</Button>
-            <Button variant="contained" onClick={handleSave} disabled={saving}
-              startIcon={saving?<CircularProgress size={16}/>:<Save/>}
-              sx={{ bgcolor:tabColor, '&:hover':{filter:'brightness(0.9)'} }}>
-              {activeTab===0 ? (AR?'إنشاء عرض السعر':'Create Quotation') : (AR?'إنشاء الفاتورة':'Create Invoice')}
-            </Button>
-          </DialogActions>
-        </Dialog>
+            <Box sx={{ display:'flex', justifyContent:'flex-end', gap:1.5, mt:3, pt:2.5, borderTop:'1px solid', borderColor:'divider' }}>
+              <Button onClick={()=>setDialog(false)} color="inherit">{AR?'إلغاء':'Cancel'}</Button>
+              <Button variant="contained" onClick={handleSave} disabled={saving}
+                startIcon={saving?<CircularProgress size={16}/>:<Save/>}
+                sx={{ bgcolor:tabColor, '&:hover':{filter:'brightness(0.9)'} }}>
+                {activeTab===0 ? (AR?'إنشاء عرض السعر':'Create Quotation') : (AR?'إنشاء الفاتورة':'Create Invoice')}
+              </Button>
+            </Box>
+          </Box>
+        ) : (
+          <>
+            {/* Tabs */}
+            <Tabs value={activeTab} onChange={(_,v)=>setActiveTab(v)}
+              sx={{ mb:2, '& .MuiTab-root':{ fontWeight:700 },
+                '& .Mui-selected':{ color:tabColor },
+                '& .MuiTabs-indicator':{ bgcolor:tabColor } }}>
+              <Tab label={
+                <Box sx={{ display:'flex', alignItems:'center', gap:1 }}>
+                  <Description sx={{ fontSize:18 }}/>
+                  {AR ? 'عروض الأسعار' : 'Quotations'}
+                </Box>
+              }/>
+              <Tab label={
+                <Box sx={{ display:'flex', alignItems:'center', gap:1 }}>
+                  <Receipt sx={{ fontSize:18 }}/>
+                  {AR ? 'الفواتير' : 'Invoices'}
+                </Box>
+              }/>
+            </Tabs>
+
+            {error && <Alert severity="error" sx={{ mb:2, borderRadius:2 }} onClose={()=>setError('')}>{error}</Alert>}
+
+            {/* Search */}
+            <TextField size="small"
+              placeholder={AR
+                ? 'بحث برقم العرض أو اسم العميل أو السجل التجاري أو الرقم الضريبي...'
+                : 'Search by number, customer name, CR, VAT...'}
+              value={search} onChange={e=>setSearch(e.target.value)} sx={{ mb:2, width:500 }}
+              InputProps={{ startAdornment:<InputAdornment position="start"><Search sx={{ fontSize:18, color:'text.secondary' }}/></InputAdornment> }}/>
+
+            {/* Table */}
+            <TableContainer component={Paper} sx={{ borderRadius:3 }}>
+              <Table>
+                <TableHead>
+                  <TableRow sx={{ bgcolor:'#f8f9fa' }}>
+                    <TableCell sx={{ fontWeight:700 }}>{AR?(activeTab===0?'رقم العرض':'رقم الفاتورة'):(activeTab===0?'Quote#':'Invoice#')}</TableCell>
+                    <TableCell sx={{ fontWeight:700 }}>{AR?'العميل':'Customer'}</TableCell>
+                    <TableCell sx={{ fontWeight:700 }}>{AR?'السجل التجاري':'CR No.'}</TableCell>
+                    <TableCell sx={{ fontWeight:700 }}>{AR?'الرقم الضريبي':'VAT No.'}</TableCell>
+                    <TableCell sx={{ fontWeight:700 }}>{AR?'التاريخ':'Date'}</TableCell>
+                    <TableCell sx={{ fontWeight:700 }}>{AR?'الإجمالي':'Total'}</TableCell>
+                    <TableCell sx={{ fontWeight:700 }}>{AR?'الحالة':'Status'}</TableCell>
+                    {activeTab===1 && <TableCell sx={{ fontWeight:700 }}>{AR?'الدفع':'Payment'}</TableCell>}
+                    <TableCell align="center" sx={{ fontWeight:700 }}>{'—'}</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {loading ? (
+                    <TableRow><TableCell colSpan={9} align="center" sx={{ py:5 }}><CircularProgress size={28}/></TableCell></TableRow>
+                  ) : filtered.length === 0 ? (
+                    <TableRow><TableCell colSpan={9} align="center" sx={{ py:5, color:'text.secondary' }}>
+                      {activeTab===0
+                        ? (AR?'لا توجد عروض أسعار — ابدأ بإنشاء عرض سعر جديد':'No quotations found')
+                        : (AR?'لا توجد فواتير':'No invoices found')}
+                    </TableCell></TableRow>
+                  ) : filtered.map(o => (
+                    <TableRow key={o._id} hover>
+                      <TableCell>
+                        <Typography variant="body2" fontWeight={700} sx={{ fontFamily:'monospace', color:tabColor }}>
+                          {o.invoiceNumber || o.orderNumber || '—'}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Box sx={{ display:'flex', alignItems:'center', gap:1 }}>
+                          <Avatar sx={{ width:28, height:28, bgcolor:`${tabColor}18`, color:tabColor, fontSize:12, fontWeight:700 }}>
+                            {o.customer?.name?.[0]}
+                          </Avatar>
+                          <Box>
+                            <Typography variant="body2" fontWeight={600}>{o.customer?.name||'—'}</Typography>
+                            {o.customer?.phone && <Typography variant="caption" color="text.secondary">📞 {o.customer.phone}</Typography>}
+                          </Box>
+                        </Box>
+                      </TableCell>
+                      <TableCell><Typography variant="caption" sx={{ fontFamily:'monospace' }}>{o.customer?.commercialReg||'—'}</Typography></TableCell>
+                      <TableCell><Typography variant="caption" sx={{ fontFamily:'monospace' }}>{o.customer?.vatNumber||'—'}</Typography></TableCell>
+                      <TableCell><Typography variant="body2">{o.createdAt?new Date(o.createdAt).toLocaleDateString(AR?'ar-SA':'en-GB'):'—'}</Typography></TableCell>
+                      <TableCell><Typography variant="body2" fontWeight={700} color={tabColor}>{fmt(o.total)} {CUR}</Typography></TableCell>
+                      <TableCell><Chip label={SL[o.status]||o.status} color={STATUS_COLOR[o.status]||'default'} size="small" sx={{ fontSize:'0.7rem' }}/></TableCell>
+                      {activeTab===1 && (
+                        <TableCell><Chip label={PAY_LABEL[o.paymentStatus]||o.paymentStatus} color={PAY_COLOR[o.paymentStatus]||'default'} size="small" sx={{ fontSize:'0.7rem' }}/></TableCell>
+                      )}
+                      <TableCell align="center">
+                        <Tooltip title={AR?'عرض التفاصيل':'View'}>
+                          <IconButton size="small" onClick={()=>setViewItem(o)} sx={{ color:'#1a73e8' }}>
+                            <Visibility sx={{ fontSize:16 }}/>
+                          </IconButton>
+                        </Tooltip>
+                        {/* Convert button — only for quotations */}
+                        {activeTab===0 && o.status !== 'cancelled' && (
+                          <Tooltip title={AR?'تحويل إلى فاتورة':'Convert to Invoice'}>
+                            <IconButton size="small"
+                              onClick={() => convertToInvoice(o._id)}
+                              disabled={converting === o._id}
+                              sx={{ color:'#34a853', ml:0.5 }}>
+                              {converting===o._id
+                                ? <CircularProgress size={14}/>
+                                : <SwapHoriz sx={{ fontSize:16 }}/>}
+                            </IconButton>
+                          </Tooltip>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </>
+        )}
 
         {/* ══ VIEW DIALOG ══ */}
         {viewItem && (
