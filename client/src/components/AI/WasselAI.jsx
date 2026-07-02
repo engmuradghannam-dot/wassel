@@ -110,7 +110,7 @@ const WasselAI = () => {
         case 'analyze':
           res = await api.post('/api/ai/analyze', { question: msg, type: currentPage });
           if (res.data.success === false) {
-            setMessages(prev => [...prev, { role: 'assistant', content: res.data.message, needsKey: res.data.code === 'NO_AI_KEY' || res.data.code === 'INVALID_AI_KEY' }]);
+            setMessages(prev => [...prev, { role: 'assistant', content: res.data.message + (res.data.detail ? `\n\n(${res.data.detail})` : ''), needsKey: res.data.code === 'NO_AI_KEY' || res.data.code === 'INVALID_AI_KEY' }]);
           } else {
             setMessages(prev => [...prev, { role: 'assistant', content: res.data.data.analysis }]);
           }
@@ -118,7 +118,7 @@ const WasselAI = () => {
         case 'develop':
           res = await api.post('/api/ai/develop', { request: msg, context: currentPage });
           if (res.data.success === false) {
-            setMessages(prev => [...prev, { role: 'assistant', content: res.data.message, needsKey: res.data.code === 'NO_AI_KEY' || res.data.code === 'INVALID_AI_KEY' }]);
+            setMessages(prev => [...prev, { role: 'assistant', content: res.data.message + (res.data.detail ? `\n\n(${res.data.detail})` : ''), needsKey: res.data.code === 'NO_AI_KEY' || res.data.code === 'INVALID_AI_KEY' }]);
           } else {
             setMessages(prev => [...prev, { role: 'assistant', content: res.data.data.code }]);
           }
@@ -126,7 +126,7 @@ const WasselAI = () => {
         case 'hr':
           res = await api.post('/api/ai/hr-advice', { question: msg });
           if (res.data.success === false) {
-            setMessages(prev => [...prev, { role: 'assistant', content: res.data.message, needsKey: res.data.code === 'NO_AI_KEY' || res.data.code === 'INVALID_AI_KEY' }]);
+            setMessages(prev => [...prev, { role: 'assistant', content: res.data.message + (res.data.detail ? `\n\n(${res.data.detail})` : ''), needsKey: res.data.code === 'NO_AI_KEY' || res.data.code === 'INVALID_AI_KEY' }]);
           } else {
             setMessages(prev => [...prev, { role: 'assistant', content: res.data.data.advice }]);
           }
@@ -134,11 +134,11 @@ const WasselAI = () => {
         default:
           res = await api.post('/api/ai/chat', { message: msg, page: currentPage });
           if (res.data.success === false) {
-            setMessages(prev => [...prev, { role: 'assistant', content: res.data.message, needsKey: res.data.code === 'NO_AI_KEY' || res.data.code === 'INVALID_AI_KEY' }]);
+            setMessages(prev => [...prev, { role: 'assistant', content: res.data.message + (res.data.detail ? `\n\n(${res.data.detail})` : ''), needsKey: res.data.code === 'NO_AI_KEY' || res.data.code === 'INVALID_AI_KEY' }]);
           } else {
             setMessages(prev => [...prev, {
               role: 'assistant',
-              content: res.data.data.message,
+              content: res.data.data.message + (res.data.data.debugDetail ? `\n\n(${res.data.data.debugDetail})` : ''),
               fallback: res.data.data.fallback
             }]);
           }

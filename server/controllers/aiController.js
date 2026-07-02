@@ -27,6 +27,22 @@ const NO_KEY_RESPONSE = {
   message: 'لم تُضِف أي مفتاح ذكاء اصطناعي بعد (Claude / Gemini / ChatGPT). أضِف واحداً على الأقل من الإعدادات ← الذكاء الاصطناعي لتفعيل المساعد.',
 };
 
+// يبني رد تشخيصي عند فشل كل المزودين المضبوطين — يعرض السبب الحقيقي
+// (رفض المفتاح، موديل غير موجود، تحميل زائد...) بدل رسالة عامة مبهمة
+// تخفي الخطأ الفعلي وتصعّب التشخيص لاحقاً
+function describeAllFailed(err) {
+  console.error('[AI] All configured providers failed:', JSON.stringify(
+    (err.failures || []).map(f => ({ provider: f.provider, status: f.error?.status, message: f.error?.message }))
+  ));
+  const first = err.failures?.[0];
+  const detail = first ? `${first.provider}: ${first.error?.message || first.error?.status || 'unknown error'}` : undefined;
+  return {
+    success: false, code: 'INVALID_AI_KEY',
+    message: 'كل المفاتيح المحفوظة فشلت في الرد. تحقق منها من الإعدادات ← الذكاء الاصطناعي.',
+    detail,
+  };
+}
+
 // ─── Conversation Memory (in-memory, يمكن ترقيته لـ Redis) ──────────────
 const conversationMemory = new Map(); // userId -> [{role, content}]
 
@@ -106,19 +122,17 @@ ${erpContext.stats ? `
     if (err.code === 'NO_KEY') return res.status(200).json(NO_KEY_RESPONSE);
 
     if (err.code === 'ALL_FAILED') {
-      // كل المزودين المضبوطين رفضوا الطلب — على الأغلب مفاتيح غير صالحة
-      return res.status(200).json({
-        success: false, code: 'INVALID_AI_KEY',
-        message: 'كل المفاتيح المحفوظة فشلت في الرد. تحقق منها من الإعدادات ← الذكاء الاصطناعي.',
-      });
+      return res.status(200).json(describeAllFailed(err));
     }
 
-    // أخطاء أخرى (شبكة، تحميل زائد...) → رد احتياطي عام بدل فشل كامل
+    // أخطاء أخرى غير متوقعة → رد احتياطي عام حتى لا يتوقف المساعد، لكن مع
+    // تفاصيل الخطأ الحقيقي مرفقة لأغراض التشخيص بدل إخفائه بالكامل
     res.json({
       success: true,
       data: {
         message: getFallbackResponse(req.body.message),
-        fallback: true
+        fallback: true,
+        debugDetail: err.message
       }
     });
   }
@@ -169,10 +183,7 @@ ${JSON.stringify(analysisData, null, 2).slice(0, 3000)}
   } catch (err) {
     if (err.code === 'NO_KEY') return res.status(200).json(NO_KEY_RESPONSE);
     if (err.code === 'ALL_FAILED') {
-      return res.status(200).json({
-        success: false, code: 'INVALID_AI_KEY',
-        message: 'كل المفاتيح المحفوظة فشلت في الرد. تحقق منها من الإعدادات ← الذكاء الاصطناعي.',
-      });
+      return res.status(200).json(describeAllFailed(err));
     }
     res.status(500).json({ success: false, message: err.message });
   }
@@ -228,10 +239,7 @@ exports.develop = async (req, res) => {
   } catch (err) {
     if (err.code === 'NO_KEY') return res.status(200).json(NO_KEY_RESPONSE);
     if (err.code === 'ALL_FAILED') {
-      return res.status(200).json({
-        success: false, code: 'INVALID_AI_KEY',
-        message: 'كل المفاتيح المحفوظة فشلت في الرد. تحقق منها من الإعدادات ← الذكاء الاصطناعي.',
-      });
+      return res.status(200).json(describeAllFailed(err));
     }
     res.status(500).json({ success: false, message: err.message });
   }
@@ -279,10 +287,7 @@ ${employeeData ? `بيانات الموظف: ${JSON.stringify(employeeData).slic
   } catch (err) {
     if (err.code === 'NO_KEY') return res.status(200).json(NO_KEY_RESPONSE);
     if (err.code === 'ALL_FAILED') {
-      return res.status(200).json({
-        success: false, code: 'INVALID_AI_KEY',
-        message: 'كل المفاتيح المحفوظة فشلت في الرد. تحقق منها من الإعدادات ← الذكاء الاصطناعي.',
-      });
+      return res.status(200).json(describeAllFailed(err));
     }
     res.status(500).json({ success: false, message: err.message });
   }
