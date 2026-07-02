@@ -52,6 +52,8 @@ const userSchema = new mongoose.Schema({
   aiApiKey:     { type: String, select: false }, // Claude (Anthropic)
   geminiApiKey: { type: String, select: false }, // Gemini (Google)
   openaiApiKey: { type: String, select: false }, // ChatGPT (OpenAI)
+  groqApiKey:     { type: String, select: false }, // Groq (مجاني إلى حد كبير)
+  deepseekApiKey: { type: String, select: false }, // DeepSeek
   position:   { type: String },
   employeeId: { type: String },
 

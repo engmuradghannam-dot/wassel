@@ -80,23 +80,66 @@ async function callOpenAI(apiKey, { system, history = [], userMessage, maxTokens
   return res.choices?.[0]?.message?.content || '';
 }
 
+// ── Groq (مجاني إلى حد كبير — نماذج مفتوحة مثل Llama بسرعة عالية) ─────────
+// Groq يعرض نفس بروتوكول OpenAI تمامًا، فنعيد استخدام مكتبة openai بدل
+// تثبيت مكتبة منفصلة — فقط نغيّر baseURL
+const _groqCache = new Map();
+function groqClient(apiKey) {
+  if (!_groqCache.has(apiKey)) _groqCache.set(apiKey, new OpenAI({ apiKey, baseURL: 'https://api.groq.com/openai/v1' }));
+  return _groqCache.get(apiKey);
+}
+async function callGroq(apiKey, { system, history = [], userMessage, maxTokens, temperature, light }) {
+  const model = light ? 'llama-3.1-8b-instant' : 'llama-3.3-70b-versatile';
+  const res = await groqClient(apiKey).chat.completions.create({
+    model, max_tokens: maxTokens, temperature,
+    messages: [
+      ...(system ? [{ role: 'system', content: system }] : []),
+      ...history.map(h => ({ role: h.role, content: h.content })),
+      { role: 'user', content: userMessage },
+    ],
+  });
+  return res.choices?.[0]?.message?.content || '';
+}
+
+// ── DeepSeek (رخيص جداً، وله رصيد تجريبي مجاني عند التسجيل) ───────────────
+// نفس الفكرة — بروتوكول متوافق مع OpenAI، baseURL مختلف بس
+const _deepseekCache = new Map();
+function deepseekClient(apiKey) {
+  if (!_deepseekCache.has(apiKey)) _deepseekCache.set(apiKey, new OpenAI({ apiKey, baseURL: 'https://api.deepseek.com' }));
+  return _deepseekCache.get(apiKey);
+}
+async function callDeepSeek(apiKey, { system, history = [], userMessage, maxTokens, temperature }) {
+  const res = await deepseekClient(apiKey).chat.completions.create({
+    model: 'deepseek-chat', max_tokens: maxTokens, temperature,
+    messages: [
+      ...(system ? [{ role: 'system', content: system }] : []),
+      ...history.map(h => ({ role: h.role, content: h.content })),
+      { role: 'user', content: userMessage },
+    ],
+  });
+  return res.choices?.[0]?.message?.content || '';
+}
+
 const PROVIDERS = {
-  claude: { label: 'Claude',  call: callClaude,  keyField: 'aiApiKey',     prefix: 'sk-ant-' },
-  gemini: { label: 'Gemini',  call: callGemini,  keyField: 'geminiApiKey', prefix: 'AIzaSy'  },
-  openai: { label: 'ChatGPT', call: callOpenAI,  keyField: 'openaiApiKey', prefix: 'sk-'     },
+  claude:   { label: 'Claude',   call: callClaude,   keyField: 'aiApiKey',       prefix: 'sk-ant-' },
+  gemini:   { label: 'Gemini',   call: callGemini,   keyField: 'geminiApiKey',   prefix: 'AIzaSy'  },
+  openai:   { label: 'ChatGPT',  call: callOpenAI,   keyField: 'openaiApiKey',   prefix: 'sk-'     },
+  groq:     { label: 'Groq',     call: callGroq,     keyField: 'groqApiKey',     prefix: 'gsk_'    },
+  deepseek: { label: 'DeepSeek', call: callDeepSeek, keyField: 'deepseekApiKey', prefix: 'sk-'     },
 };
 
 /**
- * getUserProviderKeys — يجلب ويفكّ تشفير كل مفاتيح المستخدم الثلاثة دفعة
- * واحدة. أي مفتاح غير مضبوط يرجع null.
+ * getUserProviderKeys — يجلب ويفكّ تشفير كل مفاتيح المستخدم دفعة واحدة.
+ * أي مفتاح غير مضبوط يرجع null.
  */
 async function getUserProviderKeys(userId) {
-  const user = await User.findById(userId).select('+aiApiKey +geminiApiKey +openaiApiKey');
-  return {
-    claude: user?.aiApiKey     ? decrypt(user.aiApiKey)     : null,
-    gemini: user?.geminiApiKey ? decrypt(user.geminiApiKey) : null,
-    openai: user?.openaiApiKey ? decrypt(user.openaiApiKey) : null,
-  };
+  const user = await User.findById(userId)
+    .select('+aiApiKey +geminiApiKey +openaiApiKey +groqApiKey +deepseekApiKey');
+  const out = {};
+  for (const [id, p] of Object.entries(PROVIDERS)) {
+    out[id] = user?.[p.keyField] ? decrypt(user[p.keyField]) : null;
+  }
+  return out;
 }
 
 /**
@@ -156,4 +199,4 @@ ${successes.map((s, i) => `── إجابة ${i + 1} ──\n${s.text}`).join('
   }
 }
 
-module.exports = { PROVIDERS, getUserProviderKeys, askEnsemble, callClaude, callGemini, callOpenAI };
+module.exports = { PROVIDERS, getUserProviderKeys, askEnsemble, callClaude, callGemini, callOpenAI, callGroq, callDeepSeek };

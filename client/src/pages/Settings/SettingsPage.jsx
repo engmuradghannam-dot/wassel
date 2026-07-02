@@ -45,9 +45,13 @@ export default function SettingsPage() {
       keysUrl:'https://aistudio.google.com/apikey' },
     { id:'openai', name:'ChatGPT', vendor:'OpenAI',     prefix:'sk-',
       keysUrl:'https://platform.openai.com/api-keys' },
+    { id:'groq', name:'Groq', vendor:'Groq (مجاني إلى حد كبير)', prefix:'gsk_',
+      keysUrl:'https://console.groq.com/keys', free:true },
+    { id:'deepseek', name:'DeepSeek', vendor:'DeepSeek (رصيد تجريبي مجاني)', prefix:'sk-',
+      keysUrl:'https://platform.deepseek.com/api_keys', free:true },
   ];
-  const [aiKeyStatus, setAiKeyStatus]   = useState(null); // { claude:{configured,maskedKey}, gemini:{...}, openai:{...} } | null (loading)
-  const [aiKeyInputs, setAiKeyInputs]   = useState({ claude:'', gemini:'', openai:'' });
+  const [aiKeyStatus, setAiKeyStatus]   = useState(null); // { claude:{configured,maskedKey}, gemini:{...}, ... } | null (loading)
+  const [aiKeyInputs, setAiKeyInputs]   = useState({ claude:'', gemini:'', openai:'', groq:'', deepseek:'' });
   const [aiKeySaving, setAiKeySaving]   = useState(''); // provider id currently saving/removing, or ''
   const [aiKeyErrors, setAiKeyErrors]   = useState({});
   const [showAiKey,   setShowAiKey]     = useState({});
