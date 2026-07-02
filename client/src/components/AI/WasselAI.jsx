@@ -42,6 +42,13 @@ const Bubble = ({ msg, onGoToSettings }) => {
             وضع عدم الاتصال
           </Typography>
         )}
+        {msg.providers?.length > 0 && (
+          <Typography variant="caption" sx={{ display: 'block', mt: 0.5, opacity: 0.55 }}>
+            {msg.synthesized
+              ? `مُدمج من: ${msg.providers.join(' + ')}`
+              : `المصدر: ${msg.providers[0]}`}
+          </Typography>
+        )}
         {msg.needsKey && (
           <Button size="small" variant="outlined" onClick={onGoToSettings} sx={{ mt: 1 }}>
             الذهاب للإعدادات
@@ -139,7 +146,9 @@ const WasselAI = () => {
             setMessages(prev => [...prev, {
               role: 'assistant',
               content: res.data.data.message + (res.data.data.debugDetail ? `\n\n(${res.data.data.debugDetail})` : ''),
-              fallback: res.data.data.fallback
+              fallback: res.data.data.fallback,
+              providers: res.data.data.providers,
+              synthesized: res.data.data.synthesized
             }]);
           }
       }
