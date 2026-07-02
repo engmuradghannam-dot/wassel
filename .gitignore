@@ -20,3 +20,7 @@ logs/
 # OS
 .DS_Store
 Thumbs.db
+
+# Build output (generated, not source)
+build/
+client/build/
