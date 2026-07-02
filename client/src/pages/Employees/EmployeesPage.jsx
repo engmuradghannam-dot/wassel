@@ -94,6 +94,24 @@ export default function EmployeesPage() {
     } finally { setSeeding(false); }
   };
 
+  const handleSeedAZ = async (force=false) => {
+    setSeeding(true); setError('');
+    try {
+      const r = await api.post(`/api/employees/seed-az${force?'?force=true':''}`);
+      if (r.data.success) {
+        setAccountsDialog({ accounts: r.data.accounts||[], domain: r.data.domain, password: r.data.defaultPassword, count: r.data.count });
+        setSnack(r.data.message);
+        load();
+      }
+    } catch (e) {
+      const msg = e.response?.data?.message || (AR?'فشل التوليد':'Generation failed');
+      if (msg.includes('يوجد بالفعل') && window.confirm(msg + (AR?'\n\nهل تريد المتابعة؟':'\n\nContinue anyway?'))) {
+        return handleSeedAZ(true);
+      }
+      setError(msg);
+    } finally { setSeeding(false); }
+  };
+
   const set = k => e => setForm(p => ({ ...p, [k]: e.target.value }));
   const setBool = k => e => setForm(p => ({ ...p, [k]: e.target.checked }));
 
@@ -224,6 +242,10 @@ export default function EmployeesPage() {
                   <Button variant="contained" onClick={()=>handleSeedSector(false)} disabled={seeding}
                     startIcon={seeding?<CircularProgress size={16}/>:<Badge/>}>
                     {AR?'توليد فريق مقترح الآن':'Generate Suggested Team Now'}
+                  </Button>
+                  <Button variant="outlined" onClick={()=>handleSeedAZ(false)} disabled={seeding} sx={{ ml:1 }}
+                    startIcon={seeding?<CircularProgress size={16}/>:<Badge/>}>
+                    {AR?'أو: فريق تجريبي A إلى Z (26 موظف بكل الأقسام)':'Or: A-to-Z Demo Team (26 employees, all depts)'}
                   </Button>
                 </TableCell></TableRow>
               ) : filtered.map(emp => (

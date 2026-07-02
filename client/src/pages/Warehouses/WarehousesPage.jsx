@@ -51,6 +51,7 @@ const WarehousesPage = () => {
       if (d.branches)  parts.push(`${d.branches} فرع`);
       if (d.warehouses) parts.push(`${d.warehouses} مستودع`);
       if (d.inventory) parts.push(`${d.inventory} صنف مخزون`);
+      if (d.projects) parts.push(`${d.projects} مشروع`);
       setError(parts.length
         ? `تم إنشاء: ${parts.join('، ')}. حدّث الصفحة.`
         : (d.skipped?.[0] || 'البيانات موجودة مسبقاً بالفعل'));

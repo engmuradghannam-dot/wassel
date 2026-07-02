@@ -81,19 +81,20 @@ router.post('/seed-demo-data', protect, authorize('owner','admin','superadmin'),
     const company = await Company.findById(co);
     if (!company) return res.status(404).json({ success:false, message:'الشركة غير موجودة' });
 
-    const summary = { branches:0, warehouses:0, inventory:0, skipped:[] };
+    const summary = { branches:0, warehouses:0, inventory:0, projects:0, skipped:[] };
 
     // ── 1. الفروع (فرعان: رئيسي + ثانوي) ───────────────────────────────
     const existingBranches = await Branch.countDocuments({ company: co });
     let branches = [];
     if (existingBranches === 0) {
       branches = await Branch.insertMany([
-        { company: co, name: `${company.name} — الفرع الرئيسي`, nameEn: 'Main Branch', code: 'BR-01', isMain: true, address: company.city || '' },
-        { company: co, name: `${company.name} — فرع ٢`,        nameEn: 'Branch 2',    code: 'BR-02', isMain: false },
+        { company: co, name: `${company.name} — فرع A (الرئيسي)`, nameEn: 'Branch A (Main)', code: 'BR-A', isMain: true, address: company.city || '' },
+        { company: co, name: `${company.name} — فرع B`,           nameEn: 'Branch B',        code: 'BR-B', isMain: false },
+        { company: co, name: `${company.name} — فرع C`,           nameEn: 'Branch C',        code: 'BR-C', isMain: false },
       ]);
       summary.branches = branches.length;
     } else {
-      branches = await Branch.find({ company: co }).limit(2);
+      branches = await Branch.find({ company: co }).limit(3);
       summary.skipped.push(`الفروع: يوجد ${existingBranches} فرع مسبقاً`);
     }
 
@@ -102,9 +103,9 @@ router.post('/seed-demo-data', protect, authorize('owner','admin','superadmin'),
     let warehouses = [];
     if (existingWarehouses === 0 && branches.length) {
       warehouses = await Warehouse.insertMany([
-        { company: co, name: 'المستودع الرئيسي',   nameEn: 'Main Warehouse',   code: 'WH-01', branch: branches[0]?._id, capacity: 5000 },
-        { company: co, name: 'مستودع التوزيع',     nameEn: 'Distribution WH',  code: 'WH-02', branch: branches[0]?._id, capacity: 3000 },
-        { company: co, name: 'مستودع الفرع الثاني', nameEn: 'Branch 2 WH',      code: 'WH-03', branch: branches[1]?._id || branches[0]?._id, capacity: 2000 },
+        { company: co, name: 'مستودع فرع A (الرئيسي)', nameEn: 'Branch A Warehouse', code: 'WH-A', branch: branches[0]?._id, capacity: 5000 },
+        { company: co, name: 'مستودع فرع B',            nameEn: 'Branch B Warehouse', code: 'WH-B', branch: branches[1]?._id || branches[0]?._id, capacity: 3000 },
+        { company: co, name: 'مستودع فرع C',            nameEn: 'Branch C Warehouse', code: 'WH-C', branch: branches[2]?._id || branches[0]?._id, capacity: 2000 },
       ]);
       summary.warehouses = warehouses.length;
     } else {
@@ -139,6 +140,36 @@ router.post('/seed-demo-data', protect, authorize('owner','admin','superadmin'),
       summary.inventory = inserted.length;
     } else {
       summary.skipped.push(`المخزون: يوجد ${existingInventory} صنف مسبقاً`);
+    }
+
+    // ── 4. مشاريع تجريبية (خمسة، بحالات وأنواع متنوعة) ───────────────────
+    const Project  = require('../models/Project');
+    const Employee = require('../models/Employee');
+    const existingProjects = await Project.countDocuments({ company: co });
+    if (existingProjects === 0) {
+      const anyManager = await Employee.findOne({ company: co }).sort({ createdAt: 1 });
+      if (!anyManager) {
+        summary.skipped.push('المشاريع: تحتاج موظف واحد على الأقل كمدير مشروع — ولّد الموظفين أولاً (A-Z أو حسب النشاط)');
+      } else {
+        const year = new Date().getFullYear();
+        const DEMO_PROJECTS = [
+          { name:`مشروع A — توريد معدات مكتبية`, type:'internal',     status:'active',    priority:'medium',   contractValue:85000,  budgetCost:70000 },
+          { name:`مشروع B — تطوير نظام لوجستي`,  type:'it',           status:'planning',  priority:'high',     contractValue:220000, budgetCost:180000 },
+          { name:`مشروع C — صيانة دورية للفروع`, type:'maintenance',  status:'active',    priority:'low',      contractValue:45000,  budgetCost:38000 },
+          { name:`مشروع D — توسعة المستودع الرئيسي`, type:'construction', status:'on_hold', priority:'critical', contractValue:650000, budgetCost:600000 },
+          { name:`مشروع E — استشارات تحسين العمليات`, type:'consulting', status:'completed', priority:'medium', contractValue:120000, budgetCost:95000 },
+        ];
+        const inserted = await Project.insertMany(DEMO_PROJECTS.map((p, i) => ({
+          company: co, code: `PRJ-${year}-DEMO${String(i + 1).padStart(2,'0')}`,
+          name: p.name, type: p.type, status: p.status, priority: p.priority,
+          contractValue: p.contractValue, budgetCost: p.budgetCost,
+          currency: 'SAR', manager: anyManager._id,
+          startDate: new Date(), progressPct: p.status === 'completed' ? 100 : p.status === 'active' ? 45 : 0,
+        })));
+        summary.projects = inserted.length;
+      }
+    } else {
+      summary.skipped.push(`المشاريع: يوجد ${existingProjects} مشروع مسبقاً`);
     }
 
     res.json({ success: true, message: 'تم إعداد البيانات التجريبية', data: summary });

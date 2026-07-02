@@ -53,6 +53,96 @@ router.post('/seed-sector', protect, authorize('owner','admin','superadmin'), as
   }
 });
 
+// ── Generate the curated A-to-Z demo roster (26 employees, real titles,
+//    mixed nationalities for Nitaqat realism) — alternative to seed-sector
+router.post('/seed-az', protect, authorize('owner','admin','superadmin'), async (req, res) => {
+  try {
+    const co = getCompany(req);
+    if (!co) return res.status(400).json({ success:false, message:'الحساب غير مرتبط بشركة' });
+
+    const existingCount = await Employee.countDocuments({ company: co });
+    if (existingCount > 0 && req.query.force !== 'true') {
+      return res.status(400).json({
+        success:false,
+        message:`يوجد بالفعل ${existingCount} موظف. أضف ?force=true لإعادة التوليد فوق الموجود (لن يحذف الموظفين الحاليين).`,
+      });
+    }
+
+    const company = await Company.findById(co);
+    if (!company) return res.status(404).json({ success:false, message:'الشركة غير موجودة' });
+
+    const bcrypt = require('bcryptjs');
+    const User = require('../models/User');
+    const { AZ_EMPLOYEES, SALARY_RANGE_BY_LEVEL } = require('../config/azDemoData');
+
+    const slugify = (str) => str.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-zA-Z0-9]/g,'').toLowerCase() || 'company';
+    const domain = `${slugify(company.name)}.wassel.local`;
+    const defaultPassword = 'Welcome@2026';
+    const hashedPassword = await bcrypt.hash(defaultPassword, 12);
+    const randomSalary = (level) => {
+      const [min, max] = SALARY_RANGE_BY_LEVEL[level] || SALARY_RANGE_BY_LEVEL[4];
+      return Math.round((min + Math.random() * (max - min)) / 100) * 100;
+    };
+
+    // المستوى 1 و2 يحصلون على حساب دخول (إدارة عليا + مدراء أقسام)
+    const createdByLetter = {};
+    const createdAccounts = [];
+
+    // تمريرة أولى: ننشئ الجميع بدون ربط manager (نحتاج IDs الأقسام أولاً)
+    for (const e of AZ_EMPLOYEES) {
+      let linkedUser = null;
+      if (e.level <= 2) {
+        const email = `${slugify(e.nameEn.split(' ')[0])}@${domain}`;
+        linkedUser = await User.create({
+          name: e.name, email, password: hashedPassword, company: co,
+          role: 'manager',
+          isActive: true, mustChangePassword: true,
+        });
+        createdAccounts.push({ name: e.name, email, password: defaultPassword, position: e.position });
+      }
+
+      const emp = await Employee.create({
+        company: co,
+        employeeId: `EMP-${e.letter}${Date.now().toString(36).toUpperCase().slice(-5)}`,
+        name: e.name, position: e.position, positionEn: e.positionEn,
+        department: e.dept, grade: `Level ${e.level}`,
+        nationality: e.nationality,
+        email: `${slugify(e.nameEn.split(' ')[0])}@${domain}`,
+        employeeType: 'full_time', status: 'active', hireDate: new Date(),
+        salary: randomSalary(e.level),
+        canApprovePR: e.level <= 2,
+        approvalLevel: e.level === 1 ? 'ceo' : e.level === 2 ? 'manager' : 'none',
+        user: linkedUser?._id || undefined,
+      });
+      createdByLetter[e.letter] = emp;
+    }
+
+    // تمريرة ثانية: نربط كل موظف بمديره (مدير القسم، أو الرئيس التنفيذي
+    // لمدراء الأقسام أنفسهم)
+    const ceo = createdByLetter['A'];
+    for (const e of AZ_EMPLOYEES) {
+      if (e.level === 1) continue; // الرئيس التنفيذي بدون مدير
+      const deptManager = AZ_EMPLOYEES.find(x => x.dept === e.dept && x.level === 2 && x.letter !== e.letter);
+      const managerEmp = e.level === 2 ? ceo : (deptManager ? createdByLetter[deptManager.letter] : ceo);
+      await Employee.findByIdAndUpdate(createdByLetter[e.letter]._id, {
+        manager: managerEmp?._id,
+        director: ceo?._id,
+      });
+    }
+
+    res.status(201).json({
+      success: true,
+      count: AZ_EMPLOYEES.length,
+      accounts: createdAccounts,
+      domain, defaultPassword,
+      message: `تم إنشاء ${AZ_EMPLOYEES.length} موظف (A-Z)، منهم ${createdAccounts.length} بحساب دخول فعّال`,
+    });
+  } catch (e) {
+    console.error('seed-az error:', e.message);
+    res.status(500).json({ success:false, message:e.message, detail:e.message });
+  }
+});
+
 router.route('/:id')
   .get(   protect, getEmployee)
   .put(   protect, authorize('owner','admin','manager'), updateEmployee)
