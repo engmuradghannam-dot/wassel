@@ -302,8 +302,24 @@ const PORT = process.env.PORT || 5000;
 mongoose.connect(process.env.MONGODB_URI, {
   serverSelectionTimeoutMS: 30000,
   socketTimeoutMS: 45000
-}).then(() => {
+}).then(async () => {
   console.log('✅ MongoDB Connected');
+
+  // ── تنظيف فهرس قديم متبقٍّ من نسخة سابقة (قبل إعادة تسمية الحقل من
+  // employeeNumber إلى employeeId) — فهرس فريد غير sparse على حقل غير
+  // موجود بالسكيما الحالية، فكل موظف بدونه يُسجَّل بقيمة null، ويسمح
+  // MongoDB بقيمة null واحدة فقط عبر كامل الفهرس — أي موظف ثاني (بأي
+  // شركة) يفشل بخطأ E11000. آمن للتكرار: لو الفهرس محذوف مسبقاً لا يفعل شيء.
+  try {
+    const Employee = require('./models/Employee');
+    await Employee.collection.dropIndex('employeeNumber_1');
+    console.log('🧹 Dropped stale employeeNumber_1 index');
+  } catch (idxErr) {
+    if (idxErr.codeName !== 'IndexNotFound') {
+      console.error('Index cleanup warning:', idxErr.message);
+    }
+  }
+
   server.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
 }).catch(err => {
   console.error('❌ MongoDB error:', err.message);

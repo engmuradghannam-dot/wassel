@@ -51,13 +51,21 @@ exports.getMe = async (req, res) => {
 
     res.json({ success: true, data: user });
 
-    // ── توليد بيانات تجريبية تلقائياً لشركات موجودة من قبل هذا النظام
-    // (لن يتكرر أبداً — autoSeedCompanyData يضبط dataSeeded=true فوراً
-    // كأول خطوة، فحتى لو جاء طلبين متزامنين ما يُشغَّل مرتين) ─────────
-    if (user.company?._id && !user.company.dataSeeded && ['owner','admin','superadmin'].includes(user.role)) {
-      const { autoSeedCompanyData } = require('../services/autoSeedCompany');
-      autoSeedCompanyData(user.company._id, user._id)
-        .catch(err => console.error('[getMe] auto-seed background error:', err.message));
+    // ── توليد بيانات تجريبية تلقائياً لشركات موجودة من قبل هذا النظام.
+    // نتحقق من العدد الفعلي مو بس العلامة — لو انضبطت dataSeeded=true من
+    // محاولة فاشلة سابقاً (مثل خطأ فهرس قديم) بينما لا يوجد أي موظف فعلياً،
+    // نعيد المحاولة تلقائياً مرة إضافية بدل ما تبقى عالقة للأبد.
+    if (user.company?._id && ['owner','admin','superadmin'].includes(user.role)) {
+      const Employee = require('../models/Employee');
+      const needsSeed = !user.company.dataSeeded
+        || (await Employee.countDocuments({ company: user.company._id })) === 0;
+      if (needsSeed) {
+        const Company = require('../models/Company');
+        await Company.findByIdAndUpdate(user.company._id, { dataSeeded: false }); // يسمح بإعادة المحاولة
+        const { autoSeedCompanyData } = require('../services/autoSeedCompany');
+        autoSeedCompanyData(user.company._id, user._id)
+          .catch(err => console.error('[getMe] auto-seed background error:', err.message));
+      }
     }
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
