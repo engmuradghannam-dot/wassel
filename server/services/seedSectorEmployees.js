@@ -54,7 +54,10 @@ async function seedSectorEmployees({ companyId, companyName, industry, ownerUser
   const template = SECTOR_POSITIONS[industry] || SECTOR_POSITIONS['other'];
   if (!template || !template.length) return [];
 
-  const domain = `${slugify(companyName)}.wassel.local`;
+  // نطاق فريد لكل شركة فعليًا (مو بس اسمها) — اسمين متشابهين لشركتين
+  // مختلفتين (أو تشغيل التوليد أكثر من مرة) كانا ينتجان نفس البريد
+  // بالضبط ويسببان خطأ تكرار (E11000) يوقف كل عملية التوليد
+  const domain = `${slugify(companyName)}-${String(companyId).slice(-6)}.wassel.local`;
   const defaultPassword = 'Welcome@2026'; // كلمة مرور افتراضية — يجب تغييرها عند أول دخول
   const hashedPassword = await bcrypt.hash(defaultPassword, 12);
 
@@ -75,16 +78,22 @@ async function seedSectorEmployees({ companyId, companyName, industry, ownerUser
 
     let linkedUser = null;
     if (pos.hasLogin) {
-      linkedUser = await User.create({
-        name,
-        email,
-        password: hashedPassword,
-        company:  companyId,
-        role:     pos.level <= 2 ? 'manager' : 'employee',
-        isActive: true,
-        mustChangePassword: true, // علم اختياري — الواجهة تستخدمه لاحقاً لإجبار تغيير كلمة المرور
-      });
-      createdAccounts.push({ name, email, password: defaultPassword, position: pos.posAr });
+      try {
+        linkedUser = await User.create({
+          name,
+          email,
+          password: hashedPassword,
+          company:  companyId,
+          role:     pos.level <= 2 ? 'manager' : 'employee',
+          isActive: true,
+          mustChangePassword: true, // علم اختياري — الواجهة تستخدمه لاحقاً لإجبار تغيير كلمة المرور
+        });
+        createdAccounts.push({ name, email, password: defaultPassword, position: pos.posAr });
+      } catch (err) {
+        // بريد مكرر (نادر جداً بعد تفريد النطاق أعلاه) — نتابع بإنشاء سجل
+        // الموظف بدون حساب دخول بدل ما نوقف كل عملية التوليد بسبب موظف واحد
+        console.error(`[seedSectorEmployees] فشل إنشاء حساب لـ ${email}:`, err.message);
+      }
     }
 
     const employeeId = `EMP-${Date.now().toString(36).toUpperCase()}${i}${Math.floor(Math.random()*10)}`;

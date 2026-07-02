@@ -194,11 +194,6 @@ export default function EmployeesPage() {
           </Box>
           <Box sx={{ display:'flex', gap:1 }}>
             <IconButton onClick={load} size="small"><Refresh/></IconButton>
-            <Button variant="outlined" onClick={()=>handleSeedSector(false)} disabled={seeding}
-              startIcon={seeding?<CircularProgress size={16}/>:<Badge/>}
-              sx={{ borderRadius:2 }}>
-              {AR?'توليد فريق مقترح':'Generate Suggested Team'}
-            </Button>
             <Button variant="contained" startIcon={<Add/>} onClick={openAdd}
               sx={{ bgcolor:'#1565c0', '&:hover':{bgcolor:'#0d47a1'}, borderRadius:2 }}>
               {AR?'+ موظف جديد':'+ New Employee'}
@@ -237,15 +232,12 @@ export default function EmployeesPage() {
                     {AR?'لا يوجد موظفون بعد':'No employees yet'}
                   </Typography>
                   <Typography variant="caption" color="text.secondary" display="block" sx={{ mb:2 }}>
-                    {AR?'يمكنك توليد فريق مقترح بمسميات وظيفية وحسابات دخول جاهزة حسب نشاط شركتك':'Generate a suggested team with job titles and login accounts based on your business sector'}
+                    {AR
+                      ? 'يُولَّد فريق تجريبي بمسميات وظيفية وحسابات دخول تلقائياً — إن لم يظهر خلال لحظات، حدّث الصفحة'
+                      : 'A demo team with job titles and login accounts is generated automatically — refresh the page if it doesn\'t appear in a moment'}
                   </Typography>
-                  <Button variant="contained" onClick={()=>handleSeedSector(false)} disabled={seeding}
-                    startIcon={seeding?<CircularProgress size={16}/>:<Badge/>}>
-                    {AR?'توليد فريق مقترح الآن':'Generate Suggested Team Now'}
-                  </Button>
-                  <Button variant="outlined" onClick={()=>handleSeedAZ(false)} disabled={seeding} sx={{ ml:1 }}
-                    startIcon={seeding?<CircularProgress size={16}/>:<Badge/>}>
-                    {AR?'أو: فريق تجريبي A إلى Z (26 موظف بكل الأقسام)':'Or: A-to-Z Demo Team (26 employees, all depts)'}
+                  <Button variant="outlined" onClick={load} startIcon={<Refresh/>}>
+                    {AR?'تحديث':'Refresh'}
                   </Button>
                 </TableCell></TableRow>
               ) : filtered.map(emp => (

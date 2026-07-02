@@ -123,13 +123,15 @@ const WarehousesPage = () => {
           <Paper sx={{ p: 6, textAlign: 'center' }}>
             <WarehouseIcon sx={{ fontSize: 64, color: 'text.disabled', mb: 2 }} />
             <Typography variant="h6" color="text.secondary">لا توجد مستودعات</Typography>
-            <Box sx={{ display: 'flex', gap: 1.5, justifyContent: 'center', mt: 2 }}>
+            <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 1, mb: 2 }}>
+              تُولَّد فروع ومستودعات تجريبية تلقائياً — إن لم تظهر خلال لحظات، حدّث الصفحة
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 1.5, justifyContent: 'center' }}>
               <Button startIcon={<Add />} onClick={() => openDialog()} variant="contained">
                 إضافة أول مستودع
               </Button>
-              <Button onClick={handleSeedDemo} disabled={seeding} variant="outlined"
-                startIcon={seeding ? <CircularProgress size={16}/> : undefined}>
-                {seeding ? 'جارٍ التوليد...' : 'توليد فروع ومستودعات ومخزون تجريبي'}
+              <Button onClick={load} variant="outlined" startIcon={<Refresh/>}>
+                تحديث
               </Button>
             </Box>
           </Paper>

@@ -76,7 +76,7 @@ router.post('/seed-az', protect, authorize('owner','admin','superadmin'), async 
     const { AZ_EMPLOYEES, SALARY_RANGE_BY_LEVEL } = require('../config/azDemoData');
 
     const slugify = (str) => str.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-zA-Z0-9]/g,'').toLowerCase() || 'company';
-    const domain = `${slugify(company.name)}.wassel.local`;
+    const domain = `${slugify(company.name)}-${String(co).slice(-6)}.wassel.local`;
     const defaultPassword = 'Welcome@2026';
     const hashedPassword = await bcrypt.hash(defaultPassword, 12);
     const randomSalary = (level) => {
@@ -93,12 +93,16 @@ router.post('/seed-az', protect, authorize('owner','admin','superadmin'), async 
       let linkedUser = null;
       if (e.level <= 2) {
         const email = `${slugify(e.nameEn.split(' ')[0])}@${domain}`;
-        linkedUser = await User.create({
-          name: e.name, email, password: hashedPassword, company: co,
-          role: 'manager',
-          isActive: true, mustChangePassword: true,
-        });
-        createdAccounts.push({ name: e.name, email, password: defaultPassword, position: e.position });
+        try {
+          linkedUser = await User.create({
+            name: e.name, email, password: hashedPassword, company: co,
+            role: 'manager',
+            isActive: true, mustChangePassword: true,
+          });
+          createdAccounts.push({ name: e.name, email, password: defaultPassword, position: e.position });
+        } catch (err) {
+          console.error(`[seed-az] فشل إنشاء حساب لـ ${email}:`, err.message);
+        }
       }
 
       const emp = await Employee.create({

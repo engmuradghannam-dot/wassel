@@ -157,6 +157,10 @@ const companySchema = new mongoose.Schema({
 
   // ─── Status ───────────────────────────────────────────────────
   isActive:    { type: Boolean, default: true },
+  // هل تم توليد بيانات تجريبية تلقائياً لهذه الشركة؟ (موظفين، فروع،
+  // مستودعات، مخزون، مشاريع، عملاء/موردين، أوامر شراء، عروض أسعار) —
+  // يمنع التكرار ويضمن أنه يحدث مرة واحدة فقط لكل شركة
+  dataSeeded:  { type: Boolean, default: false },
   isSuspended: { type: Boolean, default: false },
   suspendReason: { type: String },
 

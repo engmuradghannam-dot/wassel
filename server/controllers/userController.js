@@ -107,18 +107,14 @@ exports.register = async (req, res) => {
     // ── 3. Link owner ──────────────────────────────────────────────────────
     await Company.findByIdAndUpdate(company._id, { owner: user._id, createdBy: user._id });
 
-    // ── 4. Auto-seed sector-suggested employees + login accounts ───────────
+    // ── 4. توليد بيانات تجريبية كاملة تلقائياً (موظفين + فروع + مستودعات +
+    // مخزون + موردين/عملاء + مشاريع + أوامر شراء + عروض أسعار) ──────────
     let seedResult = null;
     try {
-      const { seedSectorEmployees } = require('../services/seedSectorEmployees');
-      seedResult = await seedSectorEmployees({
-        companyId:   company._id,
-        companyName: company.name,
-        industry:    company.industry,
-        ownerUserId: user._id,
-      });
+      const { autoSeedCompanyData } = require('../services/autoSeedCompany');
+      seedResult = await autoSeedCompanyData(company._id, user._id);
     } catch (seedErr) {
-      console.error('Auto-seed employees failed (non-critical):', seedErr.message);
+      console.error('Auto-seed company data failed (non-critical):', seedErr.message);
     }
 
     const token = signToken(user);
@@ -130,8 +126,8 @@ exports.register = async (req, res) => {
       token,
       data: { user: userData, company: { _id:company._id, name:company.name, industry:company.industry, plan:company.plan, commercialReg:company.commercialReg, vatNumber:company.vatNumber } },
       user: userData,
-      seededEmployees: seedResult ? seedResult.employees.length : 0,
-      seededAccounts:  seedResult ? seedResult.accounts.length  : 0,
+      seededEmployees: seedResult ? seedResult.employees : 0,
+      seededAccounts:  seedResult ? seedResult.employees : 0,
     });
 
   } catch (err) {
