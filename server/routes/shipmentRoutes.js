@@ -3,6 +3,7 @@ const router   = express.Router();
 const { protect, authorize, getCompany} = require('../middleware/auth');
 const Shipment = require('../models/Shipment');
 const { buildFilter } = require('../middleware/tenant');
+const { getNextSequence } = require('../services/sequence');
 
 router.get('/', protect, async (req, res) => {
   try {
@@ -18,11 +19,11 @@ router.get('/', protect, async (req, res) => {
 
 router.post('/', protect, authorize('admin','manager','superadmin'), async (req, res) => {
   try {
-    const count = await Shipment.countDocuments({ company: getCompany(req) }) + 1;
+    const { formatted: shipmentNumber } = await getNextSequence(getCompany(req), 'shipment', { prefix: 'SHP' });
     const shipment = await Shipment.create({
       ...req.body,
       company: getCompany(req),
-      shipmentNumber: `SHP-${new Date().getFullYear()}-${String(count).padStart(5,'0')}`,
+      shipmentNumber,
       createdBy: req.user.id
     });
     res.status(201).json({ success: true, data: shipment });

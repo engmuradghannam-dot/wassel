@@ -14,6 +14,7 @@ import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
 import Layout from '../../components/Layout';
 import FileUploader from '../../components/FileUploader';
+import { openAuthenticatedFile } from '../../utils/authDownload';
 
 const EMPTY_FORM = {
   supplier: null,
@@ -400,9 +401,9 @@ export default function PurchaseOrdersPage() {
                 </Box>
                 <Box sx={{ display:'flex', alignItems:'center', gap:0.5 }}>
                   <Tooltip title={AR?'تصدير PDF':'Export PDF'}>
-                    <IconButton size="small" component="a"
-                      href={`${api.defaults.baseURL}/api/purchase-orders/${viewItem._id}/pdf`}
-                      target="_blank" rel="noreferrer">
+                    <IconButton size="small"
+                      onClick={() => openAuthenticatedFile(`/api/purchase-orders/${viewItem._id}/pdf`)
+                        .catch(() => setSnack(AR?'فشل فتح الملف':'Failed to open file'))}>
                       <PictureAsPdf sx={{ fontSize:18, color:'#d32f2f' }}/>
                     </IconButton>
                   </Tooltip>
@@ -473,7 +474,15 @@ export default function PurchaseOrdersPage() {
                 uploadUrl={`/api/purchase-orders/${viewItem._id}/documents`}
                 deleteUrlBuilder={(fileId) => `/api/files/${fileId}`}
                 existingFiles={(viewItem.attachments || []).map(a => ({ ...a, fileId: a.url?.split('/').pop() }))}
-                onChange={(updated) => setViewItem(p => ({ ...p, attachments: updated }))}
+                onChange={(updated) => {
+                  setViewItem(p => ({ ...p, attachments: updated }));
+                  // Keep the underlying list in sync too, so closing and
+                  // reopening this same order (without a full page refresh)
+                  // still shows the attachment that was just uploaded —
+                  // previously only the dialog's local copy was updated,
+                  // making a successfully-saved upload appear to vanish.
+                  setOrders(list => list.map(o => o._id === viewItem._id ? { ...o, attachments: updated } : o));
+                }}
                 docTypeOptions={[
                   { value:'quotation',   label:'Quotation',   labelAr:'عرض سعر' },
                   { value:'tax_invoice', label:'Tax Invoice', labelAr:'فاتورة ضريبية' },

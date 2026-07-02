@@ -9,10 +9,12 @@ import {
 } from '@mui/material';
 import {
   Add, FolderOpen, Edit, People, AttachMoney,
-  Schedule, CheckCircle, Refresh
+  Schedule, CheckCircle, Refresh, Visibility, PictureAsPdf, Close, CloudDownload
 } from '@mui/icons-material';
 import Layout from '../../components/Layout';
 import api from '../../services/api';
+import FileUploader from '../../components/FileUploader';
+import { openAuthenticatedFile } from '../../utils/authDownload';
 
 const statusConfig = {
   planning:  { label: 'تخطيط',  color: 'info' },
@@ -42,6 +44,7 @@ const ProjectsPage = () => {
   const [loading, setLoading]   = useState(true);
   const [tab, setTab]           = useState(0);
   const [dialog, setDialog]     = useState(false);
+  const [viewItem, setViewItem] = useState(null);
   const [form, setForm]         = useState(empty);
   const [saving, setSaving]     = useState(false);
   const [error, setError]       = useState('');
@@ -151,7 +154,9 @@ const ProjectsPage = () => {
                 : null;
               return (
                 <Grid item xs={12} sm={6} lg={4} key={p._id}>
-                  <Card sx={{ borderRadius: 3, height: '100%', transition: 'all 0.2s', '&:hover': { boxShadow: 4, transform: 'translateY(-2px)' } }}>
+                  <Card
+                    onClick={() => setViewItem(p)}
+                    sx={{ borderRadius: 3, height: '100%', cursor: 'pointer', transition: 'all 0.2s', '&:hover': { boxShadow: 4, transform: 'translateY(-2px)' } }}>
                     <CardContent>
                       {/* Header */}
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1.5 }}>
@@ -297,6 +302,71 @@ const ProjectsPage = () => {
             </Button>
           </DialogActions>
         </Dialog>
+
+        {/* View / Documents / Export Dialog */}
+        {viewItem && (
+          <Dialog open maxWidth="sm" fullWidth onClose={() => setViewItem(null)} PaperProps={{ sx: { borderRadius: 3 } }}>
+            <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Box>
+                <Typography variant="caption" color="text.secondary" fontFamily="monospace">{viewItem.code}</Typography>
+                <Typography variant="h6" fontWeight={700} lineHeight={1.2}>{viewItem.name}</Typography>
+              </Box>
+              <Box sx={{ display: 'flex', gap: 0.5 }}>
+                <Button
+                  size="small" startIcon={<CloudDownload />}
+                  onClick={() => openAuthenticatedFile(`/api/projects/${viewItem._id}/report`)
+                    .catch(() => setSnack('فشل فتح التقرير'))}
+                  variant="outlined"
+                >
+                  تصدير تقرير PDF
+                </Button>
+                <IconButton onClick={() => setViewItem(null)} size="small"><Close sx={{ fontSize: 18 }} /></IconButton>
+              </Box>
+            </DialogTitle>
+            <DialogContent dividers>
+              <Grid container spacing={1.5} sx={{ mb: 2 }}>
+                <Grid item xs={6}>
+                  <Typography variant="caption" color="text.secondary">الحالة</Typography>
+                  <Box><Chip label={statusConfig[viewItem.status]?.label || viewItem.status} color={statusConfig[viewItem.status]?.color} size="small" /></Box>
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography variant="caption" color="text.secondary">نسبة الإنجاز</Typography>
+                  <Typography fontWeight={700}>{viewItem.progressPct || 0}%</Typography>
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography variant="caption" color="text.secondary">قيمة العقد</Typography>
+                  <Typography fontWeight={700}>{(viewItem.contractValue || 0).toLocaleString()} ر.س</Typography>
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography variant="caption" color="text.secondary">الميزانية</Typography>
+                  <Typography fontWeight={700}>{(viewItem.budgetCost || 0).toLocaleString()} ر.س</Typography>
+                </Grid>
+              </Grid>
+
+              {/* ── المستندات (عقد، BOQ، مخططات، أي وثيقة) ── */}
+              <FileUploader
+                uploadUrl={`/api/projects/${viewItem._id}/documents`}
+                deleteUrlBuilder={(fileId) => `/api/files/${fileId}`}
+                existingFiles={(viewItem.documents || []).map(d => ({ ...d, fileId: d.url?.split('/').pop() }))}
+                onChange={(updated) => {
+                  setViewItem(p => ({ ...p, documents: updated }));
+                  setProjects(list => list.map(pr => pr._id === viewItem._id ? { ...pr, documents: updated } : pr));
+                }}
+                docTypeOptions={[
+                  { value:'contract',  label:'Contract',  labelAr:'عقد' },
+                  { value:'boq',       label:'BOQ',        labelAr:'جدول كميات' },
+                  { value:'drawing',   label:'Drawing',    labelAr:'مخطط' },
+                  { value:'quotation', label:'Quotation',  labelAr:'عرض سعر' },
+                  { value:'other',     label:'Other',      labelAr:'أخرى' },
+                ]}
+                label="المستندات"
+              />
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={() => setViewItem(null)}>إغلاق</Button>
+            </DialogActions>
+          </Dialog>
+        )}
 
         <Snackbar open={!!snack} autoHideDuration={3000} onClose={() => setSnack('')} message={snack} />
       </Box>

@@ -9,6 +9,7 @@ import {
 } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
 import api from '../services/api';
+import { openAuthenticatedFile } from '../utils/authDownload';
 
 const FILE_ICON = (mimeType = '') => {
   if (mimeType.includes('pdf')) return <PictureAsPdf sx={{ fontSize: 18, color: '#d32f2f' }} />;
@@ -127,9 +128,17 @@ export default function FileUploader({
                   <Chip label={f.docType || f.type} size="small" sx={{ fontSize: '0.65rem', height: 18 }} />
                 ) : null}
                 <Tooltip title={AR ? 'تنزيل / عرض' : 'Download / View'}>
-                  <IconButton size="small" component="a"
-                    href={/^https?:\/\//.test(f.url) ? f.url : `${api.defaults.baseURL}${f.url}`}
-                    target="_blank" rel="noreferrer">
+                  <IconButton
+                    size="small"
+                    onClick={() => {
+                      const isAbsolute = /^https?:\/\//.test(f.url);
+                      if (isAbsolute) {
+                        window.open(f.url, '_blank', 'noopener,noreferrer');
+                      } else {
+                        openAuthenticatedFile(f.url).catch(() =>
+                          setError(AR ? 'فشل فتح الملف' : 'Failed to open file'));
+                      }
+                    }}>
                     <Download sx={{ fontSize: 14 }} />
                   </IconButton>
                 </Tooltip>

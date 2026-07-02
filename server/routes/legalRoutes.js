@@ -4,6 +4,7 @@ const { protect, authorize, getCompany } = require('../middleware/auth');
 const { buildFilter } = require('../middleware/tenant');
 const LegalCase = require('../models/legal/LegalCase');
 const PurchaseOrder = require('../models/PurchaseOrder');
+const { getNextSequence } = require('../services/sequence');
 
 router.get('/', protect, async (req, res) => {
   try {
@@ -53,11 +54,11 @@ router.put('/:id/convert-to-po', protect, authorize('owner','admin','superadmin'
     if (!lc.financialJudgment?.hasFinancial || lc.financialJudgment.direction !== 'payable') {
       return res.status(400).json({ success:false, message:'لا يوجد حكم مالي واجب الدفع' });
     }
-    const count = await PurchaseOrder.countDocuments({ company:co }) + 1;
+    const { formatted: orderNumber } = await getNextSequence(co, 'purchase_order', { prefix: 'PO' });
     const po = await PurchaseOrder.create({
       company: co,
       supplier: req.body.supplier,
-      orderNumber: `PO-LEGAL-${new Date().getFullYear()}-${String(count).padStart(4,'0')}`,
+      orderNumber,
       legalCase: lc._id,
       items: [{ name:`حكم قضائي - ${lc.title}`, quantity:1, unitPrice:lc.financialJudgment.amount, taxRate:0, total:lc.financialJudgment.amount }],
       subtotal: lc.financialJudgment.amount, taxAmount:0, total:lc.financialJudgment.amount, totalAmount:lc.financialJudgment.amount,

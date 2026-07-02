@@ -4,6 +4,7 @@ const router   = express.Router();
 const { protect, authorize, getCompany } = require('../middleware/auth');
 const SalesOrder = require('../models/SalesOrder');
 const { buildFilter } = require('../middleware/tenant');
+const { getNextSequence } = require('../services/sequence');
 
 const calcTotals = (items = []) => {
   let subtotal = 0, taxAmount = 0;
@@ -36,11 +37,11 @@ router.post('/', protect, authorize('admin','manager','superadmin'), async (req,
   try {
     const { items, ...rest } = req.body;
     const totals = calcTotals(items);
-    const count  = await SalesOrder.countDocuments({ company: getCompany(req) }) + 1;
+    const { formatted: orderNumber } = await getNextSequence(getCompany(req), 'sales_order', { prefix: 'SO' });
     const order  = await SalesOrder.create({
       ...rest, ...totals,
       company: getCompany(req),
-      orderNumber: `SO-${new Date().getFullYear()}-${String(count).padStart(5,'0')}`,
+      orderNumber,
       remainingAmount: totals.total,
       createdBy: req.user.id
     });
@@ -116,8 +117,7 @@ router.put('/:id/convert-to-invoice', protect, authorize('admin','manager','supe
     if (!order) return res.status(404).json({ success: false, message: 'عرض السعر غير موجود' });
     if (order.type !== 'quotation') return res.status(400).json({ success: false, message: 'هذا ليس عرض سعر' });
 
-    const invCount   = await SalesOrder.countDocuments({ company: order.company, type: 'invoice' }) + 1;
-    const invoiceNum = `INV-${new Date().getFullYear()}-${String(invCount).padStart(5,'0')}`;
+    const { formatted: invoiceNum } = await getNextSequence(order.company, 'invoice', { prefix: 'INV' });
 
     order.type          = 'invoice';
     order.status        = 'confirmed';

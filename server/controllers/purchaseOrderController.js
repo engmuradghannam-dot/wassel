@@ -2,6 +2,7 @@ const PurchaseOrder = require('../models/PurchaseOrder');
 const { getCompany }    = require('../middleware/auth');
 const { buildFilter }   = require('../middleware/tenant');
 const BL = require('../services/businessLogic');
+const { getNextSequence } = require('../services/sequence');
 
 exports.getPurchaseOrders = async (req, res) => {
   try {
@@ -41,12 +42,12 @@ exports.createPurchaseOrder = async (req, res) => {
       return { ...it, quantity: it.quantity||it.qty, total: lineTotal+lineTax };
     });
 
-    const count = await PurchaseOrder.countDocuments({ company:co }) + 1;
+    const { formatted: orderNumber } = await getNextSequence(co, 'purchase_order', { prefix: 'PO' });
     const order = await PurchaseOrder.create({
       ...rest, company:co,
       items: processedItems, subtotal, taxAmount,
       total: subtotal+taxAmount, totalAmount: subtotal+taxAmount,
-      orderNumber: `PO-${new Date().getFullYear()}-${String(count).padStart(5,'0')}`,
+      orderNumber,
       createdBy: req.user._id,
     });
 
@@ -104,6 +105,12 @@ exports.receivePurchaseOrder = async (req, res) => {
         unitCost:    order.items.find(i=>i.inventory?.toString()===r.inventoryId)?.unitPrice || 0,
       })),
     });
+
+    // ── الترابط المحاسبي: استلام أمر الشراء يُنشئ قيد مزدوج تلقائي
+    // Dr المخزون + ضريبة المدخلات | Cr ذمم دائنة (المورد) ──────────────
+    const Acct = require('../services/accountingPosting');
+    Acct.postPurchaseReceipt({ company: co, po: order, userId: req.user._id })
+      .catch(err => console.error('[PurchaseOrder] فشل ترحيل قيد استلام الشراء:', err.message));
 
     res.json({ success:true, data:order, message:'تم تسجيل الاستلام وتحديث المخزون' });
   } catch (err) { res.status(500).json({ success:false, message:err.message }); }

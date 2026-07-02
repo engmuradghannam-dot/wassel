@@ -37,16 +37,21 @@ export const ThemeSettingsProvider = ({ children }) => {
     if (meta) meta.setAttribute('content', resolvedMode === 'dark' ? '#1f1f1f' : '#faf9f8');
   }, [resolvedMode]);
 
+  const [syncError, setSyncError] = useState('');
+
   const persistToBackend = useCallback(async (patch) => {
     try {
       const token  = localStorage.getItem('token');
       const userId = localStorage.getItem('userId');
       if (!token || !userId) return;
-      await api.put(`/api/users/${userId}`, patch);
-    } catch {
-      // Silent — theme still works locally even if sync fails (e.g. offline).
-      // Note: the shared api client force-redirects to /login on 401, which
-      // is desired app-wide behavior and not overridden here.
+      await api.put(`/api/users/${userId}`, patch, { timeout: 8000 });
+      setSyncError('');
+    } catch (err) {
+      // Local selection already applied instantly (see setMode/setAccent
+      // below) — this only affects whether the choice follows the user to
+      // other devices. We surface it instead of failing silently so a real
+      // backend problem is visible rather than looking like "it didn't save".
+      setSyncError(err.response?.data?.message || err.message || 'sync failed');
     }
   }, []);
 
@@ -80,8 +85,8 @@ export const ThemeSettingsProvider = ({ children }) => {
   }, []);
 
   const value = useMemo(() => ({
-    mode, resolvedMode, accent, setMode, setAccent,
-  }), [mode, resolvedMode, accent, setMode, setAccent]);
+    mode, resolvedMode, accent, setMode, setAccent, syncError,
+  }), [mode, resolvedMode, accent, setMode, setAccent, syncError]);
 
   return (
     <ThemeSettingsContext.Provider value={value}>

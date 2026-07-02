@@ -14,6 +14,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
 import Layout from '../../components/Layout';
+import { openAuthenticatedFile } from '../../utils/authDownload';
 
 // ── Constants ─────────────────────────────────────────────────────────────
 const EMPTY_FORM = {
@@ -532,9 +533,8 @@ export default function SalesOrdersPage() {
               {/* PDF export action */}
               <Box sx={{ display:'flex', justifyContent:'flex-end', mb:1.5 }}>
                 <Button size="small" variant="outlined" startIcon={<PictureAsPdf sx={{ fontSize:16, color:'#d32f2f' }}/>}
-                  component="a"
-                  href={`${api.defaults.baseURL}/api/sales-orders/${viewItem._id}/pdf`}
-                  target="_blank" rel="noreferrer"
+                  onClick={() => openAuthenticatedFile(`/api/sales-orders/${viewItem._id}/pdf`)
+                    .catch(() => showSnack(AR?'فشل فتح الملف':'Failed to open file', 'error'))}
                   sx={{ color:'#d32f2f', borderColor:'#d32f2f40' }}>
                   {AR?'تصدير PDF':'Export PDF'}
                 </Button>

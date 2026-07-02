@@ -20,7 +20,7 @@ export default function SettingsPage() {
   const { t, i18n } = useTranslation();
   const [section, setSection] = useState('language');
   const [snack,   setSnack]   = useState('');
-  const { mode, setMode, accent, setAccent } = useThemeSettings();
+  const { mode, setMode, accent, setAccent, syncError } = useThemeSettings();
   const AR = i18n.language === 'ar';
 
   const currentLang = getCurrentLang();
@@ -340,6 +340,17 @@ export default function SettingsPage() {
         anchorOrigin={{ vertical:'bottom', horizontal:'center' }}>
         <Alert severity="success" onClose={()=>setSnack('')} sx={{ borderRadius:2 }}>
           {snack}
+        </Alert>
+      </Snackbar>
+
+      {/* الاختيار يُطبَّق فورًا ومحليًا حتى لو فشلت المزامنة مع الحساب —
+          هذا فقط يُعلمك لو الثيم ما راح يتبعك لجهاز/متصفح ثاني */}
+      <Snackbar open={!!syncError} autoHideDuration={5000}
+        anchorOrigin={{ vertical:'bottom', horizontal:'center' }}>
+        <Alert severity="warning" sx={{ borderRadius:2 }}>
+          {AR
+            ? 'تم تطبيق الثيم على هذا الجهاز، لكن تعذّرت مزامنته مع حسابك'
+            : 'Theme applied on this device, but syncing it to your account failed'}
         </Alert>
       </Snackbar>
     </Layout>

@@ -313,7 +313,10 @@ export default function PurchaseRequestsPage() {
               <FileUploader
                 uploadUrl={`/api/purchase-requests/${viewItem._id}/documents`}
                 existingFiles={viewItem.attachments || []}
-                onChange={(updated) => setViewItem(p => ({ ...p, attachments: updated }))}
+                onChange={(updated) => {
+                  setViewItem(p => ({ ...p, attachments: updated }));
+                  setItems(list => list.map(o => o._id === viewItem._id ? { ...o, attachments: updated } : o));
+                }}
                 docTypeOptions={[
                   { value:'boq',       label:'BOQ',       labelAr:'جدول كميات' },
                   { value:'quotation', label:'Quotation', labelAr:'عرض سعر' },

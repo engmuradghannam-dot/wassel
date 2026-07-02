@@ -5,6 +5,7 @@ const { buildFilter } = require('../middleware/tenant');
 const PR = require('../models/PurchaseRequest');
 const Employee = require('../models/Employee');
 const PurchaseOrder = require('../models/PurchaseOrder');
+const { getNextSequence } = require('../services/sequence');
 
 // GET all PRs (filtered by company + role)
 router.get('/', protect, async (req, res) => {
@@ -58,11 +59,13 @@ router.post('/', protect, async (req, res) => {
     if (employee?.director) chain.push({ approver:employee.director._id, role:'director', status:'pending' });
     chain.push({ approver:null, role:'procurement', status:'pending' }); // procurement team
 
+    const { formatted: prNumber } = await getNextSequence(co, 'purchase_request', { prefix: 'PR' });
     const pr = await PR.create({
       ...req.body, company:co,
       requestedBy, approvalChain:chain,
       currentApprover: chain[0]?.approver || null,
       status: req.body.status || 'draft',
+      prNumber,
       createdBy: req.user._id,
     });
 
@@ -129,11 +132,11 @@ router.put('/:id/convert-to-po', protect, authorize('owner','admin','superadmin'
       return res.status(400).json({ success:false, message:'الطلب يجب أن يكون معتمداً أولاً' });
     }
 
-    const count = await PurchaseOrder.countDocuments({ company:co }) + 1;
+    const { formatted: orderNumber } = await getNextSequence(co, 'purchase_order', { prefix: 'PO' });
     const po = await PurchaseOrder.create({
       company: co,
       supplier: req.body.supplier,
-      orderNumber: `PO-${new Date().getFullYear()}-${String(count).padStart(5,'0')}`,
+      orderNumber,
       purchaseRequest: pr._id,
       project: pr.project,
       items: pr.items.map(i=>({ name:i.description, quantity:i.quantity, unit:i.unit, unitPrice:i.estimatedPrice||0, taxRate:15, total:i.quantity*(i.estimatedPrice||0) })),
