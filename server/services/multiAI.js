@@ -184,6 +184,10 @@ async function askEnsemble({ userId, system, history = [], userMessage, maxToken
   const failures = results
     .map((r, i) => r.status === 'rejected' ? { provider: configured[i][0], error: r.reason } : null)
     .filter(Boolean);
+  const failedProviders = failures.map(f => ({
+    provider: f.provider,
+    reason: f.error?.message || String(f.error) || 'unknown error',
+  }));
 
   if (successes.length === 0) {
     const err = new Error('ALL_FAILED');
@@ -193,7 +197,7 @@ async function askEnsemble({ userId, system, history = [], userMessage, maxToken
   }
 
   if (successes.length === 1) {
-    return { text: successes[0].text, providers: [successes[0].provider], synthesized: false };
+    return { text: successes[0].text, providers: [successes[0].provider], synthesized: false, failedProviders };
   }
 
   // ── أكثر من مزود نجح: ندمج الإجابات في إجابة واحدة نهائية أفضل ──────────
@@ -212,10 +216,10 @@ ${successes.map((s, i) => `── إجابة ${i + 1} ──\n${s.text}`).join('
       userMessage: synthPrompt,
       maxTokens, temperature: 0.3,
     });
-    return { text: finalText || successes[0].text, providers: successes.map(s => s.provider), synthesized: true };
+    return { text: finalText || successes[0].text, providers: successes.map(s => s.provider), synthesized: true, failedProviders };
   } catch {
     // فشل الدمج نفسه (نادر) → نرجع أفضل إجابة منفردة بدل ما نفشل بالكامل
-    return { text: successes[0].text, providers: successes.map(s => s.provider), synthesized: false };
+    return { text: successes[0].text, providers: successes.map(s => s.provider), synthesized: false, failedProviders };
   }
 }
 

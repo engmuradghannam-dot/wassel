@@ -49,6 +49,13 @@ const Bubble = ({ msg, onGoToSettings }) => {
               : `المصدر: ${msg.providers[0]}`}
           </Typography>
         )}
+        {msg.failedProviders?.length > 0 && (
+          <Tooltip title={msg.failedProviders.map(f => `${f.provider}: ${f.reason}`).join(' — ')}>
+            <Typography variant="caption" sx={{ display: 'block', mt: 0.3, opacity: 0.5, cursor: 'help', textDecoration: 'underline dotted' }}>
+              {`لم يرد: ${msg.failedProviders.map(f => f.provider).join('، ')}`}
+            </Typography>
+          </Tooltip>
+        )}
         {msg.needsKey && (
           <Button size="small" variant="outlined" onClick={onGoToSettings} sx={{ mt: 1 }}>
             الذهاب للإعدادات
@@ -148,7 +155,8 @@ const WasselAI = () => {
               content: res.data.data.message + (res.data.data.debugDetail ? `\n\n(${res.data.data.debugDetail})` : ''),
               fallback: res.data.data.fallback,
               providers: res.data.data.providers,
-              synthesized: res.data.data.synthesized
+              synthesized: res.data.data.synthesized,
+              failedProviders: res.data.data.failedProviders
             }]);
           }
       }

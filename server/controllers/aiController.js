@@ -93,7 +93,7 @@ ${erpContext.stats ? `
     const systemPrompt = ERP_SYSTEM_PROMPT + '\n\n' + contextStr;
 
     // ─── AI Call (كل المزودين المضبوطين معاً) ─────────────────
-    const { text: reply, providers, synthesized } = await askEnsemble({
+    const { text: reply, providers, synthesized, failedProviders } = await askEnsemble({
       userId,
       system: systemPrompt,
       history: history.slice(-10),
@@ -114,7 +114,7 @@ ${erpContext.stats ? `
       data: {
         message: reply,
         context: { page, user: erpContext.user?.name },
-        providers, synthesized,
+        providers, synthesized, failedProviders,
       }
     });
 
@@ -169,7 +169,7 @@ ${JSON.stringify(analysisData, null, 2).slice(0, 3000)}
 
 كن محدداً وعملياً، لا تكتر الكلام.`;
 
-    const { text: analysis, providers, synthesized } = await askEnsemble({
+    const { text: analysis, providers, synthesized, failedProviders } = await askEnsemble({
       userId: req.user.id,
       system: ERP_SYSTEM_PROMPT,
       userMessage: prompt,
@@ -179,7 +179,7 @@ ${JSON.stringify(analysisData, null, 2).slice(0, 3000)}
 
     res.json({
       success: true,
-      data: { analysis, type, providers, synthesized }
+      data: { analysis, type, providers, synthesized, failedProviders }
     });
 
   } catch (err) {
@@ -221,7 +221,7 @@ exports.develop = async (req, res) => {
 
 اكتب كوداً نظيفاً وموثقاً بالتعليقات العربية.`;
 
-    const { text: code, providers, synthesized } = await askEnsemble({
+    const { text: code, providers, synthesized, failedProviders } = await askEnsemble({
       userId: req.user.id,
       userMessage: devPrompt,
       maxTokens: 4000,
@@ -233,7 +233,7 @@ exports.develop = async (req, res) => {
       data: {
         code,
         request,
-        providers, synthesized,
+        providers, synthesized, failedProviders,
         warning: 'راجع الكود قبل التطبيق — المسؤولية على المستخدم'
       }
     });
@@ -274,7 +274,7 @@ ${employeeData ? `بيانات الموظف: ${JSON.stringify(employeeData).slic
 - حساب مالي إن احتاج الأمر
 - توصية عملية`;
 
-    const { text: advice, providers, synthesized } = await askEnsemble({
+    const { text: advice, providers, synthesized, failedProviders } = await askEnsemble({
       userId: req.user.id,
       userMessage: hrPrompt,
       maxTokens: 1500,
@@ -283,7 +283,7 @@ ${employeeData ? `بيانات الموظف: ${JSON.stringify(employeeData).slic
 
     res.json({
       success: true,
-      data: { advice, providers, synthesized }
+      data: { advice, providers, synthesized, failedProviders }
     });
 
   } catch (err) {
