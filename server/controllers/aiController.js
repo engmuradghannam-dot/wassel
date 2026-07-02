@@ -31,15 +31,17 @@ const NO_KEY_RESPONSE = {
 // (رفض المفتاح، موديل غير موجود، تحميل زائد...) بدل رسالة عامة مبهمة
 // تخفي الخطأ الفعلي وتصعّب التشخيص لاحقاً
 function describeAllFailed(err) {
-  console.error('[AI] All configured providers failed:', JSON.stringify(
-    (err.failures || []).map(f => ({ provider: f.provider, status: f.error?.status, message: f.error?.message }))
-  ));
-  const first = err.failures?.[0];
-  const detail = first ? `${first.provider}: ${first.error?.message || first.error?.status || 'unknown error'}` : undefined;
+  const details = (err.failures || []).map(f => ({
+    provider: f.provider,
+    status: f.error?.status,
+    message: f.error?.message || String(f.error),
+  }));
+  console.error('[AI] All configured providers failed:', JSON.stringify(details));
+  const detail = details.map(d => `${d.provider}: ${d.message || d.status || 'unknown error'}`).join(' | ');
   return {
     success: false, code: 'INVALID_AI_KEY',
     message: 'كل المفاتيح المحفوظة فشلت في الرد. تحقق منها من الإعدادات ← الذكاء الاصطناعي.',
-    detail,
+    detail: detail || undefined,
   };
 }
 
